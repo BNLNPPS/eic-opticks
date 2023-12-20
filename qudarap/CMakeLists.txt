@@ -228,7 +228,11 @@ WITH_THRUST compile definition
 target_compile_definitions( ${name} PRIVATE WITH_THRUST )
 
 #target_compile_definitions( ${name} PRIVATE DEBUG_TIME )
-target_include_directories( ${name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> )
+target_include_directories( ${name}
+   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+   $<INSTALL_INTERFACE:include>
+   $<INSTALL_INTERFACE:include/QUDARap>
+)
 
 # see notes/issues/QUDARap_symbol_visibility_warnings.rst 
 #set_target_properties( ${name} PROPERTIES CXX_VISIBILITY_PRESET hidden )

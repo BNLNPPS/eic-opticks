@@ -99,6 +99,9 @@ add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
 target_include_directories( ${name} PRIVATE
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/inc>
+   PUBLIC
+   $<INSTALL_INTERFACE:include>
+   $<INSTALL_INTERFACE:include/OKConf>
 )
 
 target_compile_definitions( ${name} PUBLIC OPTICKS_OKCONF )

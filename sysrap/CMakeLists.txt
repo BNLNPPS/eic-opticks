@@ -677,8 +677,10 @@ if(SysRap_VERBOSE)
   #echo_target_std(${name}) 
 endif()
 
-target_include_directories( ${name} PUBLIC 
+target_include_directories( ${name} PUBLIC
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+   $<INSTALL_INTERFACE:include>
+   $<INSTALL_INTERFACE:include/SysRap>
    ${CUDA_INCLUDE_DIRS}
    ${OPTICKS_PREFIX}/externals/glm/glm
 )

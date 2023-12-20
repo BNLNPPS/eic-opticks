@@ -196,6 +196,8 @@ add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
 target_include_directories( ${name} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/inc>
+    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:include/BoostRap>
 )
 target_compile_definitions( ${name} PUBLIC OPTICKS_BRAP )
 
