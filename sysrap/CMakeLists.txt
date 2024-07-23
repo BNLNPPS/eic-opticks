@@ -45,6 +45,7 @@ find_package(OKConf REQUIRED CONFIG)
 find_package(NLJSON REQUIRED MODULE)
 find_package(PLog   REQUIRED MODULE)
 find_package(OpticksCUDA REQUIRED MODULE)
+find_package(GLM REQUIRED)
 
 set(Custom4_VERBOSE ON) 
 find_package(Custom4 CONFIG)
@@ -682,7 +683,7 @@ target_include_directories( ${name} PUBLIC
    $<INSTALL_INTERFACE:include>
    $<INSTALL_INTERFACE:include/SysRap>
    ${CUDA_INCLUDE_DIRS}
-   ${OPTICKS_PREFIX}/externals/glm/glm
+   ${GLM_INCLUDE_DIR}
 )
 
 
