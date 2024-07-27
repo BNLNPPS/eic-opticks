@@ -74,6 +74,7 @@ set(SOURCES
     SLOG.cc 
 
     SCurandState.cc
+    SProc.cc
     SSys.cc
     SProf.cc
 
@@ -187,6 +188,7 @@ set(HEADERS
 
 
     SCurandState.hh
+    SProc.hh
     sproc.h
     sprof.h
     SProf.hh
@@ -537,18 +539,6 @@ set(HEADERS
 
     SOpBoundaryProcess.hh
 )
-
-set(RETIRED_SOURCES
-    SProc.cc
-)
-
-set(RETIRED_HEADERS
-    SProc.hh
-)
-
-
-
-
 
 # using absolute ANADIR avoids build environment requiring it in PATH 
 get_filename_component(ANADIR ../ana ABSOLUTE)
