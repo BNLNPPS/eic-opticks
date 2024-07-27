@@ -49,17 +49,16 @@ foreach(SRC ${SINGLE_SOURCES})
 endforeach()
 
 
-find_package(OpticksGLEW MODULE)
-find_package(OpticksGLFW MODULE) 
-
+find_package(glew)
+find_package(glfw3)
 
 foreach(SRC ${VIZ_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} 
           CSGOptiX
-          Opticks::OpticksGLEW
-          Opticks::OpticksGLFW 
+          GLEW::glew
+          glfw
          )
     install(TARGETS ${TGT} DESTINATION lib)
 endforeach()
