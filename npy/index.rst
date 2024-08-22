@@ -1,9 +1,0 @@
-NPY
-====
-
-.. toctree::
-
-    NPY
-
-
-
