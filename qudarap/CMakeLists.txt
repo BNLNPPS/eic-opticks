@@ -8,8 +8,6 @@ set(FLAGS_VERBOSE ON)
 
 set(LIBS  )
 
-
-find_package(SysRap REQUIRED CONFIG)
 set(LIBS ${LIBS} Opticks::SysRap)  
 
 

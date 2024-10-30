@@ -11,8 +11,6 @@ G4CX
 #]=]
 
 #find_package(Custom4 CONFIG)   # hmm U4 looks for Custom4 and does setup
-find_package(U4       REQUIRED CONFIG)
-find_package(CSGOptiX REQUIRED CONFIG)
 
 message(STATUS "${CMAKE_CURRENT_LIST_FILE} : Custom4_FOUND      : ${Custom4_FOUND}")
 message(STATUS "${CMAKE_CURRENT_LIST_FILE} : Custom4_VERSION    : ${Custom4_VERSION}")
@@ -40,6 +38,7 @@ target_link_libraries( ${name} PUBLIC
 
 target_include_directories( ${name} PUBLIC 
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> 
+   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/CSGOptiX>
 )
 
 target_compile_definitions( ${name} PUBLIC OPTICKS_G4CX )

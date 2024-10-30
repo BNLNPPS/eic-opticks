@@ -13,7 +13,6 @@ include(OpticksBuildOptions NO_POLICY_SCOPE)
 #set(G4_VERBOSE YES)
 #set(OpticksXercesC_VERBOSE YES)
 
-find_package(SysRap REQUIRED CONFIG)
 find_package(G4 REQUIRED MODULE)   # may be needed at CMake level only to find G4Persistency target for consistent XercesC version
 find_package(OpticksXercesC REQUIRED MODULE)
 

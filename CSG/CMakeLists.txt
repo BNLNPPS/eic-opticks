@@ -4,7 +4,6 @@ project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions NO_POLICY_SCOPE)
 
 find_package(CUDA REQUIRED) 
-find_package(SysRap REQUIRED)
 
 include_directories(
     ${CUDA_INCLUDE_DIRS}
