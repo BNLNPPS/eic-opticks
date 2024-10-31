@@ -137,12 +137,27 @@ void CSGCopy::copy()
 
         const CSGSolid* sso = src->getSolid(sSolidIdx);
         unsigned numSelectedPrim = src->getNumSelectedPrimInSolid(sso, elv );  
-        const std::string& solidLabel = src->getSolidLabel(sSolidIdx); 
-        LOG_IF(LEVEL, dump_solid) << " sso " << sso->desc() << " numSelectedPrim " << numSelectedPrim << " solidLabel " << solidLabel ; 
+        const std::string& solidMMLabel = src->getSolidMMLabel(sSolidIdx); 
+
+        char sIntent = sso->getIntent(); 
+
+        LOG(LEVEL) 
+            << " sSolidIdx/sNumSolid/numSelectedPrim"
+            << std::setw(2) << sSolidIdx 
+            << "/" 
+            << std::setw(2) << sNumSolid 
+            << "/" 
+            << std::setw(4) << numSelectedPrim 
+            << " [" << sIntent << "] "
+            << ": "
+            << solidMMLabel
+            ;
+
+        LOG_IF(LEVEL, dump_solid) << " sso " << sso->desc() << " numSelectedPrim " << numSelectedPrim << " solidMMLabel " << solidMMLabel ; 
 
         if( numSelectedPrim == 0 ) continue ;  
 
-        dst->addSolidLabel( solidLabel.c_str() );  
+        dst->addSolidMMLabel( solidMMLabel.c_str() );  
 
         unsigned dSolidIdx = dst->getNumSolid() ; // index before adding (0-based)
         if( elv == nullptr ) assert( dSolidIdx == sSolidIdx ); 
@@ -150,6 +165,10 @@ void CSGCopy::copy()
         CSGSolid* dso = dst->addSolid(numSelectedPrim, sso->label );   
         int dPrimOffset = dso->primOffset ;       
         assert( dPrimOffset == int(dst->prim.size()) );  
+
+        CSGSolid::CopyIntent( dso, sso ); 
+
+
 
         solidMap[sSolidIdx] = dSolidIdx ; 
 
@@ -387,6 +406,11 @@ As some solids may disappear as a result of Prim selection
 it is necessary to change potentially all the inst solid references. 
 
 See ~/j/issues/cxr_scan_cxr_overview_ELV_scan_out_of_range_error.rst
+
+Iterates over all source instances looking up the src gas_idx and 
+checking if that solid is selected and hence is being copied into the dst 
+geometry. Where instances correspond to selected solids the addInstance
+is invoked on the destination geometry.  
 
 **/
 

@@ -36,6 +36,7 @@ TODO:
 
 #include "ssys.h"
 #include "stree.h"
+#include "schrono.h"
 #include "OPTICKS_LOG.hh"
 #include "SEventConfig.hh"
 #include "CSGFoundry.h"
@@ -58,8 +59,8 @@ int main(int argc, char** argv)
     if(scene->is_empty())
     {
         LOG(fatal) << "CSGFoundry::Load GIVES EMPTY SCENE : TRANSITIONAL KLUDGE : TRY TO LOAD FROM SCENE_FOLD " ; 
-        scene = SScene::Load("$SCENE_FOLD");   
-        fd->setOverrideScene(scene); 
+        //scene = SScene::Load("$SCENE_FOLD");   
+        //fd->setOverrideScene(scene); 
     }
     else
     {
@@ -82,13 +83,20 @@ int main(int argc, char** argv)
     stree* st = fd->getTree(); 
     assert(st);
  
-    const char* MOI = ssys::getenvvar("MOI", nullptr);
-    assert(MOI); 
+    const char* MOI = ssys::getenvvar("MOI", "0:0:-1" );  // default lvid 0 in remainder 
+    const char* PFX = "EXTENT:" ;
+    float extent = sstr::StartsWith(MOI, PFX) ? sstr::To<float>( MOI + strlen(PFX) ) : 0.f ;  
+    // this extent handling is primarily for use with simple single solid test geometries
+    int sleep_break = ssys::getenvint("SLEEP_BREAK",0); 
 
-    sfr mfr = st->get_frame(MOI); 
-    mfr.set_idx(-2); 
+
+    sfr mfr = extent > 0.f ? sfr::MakeFromExtent<float>(extent) :  st->get_frame(MOI);    // HMM: what about when start from CSGMaker geometry ? 
+    mfr.set_idx(-2);                 // maybe should start from stree/snode/sn geometry with an streemaker.h ?  
+
+ 
 
     std::cout << "before loop  gl.get_wanted_frame_idx " <<  gl.get_wanted_frame_idx() << "\n" ; 
+
  
     while(gl.renderloop_proceed())
     {   
@@ -141,6 +149,11 @@ int main(int argc, char** argv)
         interop.displayOutputBuffer(gl.window);
 
         gl.renderloop_tail();
+        if(sleep_break == 1) 
+        { 
+            schrono::sleep(1);  // 1 second then exit
+            break ; 
+        } 
     }   
     return 0 ; 
 }

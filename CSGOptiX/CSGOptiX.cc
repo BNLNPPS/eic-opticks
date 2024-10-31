@@ -481,6 +481,7 @@ void CSGOptiX::init()
     initSimulate();
     initFrame(); 
     initRender(); 
+    initPIDXYZ(); 
 
     LOG(LEVEL) << "]" ; 
 }
@@ -685,6 +686,21 @@ void CSGOptiX::initRender()
 #else
     params->fphoton = nullptr ; 
 #endif
+}
+
+void CSGOptiX::initPIDXYZ()
+{
+    qvals(params->pidxyz, "PIDXYZ", "-1:-1:-1", -1 ) ;
+    const char* PIDXYZ = ssys::getenvvar("PIDXYZ") ; 
+    if(PIDXYZ && strcmp(PIDXYZ,"MIDDLE") == 0 )
+    {
+        LOG(info) << " special casing PIDXYZ MIDDLE " ; 
+        params->pidxyz.x = params->width/2 ; 
+        params->pidxyz.y = params->height/2 ; 
+        params->pidxyz.z = params->depth/2 ; 
+    }
+
+    LOG(LEVEL) << " params->pidxyz " << params->pidxyz ; 
 }
 
 
@@ -1232,7 +1248,15 @@ void CSGOptiX::render_save_(const char* stem_, bool inverted)
           << SEventConfig::DescOutPath(stem, -1, ".jpg", unique );
           ;  
 
-    sglm->addlog("CSGOptiX::render_snap", stem ); 
+    std::string u_outdir ; 
+    std::string u_stem ; 
+    std::string u_ext ;
+ 
+    [[maybe_unused]] int rc = spath::SplitExt( u_outdir, u_stem, u_ext, outpath )  ; 
+    assert(rc == 0 ); 
+
+    sglm->addlog("CSGOptiX::render_snap", u_stem.c_str() ); 
+
 
     const char* topline = ssys::getenvvar("TOPLINE", sproc::ExecutableName() ); 
     std::string _extra = GetGPUMeta();  // scontext::brief giving GPU name 
@@ -1257,8 +1281,8 @@ void CSGOptiX::render_save_(const char* stem_, bool inverted)
     unsigned line_height = 24 ; 
     snap(outpath, botline, topline, line_height, inverted  );   
 
-    sglm->fr.save( outdir, stem ); 
-    sglm->writeDesc( outdir, stem, ".log" ); 
+
+    sglm->save( u_outdir.c_str(), u_stem.c_str() ); 
 } 
 
 

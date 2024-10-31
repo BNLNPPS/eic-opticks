@@ -18,31 +18,38 @@ sysrap/tests/SGLM_set_frame_test.sh
     EYE=0.2,0.2,0.2 TMIN=0.1 ~/o/cxr_min.sh
     EYE=0.3,0.3,0.3 TMIN=0.1 ~/o/cxr_min.sh
 
-    ELV=t:Water_solid,Rock_solid  ./cxr_min.sh    # with colon not working 
-
+    ELV=t:Water_solid,Rock_solid  ~/o/cxr_min.sh 
 
     MOI=PMT_20inch_veto:0:1000 ~/o/cxr_min.sh
 
 
-    TRIMESH=1 ~/o/cxr_min.sh 
+    ~/o/cxr_min.sh 
 
 
+Use ELV to exclude virtual PMT wrapper volumes::
 
-FIXED Issue : EYE inputs not being extent scaled
------------------------------------------------------
+    ELV=t:HamamatsuR12860sMask_virtual,NNVTMCPPMTsMask_virtual,mask_PMT_20inch_vetosMask_virtual ~/o/cx.sh
 
-The transition to using the transforms from sframe.h 
-revealed a difference in the matrix expections, 
-where the difference was extent scaling. This made
-it tedious to find good viewpoints.::
 
-    EYE=10,10,10 TMIN=0.5 MOI=Hama:0:0 ./cxr_min.sh        ## invisible 
-    EYE=100,100,100 TMIN=0.1 MOI=Hama:0:1000 ./cxr_min.sh  ## mostly inviz
-    EYE=1000,1000,1000 TMIN=0.5 MOI=NNVT:0:0 ./cxr_min.sh  ## makes sense
+EMM EnabledMergedMesh examples selecting compound solids::
 
-DONE: added saving of SGLM::desc for debugging view issues
+    EMM=0, ~/o/cx.sh   ## only 0, "rem" 
 
-    
+    EMM=t0, ~/o/cx.sh    ## exclude 0 "rem"
+    EMM=t:0, ~/o/cx.sh   ## exclude 0 "rem"
+
+    EMM=10, ~/o/cx.sh   ## only 10 "tri"
+
+    EMM=10  ~/o/cx.sh   ## NB: WITHOUT COMMA IS VERY DIFFERENT TO ABOVE : BIT PATTERN FROM DECIMAL 10 
+
+    EMM=1,2,3,4 ~/o/cx.sh
+
+    EMM=1,2,3,4,5,6,7,8,9 ~/o/cx.sh 
+
+
+NB presence of comma in EMM switches to bit position input, not binary value
+
+
 
 EOU
 }
@@ -68,6 +75,10 @@ bin=CSGOptiXRenderInteractiveTest
 
 source ~/.opticks/GEOM/GEOM.sh   # sets GEOM envvar, use GEOM bash function to setup/edit 
 source ~/.opticks/GEOM/MOI.sh    # sets MOI envvar, use MOI bash function to setup/edit  
+
+
+export CSGFoundry__Load_DUMP=1   # report the directory loaded 
+
 
 
 # TRANSITIONAL KLUDGE
@@ -170,20 +181,18 @@ logging(){
 }
 [ -n "$LOG" ] && logging 
 
-
-cvd=1   # default 1:TITAN RTX
-export CUDA_VISIBLE_DEVICES=${CVD:-$cvd}
+# better to leave CUDA_VISIBLE_DEVICES up to the user to set - not opticks scripts
 
 #[ -n "$HOP" ] && echo $BASH_SOURCE ENABLE FRAME_HOPPING WHICH NEEDS DEBUGGING  && 
 export CSGOptiXRenderInteractiveTest__FRAME_HOP=1
-export CSGOptiXRenderInteractiveTest__SGLM_DESC=1
+#export CSGOptiXRenderInteractiveTest__SGLM_DESC=1
 
 
-if [ -n "$TRIMESH" ]; then 
 
+#if [ -n "$TRIMESH" ]; then 
    #trimesh=2923:sWorld
    #trimesh=3062:sWorld
-   trimesh=3218:sWorld
+   #trimesh=3218:sWorld
    #trimesh=5:PMT_3inch_pmt_solid
    #trimesh=9:NNVTMCPPMTsMask_virtual
    #trimesh=12:HamamatsuR12860sMask_virtual
@@ -198,8 +207,9 @@ if [ -n "$TRIMESH" ]; then
    #trimesh=28:World_solid 
    #trimesh=2:VACUUM_solid 
 
-   export OPTICKS_SOLID_TRIMESH=$trimesh
-fi
+   #export OPTICKS_SOLID_TRIMESH=$trimesh
+   #echo posthoc TRIMESH setting no longer honoured - moving to flexible forced triangulation for finer control - that has to be precache 
+#fi
 
 
 TMP=${TMP:-/tmp/$USER/opticks}
@@ -212,7 +222,7 @@ cd $LOGDIR
 
 LOG=$bin.log
 
-vars="GEOM MOI TMIN EYE LOOK UP ZOOM LOGDIR BASE PBAS NAMEPREFIX OPTICKS_HASH TOPLINE BOTLINE CVD CUDA_VISIBLE_DEVICES"
+vars="GEOM MOI EMM ELV TMIN EYE LOOK UP ZOOM LOGDIR BASE PBAS NAMEPREFIX OPTICKS_HASH TOPLINE BOTLINE CUDA_VISIBLE_DEVICES"
 
 
 
@@ -226,6 +236,8 @@ Resolve_CFBaseFromGEOM()
 
    local A_CFBaseFromGEOM=$TMP/G4CXOpticks_setGeometry_Test/$GEOM
    local B_CFBaseFromGEOM=$HOME/.opticks/GEOM/$GEOM
+   local C_CFBaseFromGEOM=/cvmfs/opticks.ihep.ac.cn/.opticks/GEOM/$GEOM
+
    local TestPath=CSGFoundry/prim.npy
    local GDMLPathFromGEOM=$HOME/.opticks/GEOM/$GEOM/origin.gdml 
 
@@ -235,12 +247,16 @@ Resolve_CFBaseFromGEOM()
     elif [ -d "$B_CFBaseFromGEOM" -a -f "$B_CFBaseFromGEOM/$TestPath" ]; then
         export ${GEOM}_CFBaseFromGEOM=$B_CFBaseFromGEOM
         echo $BASH_SOURCE : FOUND B_CFBaseFromGEOM $B_CFBaseFromGEOM containing $TestPath
+    elif [ -d "$C_CFBaseFromGEOM" -a -f "$C_CFBaseFromGEOM/$TestPath" ]; then
+        export ${GEOM}_CFBaseFromGEOM=$C_CFBaseFromGEOM
+        echo $BASH_SOURCE : FOUND C_CFBaseFromGEOM $C_CFBaseFromGEOM containing $TestPath
     elif [ -f "$GDMLPathFromGEOM" ]; then 
         export ${GEOM}_GDMLPathFromGEOM=$GDMLPathFromGEOM
         echo $BASH_SOURCE : FOUND GDMLPathFromFromGEOM $GDMLPathFromFromGEOM 
     else
         echo $BASH_SOURCE : NOT-FOUND A_CFBaseFromGEOM $A_CFBaseFromGEOM containing $TestPath
         echo $BASH_SOURCE : NOT-FOUND B_CFBaseFromGEOM $B_CFBaseFromGEOM containing $TestPath
+        echo $BASH_SOURCE : NOT-FOUND C_CFBaseFromGEOM $C_CFBaseFromGEOM containing $TestPath
         echo $BASH_SOURCE : NOT-FOUND GDMLPathFromGEOM $GDMLPathFromGEOM
     fi 
 }

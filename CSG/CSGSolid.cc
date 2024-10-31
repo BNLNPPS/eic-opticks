@@ -59,6 +59,11 @@ std::string CSGSolid::desc() const
     return s ; 
 }
 
+const char* CSGSolid::getLabel() const 
+{
+    std::string lab(label, 16);   // array size 16 
+    return strdup(lab.c_str()) ;   // avoid newline? 
+}
 
 bool CSGSolid::labelMatch(const char* label_) const 
 {
@@ -66,8 +71,31 @@ bool CSGSolid::labelMatch(const char* label_) const
 }
 
 
+/**
+CSGSolid::getIntent
+--------------------
 
+Replace former getLabelPrefix which returned label[0] with a dedicated 
+field as when used with general names, some will have unintended effects. 
 
+**/
+char CSGSolid::getIntent() const
+{
+    return intent ; 
+}
+void CSGSolid::setIntent(char _intent)
+{
+    assert(_intent == 'R' || _intent == 'F' || _intent == 'T' ); 
+    intent = _intent ; 
+} 
+
+void CSGSolid::CopyIntent( CSGSolid* d,  const CSGSolid* s )
+{
+    d->intent = s->intent ; 
+    d->pad0 = s->pad0 ; 
+    d->pad1 = s->pad1 ; 
+    d->pad2 = s->pad2 ; 
+}
 
 
 

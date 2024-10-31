@@ -155,7 +155,8 @@ static __forceinline__ __device__ void trace(
 #endif
 }
 
-#if !defined(PRODUCTION) && defined(WITH_RENDER)
+//#if !defined(PRODUCTION) && defined(WITH_RENDER)
+#if defined(WITH_RENDER)
 
 __forceinline__ __device__ uchar4 make_color( const float3& normal )  // pure 
 {
@@ -236,6 +237,8 @@ static __forceinline__ __device__ void render( const uint3& idx, const uint3& di
         float3 position = origin + direction*prd->distance() ;
         params.isect[index]  = make_float4( position.x, position.y, position.z, __uint_as_float(prd->identity())) ; 
     }
+
+
 }
 #endif
  
@@ -277,8 +280,16 @@ static __forceinline__ __device__ void simulate( const uint3& launch_idx, const 
     unsigned genstep_idx = evt->seed[idx] ; 
     const quad6& gs = evt->genstep[genstep_idx] ; 
      
-    qsim* sim = params.sim ; 
-    curandState rng = sim->rngstate[idx] ;    // TODO: skipahead using an event_id 
+    qsim* sim = params.sim ;
+
+//#define OLD_WITHOUT_SKIPAHEAD 1
+#ifdef OLD_WITHOUT_SKIPAHEAD
+    curandState rng = sim->rngstate[idx] ;   
+#else
+    curandState rng ; 
+    sim->rng->get_rngstate_with_skipahead( rng, sim->evt->index, idx );
+#endif
+
 
     sctx ctx = {} ; 
     ctx.evt = evt ; 
@@ -326,7 +337,8 @@ static __forceinline__ __device__ void simulate( const uint3& launch_idx, const 
 #endif
 
 
-#if !defined(PRODUCTION) && defined(WITH_SIMTRACE)
+//#if !defined(PRODUCTION) && defined(WITH_SIMTRACE)
+#if defined(WITH_SIMTRACE)
 
 /**
 simtrace
@@ -403,12 +415,13 @@ extern "C" __global__ void __raygen__rg()
     const uint3 idx = optixGetLaunchIndex();
     const uint3 dim = optixGetLaunchDimensions();
 
+    //bool midpix = idx.x == dim.x/2 && idx.y == dim.y/2 && idx.z == dim.z/2 ; 
+    //if(midpix) printf("//__raygen_rg.midpix params.raygenmode %d  \n", params.raygenmode); 
+
     quad2 prd ; 
     prd.zero(); 
 
-
   
-#ifndef PRODUCTION
     switch( params.raygenmode )
     {
 
@@ -422,9 +435,7 @@ extern "C" __global__ void __raygen__rg()
         case SRG_SIMTRACE:  simtrace( idx, dim, &prd ) ; break ;  
 #endif
     }
-#else
-    simulate( idx, dim, &prd ) ;
-#endif
+
 } 
 
 
@@ -666,9 +677,15 @@ COULD: reduce HitGroupData to just the nodeOffset
 extern "C" __global__ void __intersection__is()
 {
 
-#if defined(DEBUG_PIDX)
-    //printf("//__intersection__is\n"); 
+#if defined(DEBUG_PIDXYZ)
+    const uint3 idx = optixGetLaunchIndex();
+    const uint3 dim = optixGetLaunchDimensions();
+    bool dumpxyz = idx.x == params.pidxyz.x && idx.y == params.pidxyz.y && idx.z == params.pidxyz.z ; 
+    //if(dumpxyz) printf("//__intersection__is  idx(%u,%u,%u) dim(%u,%u,%u) dumpxyz:%d \n", idx.x, idx.y, idx.z, dim.x, dim.y, dim.z, dumpxyz); 
+#else
+    bool dumpxyz = false ; 
 #endif
+
 
     HitGroupData* hg  = (HitGroupData*)optixGetSbtDataPointer();  
     int nodeOffset = hg->prim.nodeOffset ; 
@@ -682,7 +699,13 @@ extern "C" __global__ void __intersection__is()
     const float3 ray_direction = optixGetObjectRayDirection();
 
     float4 isect ; // .xyz normal .w distance 
-    if(intersect_prim(isect, node, plan, itra, t_min , ray_origin, ray_direction ))  
+    isect.x = 0.f ; 
+    isect.y = 0.f ; 
+    isect.z = 0.f ; 
+    isect.w = 0.f ; 
+
+    bool valid_isect = intersect_prim(isect, node, plan, itra, t_min , ray_origin, ray_direction, dumpxyz ); 
+    if(valid_isect)
     {
         const float lposcost = normalize_z(ray_origin + isect.w*ray_direction ) ;  // scuda.h 
         const unsigned hitKind = 0u ;     // only up to 127:0x7f : could use to customize how attributes interpreted
@@ -709,5 +732,11 @@ extern "C" __global__ void __intersection__is()
         // IS:optixReportIntersection writes the attributes that can be read in CH and AH programs 
         // max 8 attribute registers, see PIP::PIP, communicate to __closesthit__ch 
     }
+
+#if defined(DEBUG_PIDXYZ)
+    //if(dumpxyz) printf("//__intersection__is  idx(%u,%u,%u) dim(%u,%u,%u) dumpxyz:%d valid_isect:%d\n", idx.x, idx.y, idx.z, dim.x, dim.y, dim.z, dumpxyz, valid_isect); 
+#endif
+
+
 }
 // story begins with intersection

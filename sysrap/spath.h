@@ -32,6 +32,7 @@ private:
     static std::string _ResolvePath(const char* spec); 
     static std::string _ResolvePathGeneralized(const char* spec_); 
 
+
     static char* ResolvePath(const char* spec); 
     static char* ResolvePathGeneralized(const char* spec); 
 
@@ -59,8 +60,8 @@ public:
     static const char* Resolve(Args ... args ); 
 
     static bool EndsWith( const char* path, const char* q);
-
-
+    static int SplitExt0(std::string& dir, std::string& stem, std::string& ext, const char* path ); 
+    static int SplitExt(std::string& dir, std::string& stem, std::string& ext, const char* path ); 
 
 private:
     template<typename ... Args>
@@ -517,6 +518,57 @@ inline bool spath::EndsWith( const char* path, const char* q)
     int pos = strlen(s) - strlen(q) ;
     return pos > 0 && strncmp(s + pos, q, strlen(q)) == 0 ;
 }
+
+inline int spath::SplitExt0(std::string& dir, std::string& stem, std::string& ext, const char* _path )
+{
+    std::string path = _path ; 
+    std::size_t pos0 = path.find_last_of("/");
+    std::string name = pos0 == std::string::npos ? path : path.substr(pos0+1) ; 
+    dir = pos0 == std::string::npos ? "" : path.substr(0, pos0) ; 
+
+    std::size_t pos1 = name.find_last_of("."); 
+    ext = pos1 == std::string::npos ? "" : name.substr(pos1) ; 
+    stem = pos1 == std::string::npos ? name : name.substr(0, pos1) ; 
+
+    bool ok = strlen(dir.c_str())>0 && strlen(stem.c_str()) > 0 && strlen(ext.c_str()) > 0 ; 
+    return ok ? 0 : 1 ; 
+}
+
+
+
+/**
+spath::SplitExt
+----------------
+
+Currently this uses std::filesystem which requires c++17 (as opposed to c++11)
+
+::
+
+    TEST=SplitExt ~/o/sysrap/tests/spath_test.sh 
+
+**/
+
+#if __cplusplus < 201703
+inline int spath::SplitExt(std::string& dir, std::string& stem, std::string& ext, const char* _path )
+{
+    return SplitExt0(dir, stem, ext, _path ); 
+}
+#else
+#include <filesystem>
+inline int spath::SplitExt(std::string& dir, std::string& stem, std::string& ext, const char* _path )
+{
+    std::filesystem::path path(_path);  
+    dir = path.parent_path().string() ;
+    stem = path.stem().string() ;  
+    ext = path.extension().string() ;     
+    bool ok = strlen(dir.c_str())>0 && strlen(stem.c_str()) > 0 && strlen(ext.c_str()) > 0 ; 
+    return ok ? 0 : 1 ; 
+}
+#endif
+
+
+
+
 
 
 template<typename ... Args>

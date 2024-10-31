@@ -667,6 +667,7 @@ void SEvt::setFramePlaceholder()
 
 
 
+const bool SEvt::transformInputPhoton_VERBOSE = ssys::getenvbool("SEvt__transformInputPhoton_VERBOSE") ; 
 const bool SEvt::transformInputPhoton_WIDE = ssys::getenvbool("SEvt__transformInputPhoton_WIDE") ; 
 
 /**
@@ -678,7 +679,19 @@ SEvt::transformInputPhoton
 void SEvt::transformInputPhoton()
 {
     bool proceed = SEventConfig::IsRGModeSimulate() && hasInputPhoton() ; 
+
     LOG(LEVEL) << " proceed " << ( proceed ? "YES" : "NO " ) ; 
+
+    LOG_IF(info, transformInputPhoton_VERBOSE ) 
+        << " SEvt__transformInputPhoton_VERBOSE "
+        << " SEventConfig::IsRGModeSimulate " << SEventConfig::IsRGModeSimulate()
+        << " hasInputPhoton " <<  hasInputPhoton()
+        << " proceed " << ( proceed ? "YES" : "NO " ) 
+        << "\n" 
+        << frame.desc()
+        << "\n" 
+        ;
+
     if(!proceed) return ;    
 
     bool normalize = true ;  // normalize mom and pol after doing the transform 
@@ -2169,6 +2182,7 @@ void SEvt::setNumPhoton(unsigned num_photon)
     LOG_IF(fatal, !num_photon_allowed) << " num_photon/M " << num_photon/M << " evt.max_photon/M " << evt->max_photon/M ;
     assert( num_photon_allowed );
 
+    evt->index = index ; 
     evt->num_photon = num_photon ; 
     evt->num_seq    = evt->max_seq  == 1 ? evt->num_photon : 0 ;
     evt->num_tag    = evt->max_tag  == 1 ? evt->num_photon : 0 ;
@@ -3056,8 +3070,8 @@ void SEvt::checkPhotonLineage(const spho& label) const
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 
-NP* SEvt::gatherPho() const {  return NPX::Make<int>( (int*)pho.data(), int(pho.size()), 4 ); }
-NP* SEvt::gatherGS() const {   return NPX::Make<int>( (int*)gs.data(),  int(gs.size()), 4 );  }
+NP* SEvt::gatherPho() const {  return NPX::ArrayFromData<int>( (int*)pho.data(), int(pho.size()), 4 ); }
+NP* SEvt::gatherGS() const {   return NPX::ArrayFromData<int>( (int*)gs.data(),  int(gs.size()), 4 );  }
 
 
 /**
@@ -3082,7 +3096,7 @@ int SEvt::getGenstepVecSize() const
 
 NP* SEvt::getGenstepArray() const 
 {
-    return NPX::Make<float>( (float*)genstep.data(), int(genstep.size()), 6, 4 ) ; 
+    return NPX::ArrayFromData<float>( (float*)genstep.data(), int(genstep.size()), 6, 4 ) ; 
 }
 
 

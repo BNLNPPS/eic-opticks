@@ -212,24 +212,25 @@ GEOM(){
   fi 
 
   source $HOME/$script 
-  base=.opticks/GEOM/$GEOM
+  #base=.opticks/GEOM/$GEOM
 
 
   local args="vi/grab/get/tmpget/tmp/scp/top/lock/unlock/cf/ss/st/std/info"
   local geombase=$HOME/.opticks/GEOM
-  local geomdir=$HOME/.opticks/GEOM/$GEOM
-  local cfdir=$geomdir/CSGFoundry 
+  local GEOMBASE=${GEOMBASE:-$geombase} 
+  local GEOMDIR=$GEOMBASE/$GEOM
+  local CFDIR=$GEOMDIR/CSGFoundry 
   local ggeo=/tmp/$USER/opticks/GGeo 
   local tmpbase=${TMP:-/tmp/$USER/opticks} 
   local tmp=$tmpbase/GEOM/$GEOM
   local defarg="vi"
   local arg=${1:-$defarg} 
-  local vars="FUNCNAME defarg arg args script base GEOM geomdir tmp" 
+  local vars="FUNCNAME defarg arg args script geombase GEOMBASE GEOM GEOMDIR CFDIR tmpbase tmp" 
 
   if [ "$arg" == "vi" ]; then 
      cmd="vi $HOME/$script"  
   elif [ "$arg" == "grab" -o "$arg" == "get" ]; then  
-     cmd="source $OPTICKS_HOME/bin/rsync.sh $base"
+     cmd="source $OPTICKS_HOME/bin/rsync.sh $GEOMDIR"
   elif [ "$arg" == "tmpget" ]; then  
      cmd="source $OPTICKS_HOME/bin/rsync.sh $tmp"
   elif [ "$arg" == "tmp" ]; then  
@@ -237,23 +238,23 @@ GEOM(){
   elif [ "$arg" == "scp" ]; then  
      cmd="scp $HOME/$script P:$script"
   elif [ "$arg" == "base" ]; then  
-     cmd="cd $geombase"
+     cmd="cd $GEOMBASE"
   elif [ "$arg" == "top" ]; then  
-     cmd="cd $geomdir"
+     cmd="cd $GEOMDIR"
   elif [ "$arg" == "lock" ]; then  
-     cmd="chmod -R ugo-w $geomdir"
+     cmd="chmod -R ugo-w $GEOMDIR"
   elif [ "$arg" == "unlock" ]; then  
-     cmd="chmod -R u+w $geomdir"
+     cmd="chmod -R u+w $GEOMDIR"
   elif [ "$arg" == "cf" ]; then  
-     cmd="cd $geomdir/CSGFoundry"
+     cmd="cd $GEOMDIR/CSGFoundry"
   elif [ "$arg" == "ss" ]; then  
-     cmd="cd $geomdir/CSGFoundry/SSim"
+     cmd="cd $GEOMDIR/CSGFoundry/SSim"
   elif [ "$arg" == "st" ]; then  
-     cmd="cd $geomdir/CSGFoundry/SSim/stree"
+     cmd="cd $GEOMDIR/CSGFoundry/SSim/stree"
   elif [ "$arg" == "std" ]; then  
-     cmd="cd $geomdir/CSGFoundry/SSim/stree/standard"
+     cmd="cd $GEOMDIR/CSGFoundry/SSim/stree/standard"
   elif [ "$arg" == "origin" ]; then  
-     cmd="cd $geomdir ; vim -R origin.gdml"
+     cmd="cd $GEOMDIR ; vim -R origin.gdml"
   elif [ "$arg" == "source" ]; then  
      cmd="source $HOME/.opticks/GEOM/GEOM.sh"
   elif [ "$arg" == "help" ]; then  
@@ -1632,7 +1633,7 @@ opticks-setup-()
     else
         st="nodir" 
     fi 
-    printf "=== %s %10s %10s %20s %s\n" $FUNCNAME $st $mode $var $dir  
+    [ -n "$OPTICKS_SETUP_VERBOSE" ] && printf "=== %s %10s %10s %20s %s\n" $FUNCNAME $st $mode $var $dir  
 }
 
 opticks-setup-info-()
@@ -1931,7 +1932,7 @@ export OPTICKS_GEANT4_PREFIX=\$(opticks-setup-find-geant4-prefix)
 
 if [ -n "\$OPTICKS_GEANT4_PREFIX" ]; then
     if [ -f "\$OPTICKS_GEANT4_PREFIX/bin/geant4.sh" ]; then 
-        echo === $FUNCNAME : sourcing \$OPTICKS_GEANT4_PREFIX/bin/geant4.sh
+        [ -n "\$OPTICKS_SETUP_VERBOSE" ] && echo === $FUNCNAME : sourcing \$OPTICKS_GEANT4_PREFIX/bin/geant4.sh
         source \$OPTICKS_GEANT4_PREFIX/bin/geant4.sh
     else
         echo ERROR no \$OPTICKS_GEANT4_PREFIX/bin/geant4.sh at OPTICKS_GEANT4_PREFIX : \$OPTICKS_GEANT4_PREFIX

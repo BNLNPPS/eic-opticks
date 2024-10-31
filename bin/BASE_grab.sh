@@ -1,4 +1,4 @@
-#!/bin/bash -l 
+#!/bin/bash
 usage(){ cat << EOU
 BASE_grab.sh 
 ==============
@@ -11,6 +11,8 @@ Usage::
 
 EOU
 }
+
+cd $(dirname $(realpath $BASH_SOURCE))
 
 vars="BASE"
 for var in $vars ; do printf "%20s : %s \n" "$var" "${!var}" ; done 
@@ -32,13 +34,16 @@ fi
 if [ "${arg/jstab}" != "$arg" ]; then 
 
     echo $BASH_SOURCE jstab     
-    #jsons=($(ls -1t $(find $BASE -name '*.json')))
-    #for json in ${jsons[*]} ; do echo $json ; done  
 
-    globptn="$BASE/cxr_overview*elv*.jpg"
-    refjpgpfx="/env/presentation/cxr/cxr_overview"
+    script=../ana/snap.py
 
-    ${IPYTHON:-ipython} --pdb  $OPTICKS_HOME/ana/snap.py --  --globptn "$globptn" --refjpgpfx "$refjpgpfx" $SNAP_ARGS
+    if command -v ${IPYTHON:-ipython} &> /dev/null 
+    then
+        PYTHONPATH=../.. ${IPYTHON:-ipython} --pdb -i $script 
+    else
+        echo $BASH_SOURCE - IPYTHON NOT AVAILABLE - TRY PYTHON 
+        PYTHONPATH=../.. ${PYTHON:-python}  $script 
+    fi  
 fi 
 
 

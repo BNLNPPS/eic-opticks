@@ -42,6 +42,7 @@ struct spath_test
    static int WriteIntoInvokingDirectory();
    static int Read(); 
    static int EndsWith(); 
+   static int SplitExt(int impl); 
 
    static int ALL();  
    static int Main();  
@@ -262,7 +263,8 @@ int spath_test::Resolve()
         "$DefaultOutputDir",
         "$DefaultOutputDir/some/further/relative/path",
         "${RNGDir:-$HOME/.opticks/rngcache/RNG}",
-        "${SEvt__INPUT_PHOTON_DIR:-$HOME/.opticks/InputPhotons}"
+        "${SEvt__INPUT_PHOTON_DIR:-$HOME/.opticks/InputPhotons}",
+        "${PrecookedDir:-$HOME/.opticks/precooked}/QSimTest/rng_sequence/rng_sequence_f_ni1000000_nj16_nk16_tranche100000/rng_sequence_f_ni100000_nj16_nk16_ioffset000000.npy"
         } ; 
 
     for(unsigned i=0 ; i < specs.size() ; i++) Resolve_( specs[i].c_str() ); 
@@ -480,7 +482,27 @@ int spath_test::EndsWith()
     return ok ? 0 : 1  ; 
 }
 
+int spath_test::SplitExt(int impl)
+{
+    const char* path = "/tmp/blyth/opticks/GEOM/J_2024aug27/CSGOptiXRenderTest/CVD1/70500/ALL/scan-emm/cxr_overview_emm_t10,_elv_t_moi__ALL00000.jpg" ; 
 
+    std::string dir ; 
+    std::string stem ; 
+    std::string ext ; 
+
+    int rc = impl == 0 ? spath::SplitExt0(dir, stem, ext, path ) : spath::SplitExt(dir, stem, ext, path ) ; 
+
+    std::cout 
+        << __FUNCTION__  << " impl " << impl << "\n"
+        << " path [" << path << "]\n" 
+        << " dir  [" << dir  << "]\n"
+        << " stem [" << stem << "]\n"
+        << " ext  [" << ext  << "]\n" 
+        << " rc   [" << rc << "]\n"
+        << std::endl
+        ; 
+    return rc  ; 
+}
 
 
 
@@ -521,7 +543,8 @@ int spath_test::Main()
 {
     //const char* test = "Resolve_defaultOutputPath" ;
     //const char* test = "Read" ;
-    const char* test = "EndsWith" ;
+    //const char* test = "EndsWith" ;
+    const char* test = "SplitExt" ;
  
     const char* TEST = ssys::getenvvar("TEST", test ); 
     int rc = 0 ; 
@@ -550,6 +573,8 @@ int spath_test::Main()
     else if(strcmp(TEST, "WriteIntoInvokingDirectory")==0) rc = WriteIntoInvokingDirectory();
     else if(strcmp(TEST, "Read")==0) rc = Read();
     else if(strcmp(TEST, "EndsWith")==0) rc = EndsWith();
+    else if(strcmp(TEST, "SplitExt0")==0) rc = SplitExt(0);
+    else if(strcmp(TEST, "SplitExt")==0) rc = SplitExt(1);
     else if(strcmp(TEST, "ALL")==0) rc = ALL();
     return rc ; 
 }

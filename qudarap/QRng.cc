@@ -1,8 +1,10 @@
 #include <sstream>
 #include <cstring>
 #include "SLOG.hh"
-#include "SPath.hh"
 #include "SCurandState.hh"
+#include "sdirectory.h"
+#include "ssys.h"
+
 #include "QRng.hh"
 #include "qrng.h"
 #include "QU.hh"
@@ -14,6 +16,14 @@ const QRng* QRng::INSTANCE = nullptr ;
 const QRng* QRng::Get(){ return INSTANCE ;  }
 
 
+/**
+QRng::QRng
+------------
+
+QRng instanciation is invoked from QSim::UploadComponents
+
+**/
+
 QRng::QRng(unsigned skipahead_event_offset)
     :
     path(SCurandState::Path()),        // null path will assert in Load
@@ -22,11 +32,24 @@ QRng::QRng(unsigned skipahead_event_offset)
     qr(new qrng(skipahead_event_offset)),
     d_qr(nullptr)
 {
+    init(); 
+}
+
+
+void QRng::init()
+{
     INSTANCE = this ; 
     upload(); 
     bool uploaded = d_qr != nullptr ; 
     LOG_IF(fatal, !uploaded) << " FAILED to upload curand states " ;  
     assert(uploaded); 
+
+    bool VERBOSE = ssys::getenvbool(init_VERBOSE); 
+    LOG_IF(info, VERBOSE)
+         << "[" << init_VERBOSE << "] " << ( VERBOSE ? "YES" : "NO " )
+         << "\n"
+         << desc()
+         ;  
 }
 
 
@@ -44,7 +67,7 @@ QRng::Load_FAIL_NOTES
 =======================
 
 QRng::Load failed to load the curandState files. 
-These files should to created during *opticks-full* installation 
+These files should have been created during the *opticks-full* installation 
 by the bash function *opticks-prepare-installation* 
 which runs *qudarap-prepare-installation*. 
 
@@ -118,8 +141,10 @@ curandState* QRng::Load(long& rngmax, const char* path)  // static
     return rng_states ; 
 }
 
+
 void QRng::Save( curandState* states, unsigned num_states, const char* path ) // static
 {
+    sdirectory::MakeDirsForFile(path);
     FILE *fp = fopen(path,"wb");
     LOG_IF(fatal, fp == nullptr) << " error opening file " << path ; 
     assert(fp); 
@@ -139,6 +164,32 @@ void QRng::Save( curandState* states, unsigned num_states, const char* path ) //
 }
 
 
+/**
+TODO : implement this and use for sanity check after loading
+
+bool QRng::IsAllZero( curandState* states, unsigned num_states ) //  static
+{
+    return false ; 
+}
+**/
+
+
+/**
+QRng::upload
+--------------
+
+1. upload rng_states array that was loaded from file in the ctor, 
+   the *rngmax* number of elements in the array determines the maximum 
+   number of photon slots within a single launch
+
+2. record device pointer qr->rng_startes
+
+3. free the CPU side rng_states array
+
+4. upload qrng.h *qr* instance within single element array, 
+   setting d_qr
+
+**/
 
 void QRng::upload()
 {
@@ -160,6 +211,7 @@ std::string QRng::desc() const
        << " path " << path 
        << " rngmax " << rngmax 
        << " qr " << qr
+       << " qr.skipahead_event_offset " << qr->skipahead_event_offset
        << " d_qr " << d_qr
        ;
 

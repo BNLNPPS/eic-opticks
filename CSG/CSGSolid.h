@@ -26,16 +26,28 @@ Extract from notes in externals/optix7sdk.bash::
     of (0,1,2,...,numPrim-1)  
 
 
+Saving/loading the vector of CSGSolid in CSGFoundry
+is done by CSGFoundry::save,load,loadArray.
+Due to this no pointers are used in the below
+and the layout/alignment is kept simple for trivial 
+debug access from python.  
+
 **/
 
 struct CSG_API CSGSolid   // Composite shape 
 {
     char        label[16] ;   // sizeof 4 int 
+    // raw use of so->label risks funny chars at slot 16, and truncation :  use getLabel() to avoid 
 
     int         numPrim ; 
     int         primOffset ;
     int         type = STANDARD_SOLID ;       
-    int         padding ;  
+
+    char        intent = '\0' ;     
+    char        pad0 = '\0' ; 
+    char        pad1 = '\0' ; 
+    char        pad2 = '\0' ; 
+
 
     float4      center_extent ; 
 
@@ -44,7 +56,15 @@ struct CSG_API CSGSolid   // Composite shape
 #else
     static const plog::Severity LEVEL ;  
 
+    const char* getLabel() const ; 
     bool labelMatch(const char* label) const ;  
+
+    //char getLabelPrefix() const ; 
+    char getIntent() const ;  // 'R' 'F' 'T'   used for forced triangulation
+    void setIntent(char _intent); 
+
+    static void CopyIntent( CSGSolid* d,  const CSGSolid* s ); 
+
     static bool IsDiff( const CSGSolid& a , const CSGSolid& b ); 
     static CSGSolid Make( const char* label_, int numPrim_, int primOffset_=-1 ); 
     static std::string MakeLabel(const char* typ0, unsigned idx0, char delim='_' );  

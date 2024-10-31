@@ -219,7 +219,10 @@ set(HEADERS
 
     SSeq.hh
     STranche.hh
+
     SVec.hh
+    svec.h
+
     SNameVec.hh
     SMap.hh
     SCount.hh
@@ -738,6 +741,7 @@ target_compile_definitions( ${name}
       PLOG_LOCAL
       $<$<CONFIG:Debug>:DEBUG_TAG>
       $<$<CONFIG:Debug>:DEBUG_PIDX>
+      $<$<CONFIG:Debug>:DEBUG_PIDXYZ>
       $<$<CONFIG:Release>:PRODUCTION>
 )
 

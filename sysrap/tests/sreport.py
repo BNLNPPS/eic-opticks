@@ -343,6 +343,10 @@ class Substamp_ALL_Etime_vs_Photon(object):
         base = eval(symbol)
         title = RUN_META.Title(fold)
         fontsize = 20 
+        YSCALE = os.environ.get("YSCALE", "log")
+        YMIN = float(os.environ.get("YMIN", "1e-2"))
+        YMAX = float(os.environ.get("YMAX", "1e4"))
+
         if MODE == 2:
             fig, axs = mpplt_plotter(nrows=1, ncols=1, label=title, equal=False)
             ax = axs[0]
@@ -362,9 +366,8 @@ class Substamp_ALL_Etime_vs_Photon(object):
                 ax.plot( photon, linefit(photon), label=linefit_label )
             pass
             ax.set_xlim( -5, 105 ); 
-            #ax.set_ylim( 1e-2, 50 ); 
-            ax.set_ylim( 1e-2, 1e4 );  # 50*200 = 1e4
-            ax.set_yscale('log')
+            ax.set_ylim( YMIN, YMAX );  # 50*200 = 1e4
+            ax.set_yscale(YSCALE)
             ax.set_ylabel("Event time (seconds)", fontsize=fontsize )
             ax.set_xlabel("Number of Photons (Millions)", fontsize=fontsize )
             ax.legend()
@@ -601,12 +604,55 @@ class RUN_META(object):
         switches = list(filter(lambda _:not _ in SKIPS, switches )) 
         return " ".join(switches)  
 
+
+    @classmethod
+    def AB_Title(cls, a, b):
+        a_SCRIPT = getattr(a.run_meta, 'SCRIPT', "cxs_min.sh")  
+        b_SCRIPT = getattr(b.run_meta, 'SCRIPT', "cxs_min.sh")  
+        assert a_SCRIPT == b_SCRIPT, (a_SCRIPT, b_SCRIPT)
+        SCRIPT = a_SCRIPT
+
+
+        topline = "%s ## %s " % ( COMMANDLINE, SCRIPT )
+
+        cvar = ["RUNNING_MODE","EVENT_MODE","MAX_BOUNCE","MAX_PHOTON"] 
+        #cvar += ["NUM_PHOTON"]
+
+        ctrls = [] 
+        for var in cvar:
+            a_val = getattr(a.run_meta, "OPTICKS_%s" % var, "?" )
+            b_val = getattr(a.run_meta, "OPTICKS_%s" % var, "?" )
+            assert a_val == b_val, (a_val, b_val)
+            val = a_val
+            ctrls.append("%s:%s" % (var,val)) 
+        pass
+        ctrl = " ".join(ctrls)
+
+
+        a_SWITCHES = cls.QSim__Switches(a)
+        b_SWITCHES = cls.QSim__Switches(b)
+        assert a_SWITCHES == b_SWITCHES, (a_SWITCHES, b_SWITCHES) ## TODO: layout when not matched
+        SWITCHES = a_SWITCHES 
+
+        title = "\n".join([topline, ctrl])
+        return title 
+
+    @classmethod
+    def GPUMeta(cls, fold, simplify=True):
+        gpu = fold.run_meta.GPUMeta
+        if simplify and (gpu.startswith("0:") or gpu.startswith("1:")):
+            gpu = gpu[2:]
+        pass
+        return "%s : %s" % (fold.symbol, gpu) 
+ 
+
     @classmethod
     def Title(cls, fold):
         SCRIPT = getattr(fold.run_meta, 'SCRIPT', "cxs_min.sh")  
         GPUMeta = fold.run_meta.GPUMeta 
         topline = "%s ## %s : %s " % ( COMMANDLINE, SCRIPT, GPUMeta )
         SWITCHES = cls.QSim__Switches(fold)
+
         cvar = ["RUNNING_MODE","EVENT_MODE","MAX_BOUNCE","MAX_PHOTON"] 
         #cvar += ["NUM_PHOTON"]
 
@@ -626,9 +672,17 @@ class RUN_META(object):
 
 
 if __name__ == '__main__':
-    fold = Fold.Load("$SREPORT_FOLD", symbol="fold")
 
+    print("[sreport.py:PLOT[%s]" % PLOT ) 
+    print("[sreport.py:fold = Fold.Load" ) 
+    fold = Fold.Load("$SREPORT_FOLD", symbol="fold")
+    print("]sreport.py:fold = Fold.Load" ) 
+
+    print("[sreport.py:repr(fold)" ) 
     print(repr(fold))
+    print("]sreport.py:repr(fold)" ) 
+
+
     SWITCHES = RUN_META.QSim__Switches(fold)
     print("MODE:%d PICK:%s SWITCHES:%s " % (MODE, PICK, SWITCHES) ) 
     print("COMMANDLINE:%s" % COMMANDLINE)
@@ -651,10 +705,14 @@ if __name__ == '__main__':
     if PLOT.startswith("Ranges_SPAN") and hasattr(fold, "ranges") and hasattr(fold,"submeta_NumPhotonCollected") :
         Ranges_SPAN(fold, symbol="fold")  ## colorfull process activity plot 
     pass
-    if PLOT.startswith("Substamp_ALL") and hasattr(fold, "substamp"):
-        if PLOT.startswith("Substamp_ALL_Etime_vs_Photon"): Substamp_ALL_Etime_vs_Photon(  fold, symbol="fold.substamp" )
-        if PLOT.startswith("Substamp_ALL_Hit_vs_Photon"): Substamp_ALL_Hit_vs_Photon(      fold, symbol="fold.substamp" )
-        if PLOT.startswith("Substamp_ALL_RATIO_vs_Photon"): Substamp_ALL_RATIO_vs_Photon(  fold, symbol="fold.substamp" )
+    if PLOT.startswith("Substamp_ALL"): 
+        if hasattr(fold, "substamp"):
+            if PLOT.startswith("Substamp_ALL_Etime_vs_Photon"): Substamp_ALL_Etime_vs_Photon(  fold, symbol="fold.substamp" )
+            if PLOT.startswith("Substamp_ALL_Hit_vs_Photon"): Substamp_ALL_Hit_vs_Photon(      fold, symbol="fold.substamp" )
+            if PLOT.startswith("Substamp_ALL_RATIO_vs_Photon"): Substamp_ALL_RATIO_vs_Photon(  fold, symbol="fold.substamp" )
+        else:
+            print(".sreport.py: fold does not have substamp : CANNOT PLOT [%s]" % PLOT)
+        pass
     pass
     if PLOT.startswith("Subprofile_ONE") and hasattr(fold, "subprofile"):
         for e in PICK:
@@ -670,6 +728,7 @@ if __name__ == '__main__':
     if PLOT.startswith("Runprof_ALL") and hasattr(fold, "runprof"):
         Runprof_ALL(fold, symbol="fold.runprof" )  ## RSS vs time : profile plot 
     pass
+    print("]sreport.py:PLOT[%s]" % PLOT ) 
 pass
 
 

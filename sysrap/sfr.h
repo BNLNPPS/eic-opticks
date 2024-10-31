@@ -25,15 +25,18 @@ struct sfr
     template<typename T>
     static sfr MakeFromExtent(T extent); 
 
-    glm::tvec4<double>  ce  ;
-    glm::tvec4<int64_t> aux0 ; 
-    glm::tvec4<int64_t> aux1 ; 
-    glm::tvec4<int64_t> aux2 ; 
+    glm::tvec4<double>  ce  ;    //  4*8 = 32       0
+    glm::tvec4<int64_t> aux0 ;   //  4*8 = 32      32  
+    glm::tvec4<int64_t> aux1 ;   //  4*8 = 32      64
+    glm::tvec4<int64_t> aux2 ;   //  4*8 = 32      96
 
-    glm::tmat4x4<double>  m2w ; 
-    glm::tmat4x4<double>  w2m ; 
+    glm::tmat4x4<double>  m2w ;  // 4*4*8 = 128   128
+    glm::tmat4x4<double>  w2m ;  // 4*4*8 = 128   256
+                                 
+    std::string name ;           //               384 
 
-    std::string name ; 
+    // bytewise comparison of sfr instances fails 
+    // for 4 bytes at offset 384 corresponding to the std::string name reference
 
     sfr(); 
 
@@ -53,13 +56,13 @@ struct sfr
     bool is_identity() const ; 
 
     NP* serialize() const ; 
-    void save(const char* dir, const char* name=NAME) const ; 
+    void save(const char* dir, const char* stem=NAME) const ; 
 
     static sfr Import( const NP* a); 
-    static sfr Load( const char* dir, const char* name=NAME); 
+    static sfr Load( const char* dir, const char* stem=NAME); 
     static sfr Load_(const char* path ); 
 
-    void load(const char* dir, const char* name=NAME) ; 
+    void load(const char* dir, const char* stem=NAME) ; 
     void load_(const char* path ) ; 
     void load(const NP* a) ; 
 
@@ -197,12 +200,17 @@ inline NP* sfr::serialize() const
     return a ; 
 }
 
-inline void sfr::save(const char* dir, const char* name_ ) const
+inline void sfr::save(const char* dir, const char* stem_ ) const
 {
-    std::string aname = U::form_name( name_ , ".npy" ) ; 
+    std::string aname = U::form_name( stem_ , ".npy" ) ; 
     NP* a = serialize() ; 
     a->save(dir, aname.c_str()); 
 }
+
+
+
+
+
 
 
 inline sfr sfr::Import( const NP* a) // static

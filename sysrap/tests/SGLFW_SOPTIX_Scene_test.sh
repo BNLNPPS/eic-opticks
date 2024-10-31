@@ -3,14 +3,23 @@ usage(){ cat << EOU
 SGLFW_SOPTIX_Scene_test.sh : triangulated raytrace and rasterized visualization
 =================================================================================
 
+NB because this loads a pre-existing SScene it is necessary to 
+regenerate the SScene from Geant4 using eg jok-tds when there
+are geometry issues.
+
+
 Assuming the scene folder exists already::
 
     ~/o/sysrap/tests/SGLFW_SOPTIX_Scene_test.sh
     SCENE=0 ~/o/sysrap/tests/SGLFW_SOPTIX_Scene_test.sh
-    SCENE=1 ~/o/sysrap/tests/SGLFW_SOPTIX_Scene_test.sh
+    SCENE=1 ~/o/sysrap/tests/SGLFW_SOPTIX_Scene_test.sh   ## default 
     SCENE=2 ~/o/sysrap/tests/SGLFW_SOPTIX_Scene_test.sh
     SCENE=3 ~/o/sysrap/tests/SGLFW_SOPTIX_Scene_test.sh
     ## SCENE picks between different scene directories
+
+As this uses GL interop it may be necessary to select the display GPU::
+
+    CUDA_VISIBLE_DEVICES=1 ~/o/sysrap/tests/ssst.sh 
 
 Impl::
 
@@ -118,6 +127,14 @@ mkdir -p $FOLD
 export BASE=$TMP/GEOM/$GEOM/$name
 
 
+if [ -n "$LOG" ]; then
+   export SOPTIX_Scene__DUMP=1
+   export SGLFW_Scene__DUMP=1
+   echo LOG defined - enable dumping 
+else
+   echo run with LOG defined for dumping 
+fi
+
 
 cu=../SOPTIX.cu
 ptx=$FOLD/SOPTIX.ptx
@@ -142,13 +159,16 @@ OPTIX_PREFIX=${OPTIX_PREFIX:-$optix_prefix}
 sysrap_dir=..
 SYSRAP_DIR=${SYSRAP_DIR:-$sysrap_dir}
 
+
+source $HOME/.opticks/GEOM/GEOM.sh 
  
-scene=1
+scene=0
 case ${SCENE:-$scene} in 
-0) scene_fold=/tmp/SScene_test ;;
-1) scene_fold=$HOME/.opticks/GEOM/$GEOM/CSGFoundry/SSim ;;
+0) scene_fold=$HOME/.opticks/GEOM/$GEOM/CSGFoundry/SSim ;;
+1) scene_fold=/tmp/SScene_test ;;
 2) scene_fold=$TMP/G4CXOpticks_setGeometry_Test/$GEOM/CSGFoundry/SSim ;;
 3) scene_fold=$TMP/U4TreeCreateSSimTest/$GEOM/SSim ;;
+4) scene_fold=/cvmfs/opticks.ihep.ac.cn/.opticks/GEOM/$GEOM/CSGFoundry/SSim ;;
 esac
 export SCENE_FOLD=${SCENE_FOLD:-$scene_fold}
 
@@ -279,6 +299,31 @@ if [ "${arg/xir}" != "$arg" ]; then
 fi
 
 
+gdb__() 
+{ 
+    : opticks/opticks.bash prepares and invokes gdb - sets up breakpoints based on BP envvar containing space delimited symbols;
+    if [ -z "$BP" ]; then
+        H="";
+        B="";
+        T="-ex r";
+    else
+        H="-ex \"set breakpoint pending on\"";
+        B="";
+        for bp in $BP;
+        do
+            B="$B -ex \"break $bp\" ";
+        done;
+        T="-ex \"info break\" -ex r";
+    fi;
+    local runline="gdb $H $B $T --args $* ";
+    echo $runline;
+    date;
+    eval $runline;
+    date
+}
+
+
+
 if [ "${arg/build}" != "$arg" ]; then
 
     echo $BASH_SOURCE build
@@ -296,7 +341,7 @@ if [ "${arg/build}" != "$arg" ]; then
         -Wsign-compare \
         -DWITH_CUDA_GL_INTEROP \
         -DWITH_CHILD \
-        -g -O0 -std=c++11 \
+        -g -O0 -std=c++17 \
         -I$SYSRAP_DIR \
         -I$OPTICKS_PREFIX/include/SysRap \
         -I$OPTICKS_PREFIX/externals/glm/glm \
@@ -319,8 +364,9 @@ if [ "${arg/build}" != "$arg" ]; then
     echo $BASH_SOURCE build DONE
 fi 
 
-if [ "${arg/dbg}" != "$arg" ]; then
-    dbg__ $bin 
+if [ "${arg/dbg}" != "$arg" -o -n "$GDB" ]; then
+    #dbg__ $bin 
+    gdb__ $bin 
     [ $? -ne 0 ] && echo $BASH_SOURCE : run error && exit 2
 fi
 

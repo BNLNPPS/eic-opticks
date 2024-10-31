@@ -1,7 +1,7 @@
-#!/bin/bash -l 
+#!/bin/bash
 usage(){ cat << EOU
-cxr_scan.sh
-==============
+cxr_scan.sh cxr_scan_elv.sh cxr_scan_emm.sh 
+==============================================
 
 Repeats a script such as cxr_overview.sh with EMM or ELV
 envvar variation to change enabledmergedmesh(coarse) 
@@ -9,7 +9,15 @@ or enabledlv(fine)
 
 On GPU workstation::
 
-    ./cxr_scan.sh 
+    ~/o/CSGOptiX/cxr_scan.sh 
+    ~/o/CSGOptiX/cxr_scan_emm.sh    ## symbolic link to this cxr_scan.sh script  
+    ~/o/CSGOptiX/cxr_scan_elv.sh    ## symbolic link to this cxr_scan.sh script 
+
+Make table on workstation::
+
+    CANDLE=1,2,3,4 ~/o/CSGOptiX/elv.sh txt
+    CANDLE=t0      ~/o/CSGOptiX/elv.sh txt
+    
 
 On laptop::
 
@@ -45,7 +53,10 @@ On laptop::
 EOU
 }
 
-DIR=$(dirname $BASH_SOURCE)
+cd $(dirname $(realpath $BASH_SOURCE))
+thisname=$(basename $BASH_SOURCE)
+thisstem=${thisname/.sh}
+
 
 source $HOME/.opticks/GEOM/GEOM.sh 
 cfd=$HOME/.opticks/GEOM/$GEOM/CSGFoundry
@@ -60,43 +71,48 @@ nmm=$(wc -l < $cfd/mmlabel.txt)
 nlv=$(wc -l < $cfd/meshname.txt)
 nmm=$(( $nmm - 1 ))
 nlv=$(( $nlv - 1 ))
-# NMM and NLV are maximum index, not counts, so they need to be num-1    
+# seq from zero needs NMM and NLV as maximum inclusive index, not counts, so they need to be num-1    
 
 NMM=${NMM:-$nmm}   # geometry specific 
 NLV=${NLV:-$nlv}
 
 
-#script=cxr_view
-script=cxr_overview
+case $thisstem in 
+   cxr_scan_elv) script=cxr_view ;;
+   cxr_scan_emm) script=cxr_overview ;;
+esac
+
 unset SCRIPT
 export SCRIPT=${SCRIPT:-$script}
+
+case $thisstem in 
+   cxr_scan_elv) scan=scan-elv ;;
+   cxr_scan_emm) scan=scan-emm ;;
+esac
+
+unset SCAN
+export SCAN=$scan
+
+vars="0 BASH_SOURCE GEOM cfd nmm nlv NMM NLV script SCRIPT thisname thisstem scan SCAN vars"
+for var in $vars ; do printf "%20s : %s \n" "$var" "${!var}" ; done
 
 
 scan-emm-()
 {
-    #echo "t0"        # ALL 
-    #for e in $(seq 0 $NMM) ; do echo  "$e," ; done    # enabling each solid one-by-one
-    for e in $(seq 0 $NMM) ; do echo "t$e," ; done    # disabling each solid one-by-one
-    #for e in $(seq 0 $NMM) ; do echo "t8,$e" ; done   # disabling 8 and each solid one by-by-one
-    #echo "1,2,3,4"   # ONLY PMTs
+    echo "t0"        # ALL 
+    echo "1,2,3,4"   # ONLY PMTs
 
+    #for e in $(seq 0 $NMM) ; do echo  "$e," ; done    # enabling each solid one-by-one
+    #for e in $(seq 0 $NMM) ; do echo "t$e," ; done    # disabling each solid one-by-one
+    #for e in $(seq 0 $NMM) ; do echo "t8,$e" ; done   # disabling 8 and each solid one by-by-one
     #for e in $(seq 0 $NMM) ; do echo "t0,$e" ; done   # disabling 0 and each solid one by-by-one
 }
 
 scan-elv-()
 {
-    #echo "t"    # ALL : for the candle 
+    echo "t"    # ALL : for the candle 
 
-    #echo t14
-    #echo t77
-    #echo t70
-    #echo t16
-    #echo t0
-    #echo t27
-    echo t
-
-    #for e in $(seq 0 $NLV) ; do echo "t103,$e" ; done  # disabling slowest midx:103 solidXJfixture and then each midx one-by-one
-    #for e in $(seq 0 $NLV) ; do echo "t$e" ; done    # disabling each midx one-by-one
+    for e in $(seq 0 $NLV) ; do echo "t$e" ; done    # disabling each midx one-by-one
     #for e in $(seq 0 $NLV) ; do echo "$e" ; done     # enabling each midx one-by-one
 }
 
@@ -104,7 +120,7 @@ scan-emm()
 {
     local e 
     for e in $(scan-emm-) ; do 
-        EMM=$e $DIR/$SCRIPT.sh $*
+        EMM=$e ./$SCRIPT.sh $*
     done 
 }
 
@@ -112,18 +128,15 @@ scan-elv()
 {
     local e 
     for e in $(scan-elv-) ; do 
-        ELV=$e $DIR/$SCRIPT.sh $*
+        ELV=$e ./$SCRIPT.sh $*
     done 
 }
 
-scan=scan-elv
-#scan=scan-emm
-unset SCAN
-export SCAN=${SCAN:-$scan}
-
-if [ "$scan" == "scan-emm" ]; then
-   scan-emm
-elif [ "$scan" == "scan-elv" ]; then
-   scan-elv
+if [ "$SCAN" == "scan-emm" ]; then
+    scan-emm
+elif [ "$SCAN" == "scan-elv" ]; then
+    scan-elv
+else
+    echo DONT RUN cxr_scan.sh instead run one of the symbolic links cxr_scan_elv.sh cxr_scan_emm.sh 
 fi 
 

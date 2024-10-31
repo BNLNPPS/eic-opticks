@@ -11,11 +11,13 @@ be analytic
 
 **/
 
+#include "ssys.h"
 #include "SOPTIX_BuildInput_IA.h"
 
 struct SOPTIX_Scene
 { 
-    bool            dump ; 
+    static constexpr const char* _DUMP = "SOPTIX_Scene__DUMP" ; 
+    bool            DUMP ; 
     SOPTIX_Context* ctx ; 
     const SScene*   scene ; 
 
@@ -80,7 +82,7 @@ inline std::string SOPTIX_Scene::descIAS() const
 
 inline SOPTIX_Scene::SOPTIX_Scene( SOPTIX_Context* _ctx, const SScene* _scene )
     :
-    dump(false),
+    DUMP(ssys::getenvbool(_DUMP)), 
     ctx(_ctx),
     scene(_scene),
     ias(nullptr)
@@ -98,7 +100,7 @@ inline void SOPTIX_Scene::init()
 inline void SOPTIX_Scene::init_GAS()
 {
     int num_mg = scene->meshgroup.size() ; 
-    if(dump) std::cout << "SOPTIX_Scene::init_GAS num_mg " << num_mg << std::endl ; 
+    if(DUMP) std::cout << "SOPTIX_Scene::init_GAS num_mg " << num_mg << std::endl ; 
 
     for(int i=0 ; i < num_mg ; i++)
     {
@@ -117,16 +119,40 @@ inline void SOPTIX_Scene::init_GAS()
 SOPTIX_Scene::initInstances
 -----------------------------
 
+
+SScene::inst_tran
+    instance level, typically many thousands
+
+SScene::inst_col3
+    instance level, same size as inst_tran
+
+SScene::inst_info 
+    compound solid level {ridx, inst_count, inst_offset, 0}, typicallly order ~10
+
+    * size of this vector dictates the number of GAS
+    * the inst_count and 
+
+
+
 **/
 
 
 inline void SOPTIX_Scene::init_Instances()
 {
-    const std::vector<glm::tmat4x4<float>>& inst_tran = scene->inst_tran ;
     size_t num_gas  = scene->inst_info.size(); 
     size_t num_inst = scene->inst_tran.size(); 
+    [[maybe_unused]] size_t num_col3 = scene->inst_col3.size(); 
+    assert( num_inst == num_col3 ); 
 
-    if(dump) std::cout << "SOPTIX_Scene::init_Instances num_gas " << num_gas << std::endl ; 
+    const std::vector<glm::tmat4x4<float>>& inst_tran = scene->inst_tran ;
+
+    if(DUMP) std::cout 
+        << "SOPTIX_Scene::init_Instances"
+        << " num_gas " << num_gas 
+        << " num_inst " << num_inst
+        << " num_col3 " << num_col3
+        << std::endl 
+        ; 
 
     unsigned tot = 0 ; 
     unsigned flags = OPTIX_INSTANCE_FLAG_NONE ; 
@@ -148,11 +174,35 @@ inline void SOPTIX_Scene::init_Instances()
 
         unsigned visibilityMask = ctx->props->visibilityMask(i) ; 
 
+        if(DUMP) std::cout 
+            << "SOPTIX_Scene::init_Instances"
+            << " i " << i 
+            << " ridx (_inst_info.x) " << ridx
+            << " count (_inst_info.y " << count 
+            << " offset (_inst_info.z)  " << offset 
+            << " num_bi " << num_bi 
+            << " visibilityMask " << visibilityMask
+            << " sbtOffset " << sbtOffset
+            << "\n"
+            ;
+
         assert( ridx == i ); 
         for(unsigned j=0 ; j < count ; j++)
         {
             unsigned idx = offset + j ; 
-            assert( idx < num_inst ); 
+            bool in_range = idx < num_inst ;  
+
+            if(DUMP && in_range == false) std::cout 
+                << "SOPTIX_Scene::init_Instances"
+                << " j " << j 
+                << " (offset + j)[idx] " << idx
+                << " num_inst " << num_inst 
+                << " in_range " << ( in_range ? "YES" : "NO " )   
+                << " tot " << tot 
+                << std::endl 
+                ; 
+
+            assert( in_range ); 
             assert( idx == tot ); 
             tot += 1 ;
 

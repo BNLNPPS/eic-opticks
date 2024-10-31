@@ -1,5 +1,5 @@
 #!/usr/bin/env python 
-import numpy as np, logging
+import os, numpy as np, logging
 log = logging.getLogger(__name__)
 
 

@@ -37,6 +37,7 @@
 #include "sqat4.h"
 #include "sframe.h"
 #include "SLabel.h"
+#include "SScene.h"
 
 
 #include "OpticksCSG.h"
@@ -242,8 +243,25 @@ int CSGFoundry::findSolidWithLabel(const char* q_mml) const
 
 
 /**
-CSGFoundry::isSolidTrimesh
-----------------------------
+CSGFoundry::isSolidTrimesh_posthoc_kludge
+------------------------------------------
+
+NB this was used for post-hoc triangulation of a compound solid 
+prior to implementation of more flexible forced triangulation at stree.h 
+level, see :doc:`/notes/issues/flexible_forced_triangulation`
+
+This is used from CSGOptiX/SBT.cc::
+
+    SBT::createGAS
+    SBT::_getOffset
+    SBT::getTotalRec
+    SBT::descGAS  
+    SBT::createHitgroup
+    
+ 
+The effect is to configure the build of the OptiX geometry 
+to use triangulated geometry for some compound solids (1:1 with OptiX GAS). 
+
 
 Normally returns false indicating to use analytic solid setup, 
 can arrange to return true for some CSGSolid using envvar 
@@ -253,12 +271,21 @@ triangulated geometry for those solids::
    export OPTICKS_SOLID_TRIMESH=1:sStrutBallhead,1:base_steel
 
 **/
-bool CSGFoundry::isSolidTrimesh(int gas_idx) const 
+bool CSGFoundry::isSolidTrimesh_posthoc_kludge(int gas_idx) const 
 {
     const char* ls = SGeoConfig::SolidTrimesh() ; 
     if(ls == nullptr) return false ;   
     return SLabel::IsIdxLabelListed( mmlabel, gas_idx, ls, ',' ); 
 }
+
+bool CSGFoundry::isSolidTrimesh(int gas_idx) const 
+{
+    char intent = getSolidIntent(gas_idx); 
+    bool trimesh = intent == 'T' ;  
+    assert( intent == 'R' || intent == 'F' || intent == 'T' || intent == '\0'  ); 
+    return trimesh ; 
+}
+
 
 
 
@@ -426,6 +453,38 @@ void CSGFoundry::setOverrideScene(SScene* _scene)
 }
 
 
+const std::string CSGFoundry::descELV2(const SBitSet* elv) const 
+{
+    unsigned num_bits = elv->num_bits ; 
+    unsigned num_name = id->getNumName() ; 
+    assert( num_bits == num_name );   
+ 
+    std::stringstream ss ;  
+    ss << "CSGFoundry::descELV2" 
+       << " elv.num_bits " << num_bits 
+       << " id.getNumName " << num_name 
+       << std::endl 
+       ; 
+
+    for(int p=0 ; p < 2 ; p++)
+    {
+        for(unsigned i=0 ; i < num_bits ; i++)
+        {
+            bool is_set = elv->is_set(i);            
+            const char* n = id->getName(i); 
+            if( is_set == bool(p) )
+            {
+                ss << std::setw(3) << i << " " 
+                   << ( is_set ? "Y" : "N" )
+                   << " [" << ( n ? n : "-" ) << "] " 
+                   << std::endl
+                   ;
+            }        
+        }
+    }
+    std::string str = ss.str(); 
+    return str ; 
+}
 
 
 
@@ -489,26 +548,29 @@ const std::string CSGFoundry::descELV(const SBitSet* elv) const
            ;  
     }
 
-    std::string s = ss.str(); 
-    return s ; 
+    std::string str = ss.str(); 
+    return str ; 
 } 
 
 
-const std::string& CSGFoundry::getSolidLabel(unsigned gas_idx) const 
-{
-    assert( gas_idx < mmlabel.size() ); 
-    return mmlabel[gas_idx] ; 
-}
 
 void CSGFoundry::addMeshName(const char* name) 
 {
     meshname.push_back(name); 
 }
 
-void CSGFoundry::addSolidLabel(const char* label)
+void CSGFoundry::addSolidMMLabel(const char* label)
 {
     mmlabel.push_back(label);  
 }
+
+
+const std::string& CSGFoundry::getSolidMMLabel(unsigned gas_idx) const 
+{
+    assert( gas_idx < mmlabel.size() ); 
+    return mmlabel[gas_idx] ; 
+}
+
 
 /**
 CSGFoundry::Compare
@@ -607,6 +669,8 @@ CSGFoundry::CompareVec
 
 Simple comparison looking for equality.
 
+TODO: adopt svec.h 
+
 **/
 
 template<typename T>
@@ -620,7 +684,7 @@ int CSGFoundry::CompareVec( const char* name, const std::vector<T>& a, const std
     if(!size_match) return mismatch ;  // below will likely crash if sizes are different 
 
     int data_match = memcmp( a.data(), b.data(), a.size()*sizeof(T) ) ; 
-    LOG_IF(info, data_match != 0) << name << " sizeof(T) " << sizeof(T) << " data_match FAIL " ; 
+    LOG_IF(info, data_match != 0) << name << " sizeof(T) " << sizeof(T) << " data_match FAIL "  ; 
     if(data_match != 0) mismatch += 1 ; 
 
     int byte_match = CompareBytes( a.data(), b.data(), a.size()*sizeof(T) ) ;
@@ -636,6 +700,8 @@ int CSGFoundry::CompareVec( const char* name, const std::vector<T>& a, const std
          ;  
     return mismatch ; 
 }
+
+
 
 /**
 CSGFoundry::CompareStruct
@@ -1488,6 +1554,43 @@ void CSGFoundry::checkPrimSpec() const
     }
 }
 
+const char* CSGFoundry::getSolidLabel_(int ridx) const
+{
+    const CSGSolid* so = getSolid(ridx); 
+    assert(so); 
+    return so ? so->label : nullptr ; 
+}
+
+char CSGFoundry::getSolidIntent(int ridx) const
+{
+    const CSGSolid* so = getSolid(ridx); 
+    assert(so); 
+    return so ? so->getIntent() : '\0' ; 
+}
+
+
+std::string CSGFoundry::descSolidIntent() const 
+{
+    unsigned num_solid = getNumSolid() ;  
+    std::stringstream ss ; 
+    ss << "CSGFoundry::descSolidIntent num_solid " << num_solid << "\n" ; 
+    for(unsigned i=0 ; i < num_solid ; i++)
+    {
+        char slpx = getSolidIntent(i);     
+        const char* sl = getSolidLabel_(i);  
+        const std::string& smml = getSolidMMLabel(i) ; 
+        ss 
+           << " i " << std::setw(4) << i 
+           << " getSolidIntent " << std::setw(2) << slpx
+           << " getSolidLabel_ " << std::setw(10) << ( sl ? sl : "-" ) 
+           << " getSolidMMLabel " <<  smml
+           << "\n"
+           ;  
+    }
+    std::string str = ss.str(); 
+    return str ; 
+}
+
 
 
 unsigned CSGFoundry::getNumSolid(int type_) const 
@@ -1495,11 +1598,13 @@ unsigned CSGFoundry::getNumSolid(int type_) const
     unsigned count = 0 ; 
     for(unsigned i=0 ; i < solid.size() ; i++)
     {
-        const CSGSolid& so = solid[i] ; 
-        if(so.type == type_ ) count += 1 ;  
+        const CSGSolid* so = getSolid(i); 
+        if(so && so->type == type_ ) count += 1 ;  
     } 
     return count ; 
-} 
+}
+
+
 
 unsigned CSGFoundry::getNumSolid() const {  return getNumSolid(STANDARD_SOLID); } 
 unsigned CSGFoundry::getNumSolidTotal() const { return solid.size(); } 
@@ -2024,7 +2129,7 @@ void CSGFoundry::addInstanceVector( const std::vector<glm::tmat4x4<float>>& v_in
 void CSGFoundry::addInstancePlaceholder()
 {
     const float* tr16 = nullptr ; 
-    int gas_idx = -1 ; 
+    int gas_idx = 0 ;    // from -1 : for single solid tests 
     int sensor_identifier = -1 ; 
     int sensor_index = -1 ;  
     bool firstcall = true ;  
@@ -2188,6 +2293,20 @@ unsigned CSGFoundry::getNumMeshPrim(unsigned mesh_idx ) const
 {
     return CSGPrim::count_prim_mesh(prim, mesh_idx); 
 }
+
+
+/**
+CSGFoundry::getNumSelectedPrimInSolid
+--------------------------------------
+
+Used by CSGCopy::copy 
+
+Iterates over the CSGPrim within the CSGSolid counting the 
+number selected based on whether the CSGPrim::meshIdx 
+is within the elv SBitSet.  
+
+
+**/
 
 unsigned CSGFoundry::getNumSelectedPrimInSolid(const CSGSolid* solid, const SBitSet* elv ) const 
 {
@@ -2613,7 +2732,6 @@ Relevant envvars : CFBASE and GEOM
 )" ; 
 const char* CSGFoundry::LoadFailNotes(){ return load_FAIL_base_null_NOTES ; } // static
 
-
 void CSGFoundry::load(const char* base_, const char* rel) 
 {
     LOG_IF(error, base_ == nullptr) << load_FAIL_base_null_NOTES ; 
@@ -2737,12 +2855,7 @@ void CSGFoundry::load( const char* dir_ )
     loadArray( plan  , dir, "plan.npy" , true );  
     // plan.npy loading optional, as only geometries with convexpolyhedrons such as trapezoids, tetrahedrons etc.. have them 
 
-    // REMOVE THIS SECOND SSim LOAD
-    // LOG(LEVEL) << "[ SSim::Load " ;  
-    // sim = NP::Exists(dir, "SSim") ? SSim::Load(dir, SSim::RELDIR ) : nullptr ; 
-    // LOG(LEVEL) << "] SSim::Load " ; 
-    // if( sim == nullptr ) sim = SSim::Get() ;  // NEED SAME ENV AS ctor
- 
+
     mtime = MTime(dir, "solid.npy"); 
 
     LOG(LEVEL) << "] loaddir " << loaddir ; 
@@ -2908,6 +3021,10 @@ python analysis machinery.
 
 This is taking 0.48s for full JUNO, thats 27% of single event gxt.sh runtime  
 
+
+Q: Where is the SSim handover ? How to apply selection to the SScene ? 
+
+
 **/
 
 bool CSGFoundry::Load_saveAlt = ssys::getenvbool("CSGFoundry_Load_saveAlt") ; 
@@ -2915,6 +3032,8 @@ bool CSGFoundry::Load_saveAlt = ssys::getenvbool("CSGFoundry_Load_saveAlt") ;
 CSGFoundry* CSGFoundry::Load() // static
 {
     SProf::Add("CSGFoundry__Load_HEAD"); 
+
+
 
     LOG(LEVEL) << "[ argumentless " ; 
     CSGFoundry* src = CSGFoundry::Load_() ; 
@@ -2925,11 +3044,22 @@ CSGFoundry* CSGFoundry::Load() // static
     const SBitSet* elv = ELV(src->id); 
     CSGFoundry* dst = elv ? CSGFoundry::CopySelect(src, elv) : src  ; 
 
+
+    if(elv)
+    {
+        LOG(LEVEL) << " apply ELV selection to triangulated SScene " ; 
+        SScene* src_sc = dst->sim->scene ;  
+        SScene* dst_sc = src_sc->copy(elv); 
+        const_cast<SSim*>(dst->sim)->set_override_scene(dst_sc); 
+    }
+
+
     if( elv != nullptr && Load_saveAlt)
     {
         LOG(error) << " non-standard dynamic selection CSGFoundry_Load_saveAlt " ; 
         dst->saveAlt() ; 
     }
+
 
     AfterLoadOrCreate(); 
 
@@ -2959,7 +3089,10 @@ CSGFoundry* CSGFoundry::CopySelect(const CSGFoundry* src, const SBitSet* elv )
 {
     LOG(LEVEL) << "[" ; 
     assert(elv);
-    LOG(LEVEL) << elv->desc() << std::endl << src->descELV(elv) ; 
+    LOG(LEVEL) << elv->desc() << std::endl ; 
+    LOG(LEVEL) << src->descELV(elv) ; 
+    LOG(LEVEL) << src->descELV2(elv) ;
+ 
     CSGFoundry* dst = CSGCopy::Select(src, elv ); 
     dst->setOrigin(src); 
     dst->setElv(elv); 
@@ -3031,6 +3164,7 @@ will continue to do so for now.
 CSGFoundry* CSGFoundry::Load_() // static
 {
     const char* cfbase = ResolveCFBase() ; 
+    if(ssys::getenvbool(_Load_DUMP)) std::cout << "CSGFoundry::Load_[" << cfbase << "]\n" ;  
 
     LOG(LEVEL) << "[ SSim::Load cfbase " << ( cfbase ? cfbase : "-" )  ;  
     SSim* sim = SSim::Load(cfbase, "CSGFoundry/SSim"); 
@@ -3134,16 +3268,16 @@ are not needed because the inverse transforms are all that is needed.
 This currently taking 20s for full JUNO, where total runtime for one event is 24s.
 TODO: recall this was optimized down to under 1s, check this. 
 
+As this often needs to be called early from the main, and logging from main is 
+problematically uncontollable have pragmatically removed most of the logging.  
+
 **/
 
 void CSGFoundry::upload()
 { 
-    
-    LOG(LEVEL) << "[ inst_find_unique " ; 
     inst_find_unique(); 
-    LOG(LEVEL) << "] inst_find_unique " ; 
 
-    LOG(LEVEL) << desc() ; 
+    //LOG(LEVEL) << desc() ; 
 
     assert( tran.size() == itra.size() ); 
 
@@ -3152,20 +3286,14 @@ void CSGFoundry::upload()
     assert(is_uploaded_0 == false); 
 
     // allocates and copies
-    LOG(LEVEL) << "[ CU::UploadArray "  ; 
     d_prim = prim.size() > 0 ? CU::UploadArray<CSGPrim>(prim.data(), prim.size() ) : nullptr ; 
     d_node = node.size() > 0 ? CU::UploadArray<CSGNode>(node.data(), node.size() ) : nullptr ; 
     d_plan = plan.size() > 0 ? CU::UploadArray<float4>(plan.data(), plan.size() ) : nullptr ; 
     d_itra = itra.size() > 0 ? CU::UploadArray<qat4>(itra.data(), itra.size() ) : nullptr ; 
-    LOG(LEVEL) << "] CU::UploadArray "  ; 
 
     bool is_uploaded_1 = isUploaded(); 
     LOG_IF(fatal, !is_uploaded_1) << "FAILED TO UPLOAD" ; 
     assert(is_uploaded_1 == true); 
-
-    //const char* cfb = getCFBase(); 
-    //SGeo::SetLastUploadCFBase(cfb) ; 
-    LOG(LEVEL) << "]" ; 
 }
 
 bool CSGFoundry::isUploaded() const
@@ -3318,6 +3446,14 @@ When CSGFoundry::getFrame fails due to the MOI/FRS string used to target
 a volume of the geometry failing to find the targetted volume 
 it is usually due to the spec not being appropriate for the geometry. 
 
+First thing to check is the configured GEOM envvar using GEOM bash function. 
+
+With simple test geometries the lack of frames can be worked around 
+using special cased MOI in some cases, for example::
+
+    MOI=EXTENT:200 ~/o/cxr_min.sh
+
+
 When using U4VolumeMaker it is sometimes possible to 
 debug the bad specification string by rerunning with the below 
 envvars set in order to dump PV/LV/SO names from the full and sub trees.::
@@ -3386,19 +3522,50 @@ Q: is indexing by MOI and inst_idx equivalent ? OR: Can a MOI be converted into 
 
 int CSGFoundry::getFrame(sframe& fr, const char* frs ) const 
 {
+
+    bool VERBOSE = ssys::getenvbool(getFrame_VERBOSE) ; 
+    LOG(LEVEL) << "[" << getFrame_VERBOSE << "] " << VERBOSE ;   
+
+
     int rc = 0 ; 
     bool looks_like_moi = sstr::StartsWithLetterAZaz(frs) || strstr(frs, ":") || strcmp(frs,"-1") == 0 ; 
+
+    LOG_IF(info, VERBOSE) 
+        << "[" << getFrame_VERBOSE << "] " << ( VERBOSE ? "YES" : "NO " )
+        << " frs " << ( frs ? frs : "-" )
+        << " looks_like_moi " << ( looks_like_moi ? "YES" : "NO " ) 
+        ; 
+
     if(looks_like_moi)
     {
         int midx, mord, gord ;  // mesh-index, mesh-ordinal, gas-ordinal 
         parseMOI(midx, mord, gord,  frs );  
+
         rc = getFrame(fr, midx, mord, gord); 
         // NB gas ordinal is not the same as gas index 
+
+        LOG_IF(info, VERBOSE) 
+            << "[" << getFrame_VERBOSE << "] " << ( VERBOSE ? "YES" : "NO " )
+            << " frs " << ( frs ? frs : "-" )
+            << " looks_like_moi " << ( looks_like_moi ? "YES" : "NO " ) 
+            << " midx " << midx 
+            << " mord " << mord 
+            << " gord " << gord 
+            << " rc " << rc 
+            ; 
     }
     else
     {
-         int inst_idx = SName::ParseIntString(frs, 0) ; 
-         rc = getFrame(fr, inst_idx); 
+        int inst_idx = SName::ParseIntString(frs, 0) ; 
+        rc = getFrame(fr, inst_idx); 
+
+        LOG_IF(info, VERBOSE) 
+            << "[" << getFrame_VERBOSE << "] " << ( VERBOSE ? "YES" : "NO " )
+            << " frs " << ( frs ? frs : "-" )
+            << " looks_like_moi " << ( looks_like_moi ? "YES" : "NO " ) 
+            << " inst_idx " << inst_idx 
+            << " rc " << rc 
+            ; 
     }
 
     fr.set_propagate_epsilon( SEventConfig::PropagateEpsilon() ); 
@@ -3469,17 +3636,26 @@ see CSGFoundry::getFrameE. Possible envvars include:
 The sframe::set_ekv records into frame metadata the envvar key and value 
 that picked the frame. 
 
+
+Q: WHY NOT DO THIS AT LOWER LEVEL ? 
+A: Probably because it needs getFrame and it predates the stree.h reorganization 
+   that made frame access at sysrap level possible. 
+
 **/
+
+
 
 sframe CSGFoundry::getFrameE() const 
 {
-    sframe fr = {} ; 
+    bool VERBOSE = ssys::getenvbool(getFrameE_VERBOSE) ; 
+    LOG(LEVEL) << "[" << getFrameE_VERBOSE << "] " << VERBOSE ;   
 
+    sframe fr = {} ; 
 
     if(ssys::getenvbool("INST"))
     {
         int INST = ssys::getenvint("INST", 0); 
-        LOG(LEVEL) << " INST " << INST ;  
+        LOG_IF(info, VERBOSE) << " INST " << INST ;  
         getFrame(fr, INST ) ;  
 
         fr.set_ekv("INST"); 
@@ -3487,7 +3663,7 @@ sframe CSGFoundry::getFrameE() const
     else if(ssys::getenvbool("MOI"))  
     {
         const char* MOI = ssys::getenvvar("MOI", nullptr) ; 
-        LOG(LEVEL) << " MOI " << MOI ;  
+        LOG_IF(info, VERBOSE) << " MOI " << MOI ;  
         fr = getFrame() ; 
         fr.set_ekv("MOI"); 
     }
@@ -3495,11 +3671,13 @@ sframe CSGFoundry::getFrameE() const
     {
         const char* ipf_ = SEventConfig::InputPhotonFrame();  // OPTICKS_INPUT_PHOTON_FRAME
         const char* ipf = ipf_ ? ipf_ : "0" ; 
-        LOG(LEVEL) << " ipf " << ipf ;  
+        LOG_IF(info, VERBOSE) << " ipf " << ipf ;  
         fr = getFrame(ipf); 
 
         fr.set_ekv(SEventConfig::kInputPhotonFrame, ipf ); 
     }
+
+
     return fr ; 
 }
 

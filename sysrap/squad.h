@@ -739,6 +739,17 @@ inline void qvals( int4& v,  const char* key, const char* fallback )
 }
 
 
+inline void qvals( uint3& v,  const char* key, const char* fallback, int num_expect )
+{
+    std::vector<long> vals ; 
+    qvals( vals, key, fallback, num_expect ); 
+    v.x = vals.size() > 0 ? vals[0] : -1 ; 
+    v.y = vals.size() > 1 ? vals[1] : -1 ; 
+    v.z = vals.size() > 2 ? vals[2] : -1 ; 
+}
+
+
+
 
 inline std::string quad4::desc() const 
 {

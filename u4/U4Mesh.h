@@ -31,8 +31,11 @@ For use with OpenGL rendering its natural to use "vtx" and "tri".
 #include "NPX.h"
 #include "NPFold.h"
 
+
 struct U4Mesh
 {
+    static constexpr const char* _NumberOfRotationSteps_DUMP = "U4Mesh__NumberOfRotationSteps_DUMP" ; 
+
     const G4VSolid* solid ; 
     const char* entityType ; 
     const char* solidName ; 
@@ -114,10 +117,13 @@ inline NPFold* U4Mesh::MakeFold(
 
     for(int i=0 ; i < num_solid ; i++)
     {
+        int lvid = i ; 
         const G4VSolid* so = solids[i];
         const char* _key = keys[i].c_str();
 
-        NPFold* sub = Serialize(so) ;    
+        NPFold* sub = Serialize(so) ;
+        sub->set_meta<int>("lvid", lvid ); 
+
         mesh->add_subfold( _key, sub ); 
     }
     return mesh ; 
@@ -159,13 +165,33 @@ inline std::string U4Mesh::FormEKey( const char* prefix, const char* key, const 
 U4Mesh::NumberOfRotationSteps
 ----------------------------------
 
+Returns envvar configured value if entityType or solidName envvars
+are defined, otherwise returns zero.
+If both entityType and solidName envvars exist
+the solidName value is used as that is more specific.
+
 Example envvar keys::
 
    export U4Mesh__NumberOfRotationSteps_entityType_G4Torus=48
    export U4Mesh__NumberOfRotationSteps_solidName_myTorus=48
-
    export U4Mesh__NumberOfRotationSteps_solidName_sTarget=96
 
+
+Check which solids RotationSteps were customized from the persisted mesh fold::
+
+    cd ~/.opticks/GEOM/$GEOM/CSGFoundry/SSim/stree/mesh
+    grep Rotation ./NPFold_meta.txt
+    sSurftube_0V1_0/NPFold_meta.txt:numberOfRotationSteps:480
+    sSurftube_0V1_1/NPFold_meta.txt:numberOfRotationSteps:480
+    sSurftube_10V1_0/NPFold_meta.txt:numberOfRotationSteps:480
+    sSurftube_10V1_1/NPFold_meta.txt:numberOfRotationSteps:480
+    sSurftube_11V1_0/NPFold_meta.txt:numberOfRotationSteps:480
+    ...
+    sTarget/NPFold_meta.txt:numberOfRotationSteps:240
+    svacSurftube_0V1_0/NPFold_meta.txt:numberOfRotationSteps:480
+    svacSurftube_0V1_1/NPFold_meta.txt:numberOfRotationSteps:480
+    svacSurftube_10V1_0/NPFold_meta.txt:numberOfRotationSteps:480
+    svacSurftube_10V1_1/NPFold_meta.txt:numberOfRotationSteps:480
 
 
 **/
@@ -179,7 +205,9 @@ inline int U4Mesh::NumberOfRotationSteps(const char* _entityType, const char* _s
     int num_solidName  = ssys::getenvint( solidName_ekey.c_str(), 0 ); 
     int num = num_solidName > 0 ? num_solidName : num_entityType  ;
 
-    if(num > 0) std::cout 
+    bool DUMP = ssys::getenvbool(_NumberOfRotationSteps_DUMP);  
+
+    if(DUMP && num > 0) std::cout 
          << "U4Mesh::NumberOfRotationSteps\n"
          << " entityType_ekey[" << entityType_ekey << "]"
          << " solidName_ekey[" << solidName_ekey << "]"
@@ -428,6 +456,12 @@ inline NPFold* U4Mesh::serialize() const
     fold->add("tri",  tri ); 
     fold->add("tpd",  tpd ); 
 
+    fold->set_meta<std::string>("entityType", entityType); 
+    fold->set_meta<std::string>("solidName",  solidName); 
+    if( numberOfRotationSteps > 0 )
+    {
+        fold->set_meta<int>("numberOfRotationSteps",  numberOfRotationSteps ); 
+    }
     return fold ; 
 }
 

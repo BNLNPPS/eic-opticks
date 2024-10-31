@@ -1,15 +1,12 @@
-// ./CSGScanTest.sh
+// ~/o/CSG/tests/CSGScanTest.sh
 
 #include "OPTICKS_LOG.hh"
 
-#include <vector>
-#include <cassert>
-#include <iostream>
 
 #include "scuda.h"
 #include "SSim.hh"
-#include "SSys.hh"
-#include "SPath.hh"
+#include "ssys.h"
+#include "spath.h"
 
 #include "CSGFoundry.h"
 #include "CSGMaker.h"
@@ -17,38 +14,69 @@
 #include "CSGScan.h"
 
 
+struct CSGScanTest
+{
+    const char* geom ; 
+    const char* scan ; 
+    CSGFoundry* fd ; 
+    const CSGSolid* so ; 
+    CSGScan*  sc ; 
+
+    CSGScanTest(); 
+    void init(); 
+    int intersect(); 
+}; 
+
+inline CSGScanTest::CSGScanTest()
+    :
+    geom(ssys::getenvvar("GEOM")),
+    scan(ssys::getenvvar("SCAN","axis,rectangle,circle")), 
+    fd(nullptr),
+    so(nullptr),
+    sc(nullptr)
+{
+    init(); 
+}; 
+
+inline void CSGScanTest::init()
+{
+    SSim::Create(); 
+
+    if(CSGMaker::CanMake(geom))
+    {
+        fd = CSGMaker::MakeGeom(geom);   
+        if(ssys::getenvbool("CSGScanTest__init_SAVEFOLD"))
+        {  
+            fd->save("$CSGScanTest__init_SAVEFOLD");
+        }
+    }
+    else
+    {
+        fd = CSGFoundry::Load(); 
+    }
+    fd->upload(); 
+    so = fd->getSolid(0);
+    // TODO: makes more sense to pick a CSGPrim (or root CSGNode) not a solid
+
+    sc = new CSGScan( fd, so, scan ); 
+}
+
+inline int CSGScanTest::intersect()
+{
+    sc->intersect_h(); 
+    sc->intersect_d();
+    std::cout << sc->brief() ; 
+    sc->save("$FOLD"); 
+
+    // TODO: compare intersects to define rc 
+    return 0 ; 
+}
+
+
 int main(int argc, char** argv)
 {
     OPTICKS_LOG(argc, argv);    
-
-    int create_dirs = 2 ; // 2: dirpath
-    const char* dir_default = SSys::getenvvar("CSGSCANTEST_BASE", "$TMP/CSGScanTest_scans" ); 
-    const char* dir = SPath::Resolve(dir_default, create_dirs) ; 
-    LOG(info) << " CSGSCANTEST_BASE dir " << dir ; 
-
-    const char* solid = SSys::getenvvar("CSGSCANTEST_SOLID", "Ellipsoid" ); 
-    LOG(info) << " CSGSCANTEST_SOLID " << solid ; 
-
-    SSim::Create(); 
-
-    CSGFoundry fd ;  
-    fd.maker->make( solid ); 
-
-    unsigned numSolid = fd.getNumSolid() ; 
-    LOG(info) << "[ numSolid " << numSolid  ; 
-
-    for(unsigned i=0 ; i < numSolid ; i++)
-    {
-        const CSGSolid* solid = fd.getSolid(i); 
-
-        CSGScan sc(dir, &fd, solid); 
-        sc.axis_scan(); 
-        sc.rectangle_scan(); 
-        sc.circle_scan(); 
-    }
-
-
-    LOG(info) << "] numSolid " << numSolid  ; 
-
-    return 0 ;  
+    CSGScanTest t ; 
+    return t.intersect(); 
 }
+

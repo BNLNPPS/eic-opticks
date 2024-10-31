@@ -34,12 +34,20 @@ struct NPX
 
     template<typename T> static NP*  Make( const std::vector<T>& src ); 
     template<typename T> static NP*  Make( T d0, T v0, T d1, T v1 ); 
-    template<typename T, typename... Args> static NP*  Make(const T* src, Args ... shape );  // TODO rename ArrayFromData
+    template<typename T, typename... Args> static NP*  Make(const T* src, Args ... shape );  // WIP: switch to name ArrayFromData
+    template<typename T, typename... Args> static NP*  ArrayFromData(const T* src, Args ... shape ); 
 
     template<typename T> static NP* FromString(const char* str, char delim=' ') ;  
 
 
     static NP* Holder( const std::vector<std::string>& names ); 
+
+
+    template<typename T, int N>
+    static NP* ArrayFromVecOfArrays(const std::vector<std::array<T,N>>& va );
+
+    template<typename T, int N>
+    static void VecOfArraysFromArray( std::vector<std::array<T,N>>& va, const NP* a );
 
 
 
@@ -255,7 +263,14 @@ When the first int shape dimension is zero a nullptr is returned.
 **/
 
 template<typename T, typename... Args> 
-inline NP* NPX::Make(const T* src, Args ... args )   // TODO rename ArrayFromData
+inline NP* NPX::Make(const T* src, Args ... args )   // WIP switch to name ArrayFromData
+{
+    std::cerr << "TODO: change NPX::Make to NPX::ArrayFromData \n" ; 
+    return ArrayFromData(src, std::forward<Args>(args)...) ; 
+}
+
+template<typename T, typename... Args> 
+inline NP* NPX::ArrayFromData(const T* src, Args ... args )   
 {
     std::string dtype = descr_<T>::dtype() ; 
     std::vector<int> shape = {args...};
@@ -264,6 +279,7 @@ inline NP* NPX::Make(const T* src, Args ... args )   // TODO rename ArrayFromDat
     a->read2(src);  
     return a ; 
 }
+
 
 
 template <typename T> 
@@ -293,6 +309,50 @@ inline NP* NPX::Holder( const std::vector<std::string>& names )
 
 
 
+/**
+NPX::ArrayFromVecOfArrays
+--------------------------
+
+There is potential for the impl of std::vector and std::array
+to add padding so although the compound vector of arrays will be contiguous
+it is not possible to rely on having the obvious layout ?
+
+**/
+
+template<typename T, int N>
+inline NP* NPX::ArrayFromVecOfArrays(const std::vector<std::array<T,N>>& va )
+{
+    int ni = va.size();
+    int nj = N ;
+    NP* a = NP::Make<T>(ni, nj);
+    T* aa = a->values<T>();
+    for(int i=0 ; i < ni ; i++)
+    {
+        const std::array<T,N>& arr = va[i] ;
+        for(int j=0 ; j < nj ; j++) aa[i*nj+j] = arr[j] ;
+    }
+    return a ;
+}
+
+
+template<typename T, int N>
+inline void NPX::VecOfArraysFromArray( std::vector<std::array<T,N>>& va, const NP* a )
+{
+    assert( a && a->uifc == 'f' && a->ebyte == sizeof(T) );
+    assert( a && a->shape.size() == 2 );
+
+    int ni = a->shape[0];
+    int nj = a->shape[1];
+    const T* aa = a->cvalues<T>();
+
+    va.resize(ni);
+    for(int i=0 ; i < ni ; i++)
+    {
+        std::array<T,N>& arr = va[i] ;
+        for(int j=0 ; j < nj ; j++) arr[j] = aa[i*nj+j] ;
+    }
+
+}
 
 
 

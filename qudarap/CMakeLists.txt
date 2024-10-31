@@ -118,6 +118,7 @@ SET(HEADERS
 
     QU.hh
     QRng.hh
+    qrng.h
 
     QTex.hh
     QTexRotate.hh
@@ -133,6 +134,8 @@ SET(HEADERS
 
     QBnd.hh
     qbnd.h
+
+
 
     QOptical.hh
 

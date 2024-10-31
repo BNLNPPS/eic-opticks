@@ -28,7 +28,11 @@ list(APPEND SOURCES
     CSGMaker.cc
     CSGImport.cc
     CSGTarget.cc
+
+
     CSGScan.cc
+    CSGScan.cu
+
     CSGView.cc
     CSGGrid.cc
     CSGQuery.cc
@@ -54,6 +58,7 @@ list(APPEND CSG_HEADERS
     CSGPrim.h
     CSGSolid.h
 
+    CSGParams.h 
 
     CSGFoundry.h
 
@@ -131,7 +136,10 @@ message(STATUS "CMAKE_INSTALL_LIBDIR     : ${CMAKE_INSTALL_LIBDIR}")
 message(STATUS "CMAKE_BINARY_DIR         : ${CMAKE_BINARY_DIR}")
 
 
-add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
+#add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
+
+CUDA_ADD_LIBRARY( ${name} ${SOURCES} )
+
 
 target_compile_definitions( ${name} PUBLIC OPTICKS_CSG )
 target_compile_definitions( ${name} PUBLIC WITH_CONTIGUOUS )
@@ -167,7 +175,8 @@ target_include_directories(${name}
            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(${name} PUBLIC ${CUDA_LIBRARIES} Opticks::SysRap)
+#target_link_libraries(${name} PUBLIC ${CUDA_LIBRARIES} Opticks::SysRap)
+target_link_libraries(${name} ${CUDA_LIBRARIES} Opticks::SysRap)
 
 
 bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)

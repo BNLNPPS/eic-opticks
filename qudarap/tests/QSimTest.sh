@@ -1,26 +1,25 @@
-#!/bin/bash -l 
+#!/bin/bash
 usage(){ cat << EOU
 QSimTest.sh
 =============
 
 ::
 
-    ./QSimTest.sh 
+    ~/o/qudarap/tests/QSimTest.sh 
         runs the executable and invoke the python script  
 
-    PIDX=0 ./QSimTest.sh
-    PIDX=2 ./QSimTest.sh
+    PIDX=0 ~/o/qudarap/tests/QSimTest.sh
+    PIDX=2 ~/o/qudarap/tests/QSimTest.sh
         assuming QUDARap was compiled with DEBUG_PIDX this
         provides debug output for the provided photon id 
 
-    TEST=fill_state_cf ./QSimTest.sh ana
+    TEST=fill_state_cf ~/o/qudarap/tests/QSimTest.sh ana
         just invoke the analysis script for the named TEST 
 
 EOU
 }
 
-SDIR=$(cd $(dirname $BASH_SOURCE) && pwd)
-cd $SDIR
+cd $(dirname $(realpath $BASH_SOURCE))
 
 name=QSimTest 
 
@@ -44,6 +43,7 @@ msg="=== $BASH_SOURCE :"
 
 
 #test=rng_sequence
+test=rng_sequence_with_skipahead
 #test=boundary_lookup_all
 #test=boundary_lookup_water
 #test=boundary_lookup_ls
@@ -99,7 +99,7 @@ nrm=0,0,1
 #nrm=0,0,-1
 
 case $TEST in
-    rng_sequence) num=$M1 ;; 
+    rng_sequence|rng_sequence_with_skipahead) num=$M1 ;; 
     random_direction_marsaglia) num=$M1 ;; 
     lambertian_direction) num=$M1 ;; 
     randgaussq_shoot) num=$M1 ;; 
@@ -119,6 +119,7 @@ esac
 
 case $TEST in
            rng_sequence)   script=rng_sequence.py   ;;
+           rng_sequence_with_skipahead)   script=rng_sequence_with_skipahead.py   ;;
 random_direction_marsaglia) script=random_direction_marsaglia.py ;; 
    boundary_lookup_all)    script=boundary_lookup_all.py ;;
    boundary_lookup_water)  script=boundary_lookup_line.py ;;
@@ -172,16 +173,24 @@ EOV
 source fill_state.sh 
 source ephoton.sh    # branching on TEST inside ephoton.sh 
 source eprd.sh
+source dbg__.sh 
 
 
 if [ "$TEST" == "smear_normal_sigma_alpha" ]; then 
    export DBG_VALUE=0.1
+elif [ "$TEST" == "rng_sequence_with_skipahead" ]; then
+
+   eventID=0
+   export QSimTest__rng_sequence_with_skipahead__eventID=${QSimTest__rng_sequence_with_skipahead__eventID:-$eventID}
+   export OPTICKS_EVENT_MODE=Nothing 
 fi 
+
+
 
 TMP=${TMP:-/tmp/$USER/opticks}
 export EBASE=$TMP/GEOM/$GEOM/QSimTest/ALL/p001
 
-vars="BASH_SOURCE arg TEST script NUM NRM FOLD GEOM SDIR TMP EBASE"
+vars="BASH_SOURCE arg TEST script NUM NRM FOLD GEOM TMP EBASE"
 
 if [ "${arg/info}" != "$arg" ]; then 
     for var in $vars ; do printf "%30s : %s \n" "$var" "${!var}" ; done 
@@ -189,7 +198,7 @@ fi
 
 if [ "${arg/grab}" != "$arg" ]; then 
     echo $BASH_SOURCE EBASE $EBASE
-    source $SDIR/../../bin/rsync.sh $EBASE
+    source ../../bin/rsync.sh $EBASE
 fi 
 
 if [ "${arg/run}" != "$arg" ]; then 

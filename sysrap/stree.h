@@ -277,6 +277,9 @@ struct stree
     static constexpr const char* SUNAME = "suname.txt" ;
     static constexpr const char* IMPLICIT = "implicit.txt" ;
 
+    static constexpr const char* FORCE_TRIANGULATE_LVID = "force_triangulate_lvid.npy" ;
+
+
 #ifdef DEBUG_IMPLICIT
     static constexpr const char* IMPLICIT_ISUR = "implicit_isur.npy" ;
     static constexpr const char* IMPLICIT_OSUR = "implicit_osur.npy" ;
@@ -331,7 +334,7 @@ struct stree
 
     std::vector<std::string> soname_raw ;   // solid names, my have 0x pointer suffix 
     std::vector<std::string> soname ;       // unique solid names, created with sstr::StripTail_unique with _1 _2 ... uniqing 
-    std::vector<sn*>         solids ; 
+    std::vector<sn*>         solids ;       // used from U4Tree::initSolid but not available postcache, instead use sn::Get methods 
 
     std::vector<glm::tmat4x4<double>> m2w ; // local (relative to parent) "model2world" transforms for all nodes
     std::vector<glm::tmat4x4<double>> w2m ; // local (relative to parent( "world2model" transforms for all nodes  
@@ -376,6 +379,7 @@ struct stree
 
     std::string desc() const ;
     std::string desc_soname() const ;
+    std::string desc_lvid() const ;
     std::string desc_size(char div='\n') const ;
     std::string desc_vec() const ;
     std::string desc_sub(bool all=false) const ;
@@ -428,10 +432,12 @@ struct stree
     const std::vector<snode>* get_node_vector( char _src ) const ; // 'N':nds 'R':rem 'T':tri
     void find_lvid_nodes_( std::vector<snode>& nodes, int lvid, char _src ) const ; 
     void find_lvid_nodes(  std::vector<int>& nodes, int lvid, char _src ) const ; 
+    int count_lvid_nodes( int lvid, char _src='N' ) const ; 
 
     void find_lvid_nodes( std::vector<int>& nodes, const char* soname_, bool starting ) const ; 
     int  find_lvid_node( const char* q_soname, int ordinal ) const ; 
     int  find_lvid_node( const char* q_spec ) const ; // eg HamamatsuR12860sMask_virtual:0:1000
+
 
 
     const snode* pick_lvid_ordinal_node( int lvid, int ordinal, char _src ) const ; 
@@ -442,8 +448,12 @@ struct stree
     bool has_frame(const char* q_spec) const ;
 
 
-    int get_frame_instanced(sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const ; 
-    int get_frame_remainder(sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const ; 
+    int get_frame_instanced(  sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const ; 
+
+    int get_frame_remainder(  sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const ; 
+    int get_frame_triangulate(sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const ; 
+    int get_frame_global(     sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const ; 
+    int _get_frame_global(     sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal, char ridx_type ) const ; 
 
 
     void get_sub_sonames( std::vector<std::string>& sonames ) const ; 
@@ -451,6 +461,8 @@ struct stree
 
     static std::string Name( const std::string& name, bool strip ); 
     std::string get_lvid_soname(int lvid, bool strip ) const ; 
+    const std::string& get_lvid_soname_(int lvid) const ;
+
     void        get_meshname( std::vector<std::string>& names) const ;  // match CSGFoundry 
     void        get_mmlabel(  std::vector<std::string>& names) const ;  // match CSGFoundry 
 
@@ -525,7 +537,10 @@ struct stree
 
     std::string desc_nodes( const std::vector<int>&   nn, int edgeitems=10) const ;
     std::string desc_nodes_(const std::vector<snode>& nn, int edgeitems=10) const ;
+    std::string desc_node_solids() const ; 
     std::string desc_solids() const ; 
+    std::string desc_solid(int lvid) const ; 
+
 
     NP* make_trs() const ; 
     void save_trs(const char* fold) const ; 
@@ -564,7 +579,10 @@ struct stree
     void enumerateFactors(); 
     void labelFactorSubtrees(); 
     void findForceTriangulateLVID();  
-    void collectRemainderNodes();  
+    void collectGlobalNodes();  
+    std::string descNodes() const;
+
+    static constexpr const char* _findForceTriangulateLVID_DUMP = "stree__findForceTriangulateLVID_DUMP" ; 
 
     void factorize(); 
 
@@ -576,17 +594,21 @@ struct stree
     int      get_factor_olvid(unsigned idx) const ;   // outer-lv-id
 
     int      get_remainder_subtree() const ; 
+    int      get_triangulate_subtree() const ; 
     int      get_remainder_olvid() const  ; 
+    int      get_triangulate_olvid() const  ; 
 
     int      get_ridx_subtree(unsigned ridx) const ; 
     int      get_ridx_olvid(  unsigned ridx) const ; 
 
     int      get_num_ridx() const ;  
+    int      get_num_ridx_(char ridx_type) const ;  
     int      get_num_remainder() const ; 
     int      get_num_triangulated() const ;
     char     get_ridx_type(int ridx) const ;
 
     void get_factor_nodes(std::vector<int>& nodes, unsigned idx) const ; 
+    std::string desc_factor_nodes(unsigned idx) const ; 
     std::string desc_factor() const ; 
 
     static bool SelectNode( const snode& nd, int q_repeat_index, int q_repeat_ordinal ); 
@@ -599,12 +621,15 @@ struct stree
     void get_remainder_nidx(std::vector<int>& nidxs ) const ; 
  
     void get_repeat_node( std::vector<snode>& nodes, int q_repeat_index, int q_repeat_ordinal ) const ; 
+    std::string desc_repeat_node(int q_repeat_index, int q_repeat_ordinal) const ; 
 
     std::string desc_repeat_nodes() const ;  
 
 
     void add_inst( glm::tmat4x4<double>& m2w, glm::tmat4x4<double>& w2m, int gas_idx, int nidx ); 
+    void add_inst_identity( int gas_idx, int nidx ); 
     void add_inst(); 
+
     void narrow_inst(); 
     void clear_inst(); 
     std::string desc_inst() const ;
@@ -630,6 +655,8 @@ struct stree
     std::string desc_bd() const ; 
 
     void initStandard() ; 
+
+    static constexpr const char* _init_material_mapping_DUMP = "stree__init_material_mapping_DUMP" ; 
     void init_material_mapping(); 
 
     int add_material( const char* name, unsigned g4index ); 
@@ -676,6 +703,9 @@ Q: why empty NPFold material and surface instead of nullptr ?
      bd(nullptr),
      bnd(nullptr),
      optical(nullptr)
+
+HMM the force_triangulate_solid envvar only relevant for stree creation, not with loaded stree ? 
+
 **/
 
 
@@ -731,6 +761,7 @@ inline std::string stree::desc_size(char div) const
        << " bdname " << bdname.size() << div 
        << " implicit " << implicit.size() << div 
        << " soname " << soname.size() << div 
+       << " force_triangulate_lvid " << force_triangulate_lvid.size() << div
        << " solids " << solids.size() << div 
        << " sensor_count " << sensor_count << div
        << " nds " << nds.size() << div
@@ -767,6 +798,8 @@ inline std::string stree::desc() const
        << std::endl
        << desc_repeat_nodes() 
        << std::endl
+       << desc_lvid() 
+       << std::endl
        ; 
 
     if(level > 2) ss 
@@ -801,6 +834,61 @@ inline std::string stree::desc_soname() const
     ss << "[stree::desc_soname\n" ;     
     for(int i=0 ; i < int(soname.size()) ; i++) ss << "[" << soname[i] << "]\n" ;
     ss << "]stree::desc_soname\n" ;
+    std::string str = ss.str();
+    return str ;
+}
+
+inline std::string stree::desc_lvid() const
+{
+    std::stringstream ss ;
+    ss << "[stree::desc_lvid\n" ;     
+    ss << "force_triangulate_lvid.size " << force_triangulate_lvid.size() << "\n" ; 
+
+    int sum[3] = {0,0,0} ; 
+
+    for(int i=0 ; i < int(soname.size()) ; i++) 
+    {
+        const char* lvn = soname[i].c_str(); 
+        bool starting = false ; // ie MatchAll not MatchStart 
+        int lvid = find_lvid(lvn, starting); 
+        bool ift = is_force_triangulate(lvid) ; 
+
+        int count_N = count_lvid_nodes(lvid, 'N' ); 
+        int count_R = count_lvid_nodes(lvid, 'R' ); 
+        int count_T = count_lvid_nodes(lvid, 'T' ); 
+
+        ss
+           << " i " << std::setw(4) << i
+           << " lvid " << std::setw(4) << lvid
+           << " is_force_triangulate " << ( ift ? "YES" : "NO " ) 
+           << " count_N/R/T " 
+           << std::setw(6) << count_N 
+           << std::setw(6) << count_R 
+           << std::setw(6) << count_T 
+           << " lvn " << lvn 
+           << "\n" 
+           ; 
+
+        sum[0] += count_N ; 
+        sum[1] += count_R ; 
+        sum[2] += count_T ; 
+
+    }
+
+    ss << "   " << "    "
+       << "      " << "    "
+       << "                      " << "   "
+       << "   sum_N/R/T " 
+       << std::setw(6) << sum[0] 
+       << std::setw(6) << sum[1] 
+       << std::setw(6) << sum[2] 
+       << "\n"
+       ; 
+
+    ss << " nds.size " << nds.size() << "\n" ;  
+    ss << " rem.size " << rem.size() << "\n" ;  
+    ss << " tri.size " << tri.size() << "\n" ;  
+    ss << "]stree::desc_lvid\n" ;
     std::string str = ss.str();
     return str ;
 }
@@ -1438,7 +1526,14 @@ inline int stree::find_lvid(const char* q_soname, bool starting ) const
 }
 
 
+/**
+stree::get_node_vector
+-----------------------
 
+The *nds* vector includes all the structural nodes (aka volumes) with the 
+*rem* and *tri* vectors being subsets of those. 
+
+**/
 
 inline const std::vector<snode>* stree::get_node_vector( char _src ) const
 {
@@ -1515,6 +1610,15 @@ inline void stree::find_lvid_nodes( std::vector<int>& nodes, const char* q_sonam
 }
 
 
+inline int stree::count_lvid_nodes( int lvid, char _src ) const 
+{
+    std::vector<int> nodes ; 
+    find_lvid_nodes( nodes, lvid, _src ); 
+    return nodes.size(); 
+} 
+
+
+
 /**
 stree::find_lvid_node
 ---------------------
@@ -1570,9 +1674,12 @@ inline int stree::find_lvid_node( const char* q_spec ) const
 stree::pick_lvid_ordinal_node
 -------------------------------
 
+Returns selected node (pointer into nds vector)
+
 1. collect indices of all snode (volumes) with lvid shape from the _src vector nds/rem/tri
 2. select the ordinal-th snode (-ve ordinal counts from back of the selected set)
-3. return pointer into the nds vector or nullptr 
+3. use selected nn node index from find_lvid_nodes, which is an absolute nidx 
+   to return pointer into the nds vector or nullptr 
 
    * TODO check for  _src of rem/tri ? 
 
@@ -1587,6 +1694,7 @@ inline const snode* stree::pick_lvid_ordinal_node( int lvid, int lvid_ordinal, c
     if( lvid_ordinal < 0 ) lvid_ordinal += num ; 
     bool valid =  lvid_ordinal > -1 && lvid_ordinal < num ; 
     int nidx = valid ? nn[lvid_ordinal] : -1 ; 
+
     const snode* nds_data = nds.data() ; 
     return nidx > -1 && nidx < int(nds.size()) ? nds_data + nidx : nullptr ; 
 }
@@ -1631,9 +1739,14 @@ from 1st field and integers lvid_ordinal repeat_ordinal from 2nd and 3rd::
     GZ1.B06_07_FlangeI_Web_FlangeII:0:0
     GZ1.A06_07_FlangeI_Web_FlangeII:15:0
     GZ1.B06_07_FlangeI_Web_FlangeII:15:0
+
+    0:0:0 
         
 When no 2nd and 3rd field is provided eg with "sDeadWater" the
 ordinals default to 0. 
+
+A integer string in the first field is converted to lvid int.  
+
 
 TODO: get this to ignore comments in the q_spec line like::
 
@@ -1655,8 +1768,16 @@ inline int stree::parse_spec(
     const char* q_lvid_ordinal  = elem.size() > 1 ? elem[1].c_str() : nullptr ; 
     const char* q_repeat_ordinal = elem.size() > 2 ? elem[2].c_str() : nullptr ; 
 
-    bool starting = true ; 
-    lvid = find_lvid(q_soname, starting);  
+    
+    if(sstr::IsInteger(q_soname))
+    {
+        lvid = sstr::To<int>(q_soname) ; 
+    }
+    else
+    {  
+        bool starting = true ; 
+        lvid = find_lvid(q_soname, starting);  
+    }
 
     if(lvid == -1 )
     { 
@@ -1676,7 +1797,7 @@ inline int stree::pick_lvid_ordinal_repeat_ordinal_inst( const char* q_spec ) co
     int lvid ; 
     int lvid_ordinal ;
     int repeat_ordinal ;
-    int rc = parse_spec( lvid, lvid_ordinal, repeat_ordinal, q_spec ); 
+    [[maybe_unused]] int rc = parse_spec( lvid, lvid_ordinal, repeat_ordinal, q_spec ); 
     assert( rc == 0 ); 
     int inst_idx = pick_lvid_ordinal_repeat_ordinal_inst_( lvid, lvid_ordinal, repeat_ordinal ); 
     return inst_idx ;
@@ -1688,8 +1809,6 @@ stree::get_frame
 ------------------
 
 1. parse_spec from q_spec get (lvid, lvid_ordinal, repeat_ordinal)
-
-
 
 Q: An instance may encompasses multiple lv (and multiple snode) 
    so which nidx is collected together with the inst
@@ -1719,19 +1838,42 @@ inline sfr stree::get_frame(const char* q_spec ) const
     f.set_name(q_spec); 
 
 
-    int get_rc = 0 ; 
+    [[maybe_unused]] int get_rc = 0 ; 
     if( repeat_ordinal == -1 )
     {
-        get_rc = get_frame_remainder(f,  lvid, lvid_ordinal, repeat_ordinal );
+        get_rc = get_frame_global(  f,  lvid, lvid_ordinal, repeat_ordinal );
     }
     else                                
     {
         get_rc = get_frame_instanced(f,  lvid, lvid_ordinal, repeat_ordinal );
     }
+
+    if(get_rc != 0 ) std::cerr 
+        << "stree::get_frame FAIL q_spec[" << ( q_spec ? q_spec : "-" ) << "]\n" 
+        << " THIS CAN BE CAUSED BY NOT USING REPEAT_ORDINAL -1 (LAST OF TRIPLET) FOR GLOBAL GEOMETRY " 
+        << "\n"
+        ;
+
     assert( get_rc == 0 ); 
     return f ; 
 }
 
+
+/**
+stree::has_frame
+------------------
+
+The spec are of form::
+
+    Hama:0:1000
+    solidXJanchor:20:-1
+    sSurftube_38V1_0:0:-1
+
+Where the three fields provide the ints::
+
+    (lvid, lvid_ordinal, repeat_ordinal)
+
+**/
 
 inline bool stree::has_frame(const char* q_spec) const 
 {
@@ -1741,7 +1883,7 @@ inline bool stree::has_frame(const char* q_spec) const
     int parse_rc = parse_spec( lvid, lvid_ordinal, repeat_ordinal, q_spec ); 
 
     if(parse_rc != 0) std::cerr 
-        << "stree::get_frame"
+        << "stree::has_frame"
         << " FATAL parse_spec failed "
         << " q_spec [" << ( q_spec ? q_spec : "-" ) << "]"
         << " parse_rc " << parse_rc
@@ -1752,16 +1894,22 @@ inline bool stree::has_frame(const char* q_spec) const
     sfr f ; 
     f.set_name(q_spec); 
 
-
     int get_rc = 0 ; 
     if( repeat_ordinal == -1 )
     {
-        get_rc = get_frame_remainder(f,  lvid, lvid_ordinal, repeat_ordinal );
+        get_rc = get_frame_global(  f,  lvid, lvid_ordinal, repeat_ordinal );
     }
     else                                
     {
         get_rc = get_frame_instanced(f,  lvid, lvid_ordinal, repeat_ordinal );
     }
+
+    if(get_rc != 0 ) std::cerr 
+        << "stree::has_frame FAIL q_spec[" << ( q_spec ? q_spec : "-" ) << "]\n" 
+        << " THIS CAN BE CAUSED BY NOT USING REPEAT_ORDINAL -1 (LAST OF TRIPLET) FOR GLOBAL GEOMETRY " 
+        << "\n"
+        ;
+
     return get_rc == 0 ; 
 }
 
@@ -1795,6 +1943,21 @@ inline int stree::get_frame_instanced(sfr& f, int lvid, int lvid_ordinal, int re
 
     const glm::tmat4x4<double>* m2w = get_inst(ii); 
     const glm::tmat4x4<double>* w2m = get_iinst(ii); 
+   
+    bool missing_transform = !m2w || !w2m ; 
+ 
+    if(missing_transform) std::cerr 
+        << "stree::get_frame_instanced FAIL missing_transform "
+        << " lvid " << lvid
+        << " lvid_ordinal " << lvid_ordinal
+        << " repeat_ordinal " << repeat_ordinal
+        << " w2m " << ( w2m ? "YES" : "NO " )
+        << " m2w " << ( m2w ? "YES" : "NO " )
+        << " ii " << ii 
+        << "\n"
+        ;
+
+    if(missing_transform) return 1 ; 
     assert( m2w ); 
     assert( w2m ); 
 
@@ -1844,14 +2007,11 @@ inline int stree::get_frame_instanced(sfr& f, int lvid, int lvid_ordinal, int re
 
 
 /**
-WIP stree::get_frame_remainder
+stree::get_frame_remainder
 --------------------------------
 
-Currently global remainder nodes just yield the world frame, 
-which is not useful for targetting.  
-
-TODO: bring over the approach for globals from MOI targetting.
-At CSG level this was handled by::
+Note the similartity to MOI targetting, 
+at CSG level which is handled by::
 
     CSGTarget::getFrameComponents
     CSGTarget::getGlobalCenterExtent
@@ -1863,12 +2023,50 @@ here at stree level.
 * look inside rem snode for the specified (lvid, lvid_ordinal) ?
 
 **/
-
 inline int stree::get_frame_remainder(sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const 
 {
-    assert( repeat_ordinal == -1 ); // other -ve values could select special cases handling like RTP frame
+    return _get_frame_global( f, lvid, lvid_ordinal, repeat_ordinal, 'R' ); 
+}
+inline int stree::get_frame_triangulate(sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const 
+{
+    return _get_frame_global( f, lvid, lvid_ordinal, repeat_ordinal, 'T' ); 
+}
+inline int stree::get_frame_global(sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const 
+{
+    return _get_frame_global( f, lvid, lvid_ordinal, repeat_ordinal, '?' ); 
+}
 
-    const snode* _node = pick_lvid_ordinal_node(lvid, lvid_ordinal, 'R' );   
+
+/**
+stree::_get_frame_global
+--------------------------
+
+For ridx_type '?' look for the frame first using rem nodes and then tri nodes 
+
+**/
+
+
+inline int stree::_get_frame_global(sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal, char ridx_type ) const 
+{
+    assert( repeat_ordinal == -1 ); // other -ve values could select special cases handling like RTP frame
+    assert( ridx_type == 'R' || ridx_type == 'T' || ridx_type == '?' ); 
+
+    const snode* _node = nullptr ; 
+
+    if( ridx_type == 'R' || ridx_type == 'T' )
+    {
+        _node = pick_lvid_ordinal_node(lvid, lvid_ordinal, ridx_type );   
+    }
+    else if( ridx_type == '?' )
+    {
+        _node = pick_lvid_ordinal_node(lvid, lvid_ordinal, 'R' );   
+        if(_node == nullptr)
+        {
+            _node = pick_lvid_ordinal_node(lvid, lvid_ordinal, 'T' );   
+        } 
+    }
+
+
     if(_node == nullptr) return 1 ;     
  
     const snode& node = *_node ; 
@@ -2028,6 +2226,14 @@ inline std::string stree::get_lvid_soname(int lvid, bool strip) const
     return Name(soname[lvid], strip) ; 
 }
 
+inline const std::string& stree::get_lvid_soname_(int lvid) const 
+{
+    assert( lvid >= 0 && lvid < int(soname.size()) ) ; 
+    return soname[lvid] ; 
+}
+
+
+
 inline void stree::get_meshname( std::vector<std::string>& names) const 
 {
     assert( names.size() == 0 ); 
@@ -2038,6 +2244,14 @@ inline void stree::get_mmlabel( std::vector<std::string>& names) const
 {
     assert( names.size() == 0 ); 
     int num_ridx = get_num_ridx(); 
+
+    if(level > 1) std::cout 
+        << "stree::get_mmlabel"
+        << " level " << level 
+        << " num_ridx " << num_ridx 
+        << "\n"
+        ;
+
     for(int ridx=0 ; ridx < num_ridx ; ridx++)
     {
         int num_prim = get_ridx_subtree(ridx) ; 
@@ -2048,8 +2262,17 @@ inline void stree::get_mmlabel( std::vector<std::string>& names) const
 
         std::stringstream ss ;  
         ss << num_prim << ":" << name ; 
-        std::string str = ss.str(); 
-        names.push_back(str);  
+        std::string mmlabel = ss.str(); 
+
+        if(level > 1) std::cout 
+            << "stree::get_mmlabel"
+            << " level " << level 
+            << " ridx " << ridx
+            << " mmlabel " << mmlabel  
+            << "\n"
+            ;
+
+        names.push_back(mmlabel);  
     }
 }
 
@@ -2709,14 +2932,21 @@ inline std::string stree::desc_nodes_(const std::vector<snode>& nn, int edgeitem
 
 
 
+/**
+stree::desc_node_solids
+-------------------------
+
+HUH: this is horribly repetitive and long presentation of soname for every node 
+
+**/
 
 
-
-inline std::string stree::desc_solids() const 
+inline std::string stree::desc_node_solids() const 
 {
+    int num_nodes = get_num_nodes();
     std::stringstream ss ; 
-    ss << "stree::desc_solids" << std::endl ; 
-    for(int nidx=0 ; nidx < get_num_nodes() ; nidx++) 
+    ss << "stree::desc_node_solids num_nodes " << num_nodes  << std::endl ; 
+    for(int nidx=0 ; nidx < num_nodes ; nidx++) 
     {
         ss
             << " nidx " << std::setw(6) << nidx 
@@ -2724,9 +2954,56 @@ inline std::string stree::desc_solids() const
             << std::endl 
             ;   
     }
-    std::string s = ss.str();
-    return s ; 
+    std::string str = ss.str();
+    return str ; 
 }
+
+
+
+/**
+stree::desc_solids
+-------------------
+
+OBSERVE THAT THE stree::solids ARE NOT PERSISTED, INSTEAD USE sn::Get methods
+to access the s_csg.h persisted sn.h 
+
+**/
+
+inline std::string stree::desc_solids() const 
+{
+    int num_solids = solids.size() ;
+    std::stringstream ss ; 
+    ss << "stree::desc_solids num_solids " << num_solids  << std::endl ; 
+    for(int i=0 ; i < num_solids ; i++) 
+    {
+        const sn* root = solids[i] ; 
+        ss
+            << " (sn)root.lvid " << std::setw(3) << root->lvid
+            << std::endl 
+            ;   
+    }
+    std::string str = ss.str();
+    return str ; 
+}
+
+
+inline std::string stree::desc_solid(int lvid) const
+{
+    const sn* root = sn::GetLVRoot(lvid) ;
+    const std::string& lvn = get_lvid_soname_(lvid) ; 
+    assert( root ) ; 
+
+    std::stringstream ss ; 
+    ss << "stree::desc_solid"
+       << " lvid " << lvid 
+       << " lvn " << lvn 
+       << " root " << ( root ? "Y" : "N" ) 
+       << " " << ( root ? root->rbrief() : "" ) 
+       ; 
+    std::string str = ss.str();
+    return str ; 
+}
+
 
 
 /**
@@ -2734,8 +3011,7 @@ stree::make_trs
 -----------------
 
 This is used from U4Tree::simtrace_scan as the basis for u4/tests/U4SimtraceTest.sh 
-
-1. HMM: this is based on GTD: "GGeo Transform Debug" so it is not future safe 
+ HMM: this is based on GTD: "GGeo Transform Debug" so it is not future safe 
 
    * TODO: adopt the modern equivalent of GTD, or create one if non-existing 
 
@@ -2811,12 +3087,15 @@ inline NPFold* stree::serialize() const
     NP* _mtname_no_rindex = NPX::Holder(mtname_no_rindex) ; 
     NP* _mtindex = NPX::ArrayFromVec<int,int>( mtindex ); 
     NP* _mtline = NPX::ArrayFromVec<int,int>( mtline ); 
+    NP* _force_triangulate_lvid = NPX::ArrayFromVec<int,int>( force_triangulate_lvid ); 
 
 
     fold->add( MTNAME,  _mtname ); 
     fold->add( MTNAME_NO_RINDEX,  _mtname_no_rindex ); 
     fold->add( MTINDEX, _mtindex ); 
     fold->add( MTLINE , _mtline ); 
+
+    fold->add( FORCE_TRIANGULATE_LVID, _force_triangulate_lvid ) ; 
 
     if(material) fold->add_subfold( MATERIAL, material );  
     if(surface)  fold->add_subfold( SURFACE,  surface );  
@@ -2843,7 +3122,7 @@ inline NPFold* stree::serialize() const
     NP* _inst = NPX::ArrayFromVec<double, glm::tmat4x4<double>>( inst, 4, 4) ; 
     NP* _iinst = NPX::ArrayFromVec<double, glm::tmat4x4<double>>( iinst, 4, 4) ; 
 
-    // _f4 just for debug comparisons : narrowing normally only done in memory for upload  
+    // inst_f4 crucially used from CSGImport::importInst
     NP* _inst_f4 = NPX::ArrayFromVec<float, glm::tmat4x4<float>>( inst_f4, 4, 4) ; 
     NP* _iinst_f4 = NPX::ArrayFromVec<float, glm::tmat4x4<float>>( iinst_f4, 4, 4) ; 
 
@@ -2947,6 +3226,8 @@ inline void stree::import(const NPFold* fold)
     ImportNames( suname,            fold->get(SUNAME) );
     ImportNames( implicit,          fold->get(IMPLICIT) );
 
+    ImportArray<int, int>( force_triangulate_lvid, fold->get(FORCE_TRIANGULATE_LVID) );
+
     ImportArray<int, int>( mtindex, fold->get(MTINDEX) );
     ImportArray<int, int>( suindex, fold->get(SUINDEX) );
  
@@ -3038,6 +3319,21 @@ inline std::string stree::Desc(const std::vector<int>& a, unsigned edgeitems ) /
 }
 
 
+/**
+stree::FindForceTriangulateLVID
+--------------------------------
+
+Canonical usage from stree::findForceTriangulateLVID
+
+1. if _force_triangulate_solid is nullptr return doing nothing 
+2. split _force_triangulate_solid delimited string into *force* vector of potential solid names 
+
+   * when have lots of solid names to force triangulate its easier to manage these in a file, see stree::findForceTriangulateLVID
+   * when the string contains '\n' sstr::SplitTrimSuppress overrides delim to '\n'
+
+3. for each solid name found in the *_soname* vector collect corresponding indices into *lvid* vector
+
+**/
 
 
 inline void stree::FindForceTriangulateLVID(std::vector<int>& lvid, const std::vector<std::string>& _soname, const char* _force_triangulate_solid, char delim  )  // static
@@ -3045,7 +3341,7 @@ inline void stree::FindForceTriangulateLVID(std::vector<int>& lvid, const std::v
     if(_force_triangulate_solid == nullptr) return ;
 
     std::vector<std::string> force ;  
-    sstr::Split( _force_triangulate_solid, delim, force ); 
+    sstr::SplitTrimSuppress( _force_triangulate_solid, delim, force ); 
     unsigned num_force = force.size(); 
 
     for(unsigned i=0 ; i < num_force ; i++)
@@ -3264,6 +3560,11 @@ stree::enumerateFactors
 For remaining subs that pass the "freq >= FREQ_CUT"
 create sfactor and collect into *factor* vector
 
+Q: What about ridx:0 is there a factor ?
+A: from the freq cut in stree::enumerateFactors and 
+   the offset by one in stree::labelFactorSubtrees it looks
+   like the factor are really just for the instanced
+
 **/
 
 inline void stree::enumerateFactors()
@@ -3376,11 +3677,37 @@ inline void stree::labelFactorSubtrees()
 stree::findForceTriangulateLVID
 --------------------------------
 
-Uses the optional "stree__force_triangulate_solid" envvar list of unique solid names
-together with the list of all solid names *sonames* to form the 
-*force_triangulate_lvid* list of indices that is used by stree::is_force_triangulate 
+Canonically invoked during stree creation by U4Tree::Create/.../stree::factorize. 
+Populates *force_triangulate_lvid* vector of indices, which is used by stree::is_force_triangulate. 
 
-This is called from stree::factorize prior to stree::collectRemainderNodes
+HMM: the envvar is an input to creation... how to persist that info ? 
+To make is_force_triangulated work for a loaded stree ? 
+Just need to persist the vector ? 
+
+Uses the optional comma delimited stree__force_triangulate_solid envvar list of unique solid names
+together with the member variable vector of all solid names *soname* to form the indices.
+
+When there are many solids that need to be triangulated it is more
+convenient to adopt a config approach like the below example using 
+a replacement path to load the solid names from a file::
+
+    cd ~/.opticks/GEOM    
+
+    cp J_2024aug27/CSGFoundry/meshname.txt J_2024aug27_meshname_stree__force_triangulate_solid.txt
+
+        ## copy meshname.txt with all the solid names to a suitable location 
+        ## "J_2024aug27" is an example GEOM identifier 
+
+    vi J_2024aug27_meshname_stree__force_triangulate_solid.txt
+
+        ## edit the file leaving only global solids to be force triangulated  
+        ## note that as sstr::SplitTrimSuppress is used lines starting with '#' are skipped 
+
+    export GEOM=J_2024aug27
+    export stree__force_triangulate_solid='filepath:$HOME/.opticks/GEOM/${GEOM}_meshname_stree__force_triangulate_solid.txt'
+
+        ## configure envvar within runner script to load the filepath instead of directly using a delimited string
+        ## NB the names and paths are just examples 
 
 **/
 
@@ -3388,10 +3715,50 @@ This is called from stree::factorize prior to stree::collectRemainderNodes
 inline void stree::findForceTriangulateLVID()
 {
     FindForceTriangulateLVID(force_triangulate_lvid, soname, force_triangulate_solid, ',' ); 
-    std::cout << "stree::findForceTriangulateLVID\n" << descForceTriangulateLVID()  ;
+
+    if(ssys::getenvbool(_findForceTriangulateLVID_DUMP)) std::cout 
+        << "stree::findForceTriangulateLVID\n" 
+        << " [" << _findForceTriangulateLVID_DUMP << "] " 
+        << descForceTriangulateLVID() 
+        ;
 }
 
-inline void stree::collectRemainderNodes() 
+/**
+stree::collectGlobalNodes
+---------------------------
+
+This is invoked from the tail of stree::factorize
+where subsets of the *nds* snode collected from Geant4 by *U4Tree::initNodes_r*
+are copied into the *rem* and *tri* vectors. 
+
+Done by iterating over the *nds* vector of all nodes copying global non-instanced 
+snode with repeat_index:0 into the *rem* and *tri* vectors
+depending on the "stree__force_triangulate_solid" envvar list of unique solid names. 
+
+The default is to collect globals into the *rem* vector. 
+
+NB simplifying assumption that all configured tri nodes are global (not instanced)
+
+NB as this action is pre-cache it means that currently must configure triangulation envvar 
+when doing the from Geant4 to stree.h conversion with U4Tree.h, hence the triangulation 
+setting configured is baked into the cache geometry
+
+could triangulation action be done post-cache ?  
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* probably yes, but not easily : would need to defer the tri rem formation 
+
+should triangulation action be done post-cache ?  
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* probably no, flexibility would be convenient during testing 
+  but for actual use the definiteness of getting same geometry from cache has value 
+
+
+**/
+
+
+inline void stree::collectGlobalNodes() 
 {
     assert( rem.size() == 0u ); 
     assert( tri.size() == 0u ); 
@@ -3411,8 +3778,30 @@ inline void stree::collectRemainderNodes()
             assert( do_force_triangulate == false && "force triangulate solid is currently only supported for remainder nodes" ); 
         }  
     }
-    if(level>0) std::cout << "stree::collectRemainderNodes rem.size " << rem.size() << std::endl ;
+    if(level>0) std::cout 
+       << "stree::collectGlobalNodes " 
+       << descNodes() 
+       << descForceTriangulateLVID() 
+       << std::endl 
+       ;
 }
+
+
+inline std::string stree::descNodes() const
+{
+    std::stringstream ss ; 
+    ss 
+       << "stree::descNodes "
+       << " nds.size " << nds.size()
+       << " rem.size " << rem.size()
+       << " tri.size " << tri.size()
+       << " (rem.size + tri.size) " << (rem.size() + tri.size() )
+       << " (nds.size - rem.size - tri.size; inst nodes) " << (nds.size() - rem.size() - tri.size() )
+       ;
+    std::string str = ss.str();  
+    return str ; 
+}
+
 
 
 /**
@@ -3437,8 +3826,10 @@ labelFactorSubtrees
    label all nodes of subtrees of all repeats with repeat_index, 
    leaving remainder nodes at default of zero repeat_index
 
-collectRemainderNodes
-   collect global non-instanced 
+collectGlobalNodes
+   collect global non-instanced nodes into *rem* vector and depending on envvars collect 
+   nodes to be force triangulated into *tri* vector
+   
  
 **/
 
@@ -3453,7 +3844,7 @@ inline void stree::factorize()
     labelFactorSubtrees(); 
 
     findForceTriangulateLVID();  
-    collectRemainderNodes(); 
+    collectGlobalNodes(); 
 
     if(level>0) std::cout << desc_factor() << std::endl ;
     if(level>0) std::cout << "] stree::factorize " << std::endl ;
@@ -3494,31 +3885,77 @@ inline int stree::get_remainder_subtree() const
 {
     return rem.size() ; 
 }
+inline int stree::get_triangulate_subtree() const 
+{
+    return tri.size() ; 
+}
+
 inline int stree::get_remainder_olvid() const 
 {
     if(rem.size() == 0 ) return -1 ; 
     const snode& out = rem[0] ; 
     return out.lvid ; 
 }
-
+inline int stree::get_triangulate_olvid() const 
+{
+    if(tri.size() == 0 ) return -1 ; 
+    const snode& out = tri[0] ; 
+    return out.lvid ; 
+}
 
 
 inline int stree::get_ridx_subtree(unsigned ridx) const 
 {
-    return ridx == 0 ? get_remainder_subtree() : get_factor_subtree(ridx - 1 ) ; 
+    char ridx_type = get_ridx_type(ridx) ; 
+    int num_rem = get_num_remainder(); 
+    assert( num_rem == 1 ); 
+
+    int _subtree = -1 ; 
+    switch(ridx_type)
+    {
+        case 'R': _subtree = get_remainder_subtree()             ; break ; 
+        case 'F': _subtree = get_factor_subtree(ridx - num_rem)  ; break ; 
+        case 'T': _subtree = get_triangulate_subtree()           ; break ; 
+    }
+    return _subtree ;
 }
 inline int stree::get_ridx_olvid(unsigned ridx) const 
 {
-    return ridx == 0 ? get_remainder_olvid() : get_factor_olvid(ridx - 1 ) ; 
+    char ridx_type = get_ridx_type(ridx) ; 
+    int num_rem = get_num_remainder(); 
+    assert( num_rem == 1 ); 
+
+    int _olvid = -1 ; 
+    switch(ridx_type)
+    {
+        case 'R': _olvid = get_remainder_olvid()             ; break ; 
+        case 'F': _olvid = get_factor_olvid(ridx - num_rem)  ; break ; 
+        case 'T': _olvid = get_triangulate_olvid()           ; break ; 
+    }
+    return _olvid ; 
 }
 
 inline int stree::get_num_ridx() const 
 {
     return get_num_remainder() + get_num_factor() + get_num_triangulated() ; 
 }
+
+/**
+stree::get_num_remainder
+-------------------------
+
+Currently always returns 1, as while OptiX geometry might be made to 
+work with purely instanced compound solids such geometries 
+are impossible from Geant4 conversions as the world volume would
+never be instanced. 
+
+Also lots of other places assume always have this 
+
+**/
+
 inline int stree::get_num_remainder() const 
 {
-    //return rem.size() > 0 ? 1 : 0 ;   // lots other places assume always have this 
+    //return rem.size() > 0 ? 1 : 0 ;   
     return 1 ; 
 }
 inline int stree::get_num_triangulated() const 
@@ -3526,35 +3963,62 @@ inline int stree::get_num_triangulated() const
     return tri.size() > 0 ? 1 : 0 ; 
 }
 
+inline int stree::get_num_ridx_(char ridx_type) const
+{
+    int num = -1 ; 
+    switch(ridx_type)
+    {
+        case 'R': num = get_num_remainder()     ; break ; 
+        case 'F': num = get_num_factor()        ; break ; 
+        case 'T': num = get_num_triangulated()  ; break ; 
+    }
+    return num ; 
+}  
+
+
+
+
+
 /**
 stree::get_ridx_type
 ---------------------
 
-Example with::
+The compound solids are assumed to be ordered in the below manner with 
+the R solid(s) followed by the instanced F solids and then the T solid::
 
-    num_remainder   : 1
-    num_factor      : 3
-    num_triangulate : 1
-    num_ridx        : 5
+    RFFFFT
+  
 
-::
+Expectation for compound solids:
 
-    +-------+--------------------------------------------+--------------------------------------------------------+
-    |       |   lowest ridx                              |  highest ridx                                          |
-    +=======+============================================+========================================================+
-    | 4 + T | num_remainder + num_factor + 0             | num_remainder + num_factor + num_triangulate - 1       |
-    | 3 + F |                                            | num_remainder + num_factor - 1                         |
-    | 2 + F |                                            |                                                        |
-    | 1 + F | num_remainder + 0                          | num_remainder + num_factor -1                          |
-    | 0 + R |   0                                        | num_remainder - 1                                      |
-    +-------+--------------------------------------------+--------------------------------------------------------+
++-----+-------------------------------+--------------------------------------------------------+
+|     | solid type                    |  note                                                  |
++=====+===============================+========================================================+
+|  R  |  global non-instanced         |   1 solid formed from the many *rem* nodes             |              
++-----+-------------------------------+--------------------------------------------------------+
+|  F  |  factor/instanced             |  0...~10 solids with a few nodes each                  |
++-----+-------------------------------+--------------------------------------------------------+
+|  T  |  triangulated non-instanced   |  from any *tri* nodes depending on stree envvar config | 
++-----+-------------------------------+--------------------------------------------------------+
+
+Indices of ranges of the 3 types of compound solids:
+
++---+--------------------------------------------+--------------------------------------------------------+
+|   |   lowest ridx                              |  highest ridx                                          |
++===+============================================+========================================================+
+| R |   0                                        | num_remainder - 1                                      |
++---+--------------------------------------------+--------------------------------------------------------+
+| F | num_remainder + 0                          | num_remainder + num_factor -1                          |
++---+--------------------------------------------+--------------------------------------------------------+
+| T | num_remainder + num_factor + 0             | num_remainder + num_factor + num_triangulate - 1       |
++---+--------------------------------------------+--------------------------------------------------------+
 
 **/
 
 
 inline char stree::get_ridx_type(int ridx) const
 {
-    int num_ridx = get_num_ridx();
+    [[maybe_unused]] int num_ridx = get_num_ridx();
     int num_rem = get_num_remainder();
     int num_fac = get_num_factor();
     int num_tri = get_num_triangulated(); 
@@ -3611,13 +4075,26 @@ inline void stree::get_factor_nodes(std::vector<int>& nodes, unsigned idx) const
     assert(consistent );   
 }
 
+inline std::string stree::desc_factor_nodes(unsigned idx) const 
+{
+    std::vector<int> nodes ; 
+    get_factor_nodes(nodes, idx); 
+   
+    int num_nodes = nodes.size(); 
+    std::stringstream ss ; 
+    ss << "stree::desc_factor_nodes idx " << idx << " num_nodes " << num_nodes << std::endl  ; 
+    std::string str = ss.str();
+    return str ; 
+}
+
+
 
 inline std::string stree::desc_factor() const 
 {
     std::stringstream ss ; 
     ss << "stree::desc_factor" << std::endl << sfactor::Desc(factor) ; 
-    std::string s = ss.str();
-    return s ; 
+    std::string str = ss.str();
+    return str ; 
 }
 
 
@@ -3774,6 +4251,17 @@ stree::get_repeat_node
 
 Collect all snode (structual/volumes) selected by (q_repeat_index, q_repeat_ordinal)
 
+Observed this to give zero nodes for the first and last ridx, ie it does 
+not handle the rem and tri nodes. 
+
+::
+
+   TEST=get_repeat_node ~/o/sysrap/tests/stree_load_test.sh 
+
+   TEST=get_repeat_node RIDX=1 RORD=10 ~/o/sysrap/tests/stree_load_test.sh run
+
+   TEST=get_repeat_node RIDX=9 RORD=0 ~/o/sysrap/tests/stree_load_test.sh run
+
 **/
 
 inline void stree::get_repeat_node(std::vector<snode>& nodes, int q_repeat_index, int q_repeat_ordinal ) const 
@@ -3784,6 +4272,58 @@ inline void stree::get_repeat_node(std::vector<snode>& nodes, int q_repeat_index
         assert( nd.index == nidx ); 
         if(SelectNode(nd, q_repeat_index, q_repeat_ordinal)) nodes.push_back(nd); 
     }
+}
+
+/**
+stree::desc_repeat_node
+------------------------
+
+Dump structural volumes (snode) of the ordinal-th occurrence of q_repeat_index (aka ridx), 
+collecting unique lvid from all nodes. Then for each unique lvid dump the csg nodes (sn).
+This enables for example the CSG shapes within a particular compound solid to be checked.::
+
+    TEST=get_repeat_node RIDX=9 ~/o/sysrap/tests/stree_load_test.sh
+
+**/
+
+inline std::string stree::desc_repeat_node(int q_repeat_index, int q_repeat_ordinal) const 
+{
+    std::vector<snode> nodes ; 
+    get_repeat_node(nodes, q_repeat_index, q_repeat_ordinal); 
+    int num_node = nodes.size() ; 
+
+    std::stringstream ss ; 
+    ss << "stree::desc_repeat_nodes"
+       << " q_repeat_index " << q_repeat_index
+       << " q_repeat_ordinal " << q_repeat_ordinal
+       << " num_node " << num_node
+       << std::endl 
+       ;  
+
+
+    std::set<int> ulvid ; 
+
+    for(int i=0 ; i < num_node ; i++ )
+    {
+        const snode& n = nodes[i] ; 
+        const std::string& lvn = get_lvid_soname_( n.lvid ) ; 
+        ss << n.desc() << " " << lvn << "\n" ; 
+        ulvid.insert(n.lvid) ; 
+    }
+
+    typedef std::set<int>::const_iterator IT ; 
+    ss << "ulvid {" ; 
+    for(IT it=ulvid.begin() ; it != ulvid.end() ; it++) ss << *it << "," ;
+    ss << "}\n" ; 
+
+    for(IT it=ulvid.begin() ; it != ulvid.end() ; it++) 
+    {
+        int lvid = *it ; 
+        ss << desc_solid(lvid) << "\n" ; 
+    }
+
+    std::string str = ss.str(); 
+    return str ; 
 }
 
 
@@ -3829,8 +4369,8 @@ inline std::string stree::desc_repeat_nodes() const
         << std::endl 
         ; 
 
-    std::string s = ss.str(); 
-    return s ; 
+    std::string str = ss.str(); 
+    return str ; 
 }
 
 
@@ -3876,6 +4416,13 @@ inline void stree::add_inst(
     inst_nidx.push_back(nidx); 
 }
 
+inline void stree::add_inst_identity( int gas_idx, int nidx )
+{
+    glm::tmat4x4<double> tr_m2w(1.) ; 
+    glm::tmat4x4<double> tr_w2m(1.) ;  
+
+    add_inst(tr_m2w, tr_w2m, gas_idx, nidx );  
+}
 
 
 /**
@@ -3940,16 +4487,19 @@ and offsets to reference to relevant transforms.
 
 inline void stree::add_inst() 
 {
-    glm::tmat4x4<double> tr_m2w(1.) ; 
-    glm::tmat4x4<double> tr_w2m(1.) ; 
-    add_inst(tr_m2w, tr_w2m, 0, 0 );   // global instance with identity transforms 
-
     int ridx = 0 ; 
+    int nidx = 0 ; 
     int num_inst = 1 ;
     int tot_inst = 0 ; 
  
+    add_inst_identity(ridx, nidx );   // global instance with identity transforms 
+
     inst_info.push_back( {ridx,num_inst,tot_inst,0} ); 
     tot_inst += num_inst  ;
+
+
+    glm::tmat4x4<double> tr_m2w(1.) ; 
+    glm::tmat4x4<double> tr_w2m(1.) ; 
  
     unsigned num_factor = get_num_factor(); 
     for(int i=0 ; i < int(num_factor) ; i++)
@@ -3960,8 +4510,8 @@ inline void stree::add_inst()
         num_inst = nodes.size(); 
         ridx = i + 1 ;       // 0 is the global instance, so need this + 1  
 
-        std::cout 
-            << "stree::add_inst"
+        if(level > 1) std::cout 
+            << "stree::add_inst.num_factor "
             << " i " << std::setw(3) << i 
             << " ridx(gas_idx) " << std::setw(3) << ridx
             << " num_inst " << std::setw(7) << num_inst
@@ -3973,7 +4523,7 @@ inline void stree::add_inst()
 
         for(int j=0 ; j < num_inst ; j++)
         {
-            int nidx = nodes[j]; 
+            nidx = nodes[j]; 
 
             bool local = false ; 
             bool reverse = false ; 
@@ -3982,6 +4532,32 @@ inline void stree::add_inst()
             add_inst(tr_m2w, tr_w2m, ridx, nidx ); 
         }
     }
+
+
+
+    int num_tri = get_num_triangulated(); 
+    assert( num_tri == 0 || num_tri == 1 ); 
+
+    if(level > 1 ) std::cout 
+        << "stree::add_inst.num_tri "
+        << " num_tri " << std::setw(7) << num_tri
+        << std::endl 
+        ;
+
+    if( num_tri == 1  )
+    {
+        const snode& tri0 = tri[0] ;  
+
+        ridx += 1 ; 
+        num_inst = 1 ; 
+        nidx = tri0.index  ; // ? node index of first of the triangulated volumes 
+        add_inst_identity( ridx, nidx ); 
+        // HMM: is identity transform guaranteed ?  
+
+        inst_info.push_back( {ridx,num_inst,tot_inst,0} ); 
+        tot_inst += num_inst ; 
+    }
+
     narrow_inst(); 
 }
 
@@ -4049,13 +4625,13 @@ inline std::string stree::desc_inst_info() const
 inline std::string stree::desc_inst_info_check() const
 {
     int num_gas  = inst_info.size(); 
-    int num_inst = inst.size(); 
+    [[maybe_unused]] int num_inst = inst.size(); 
     int tot = 0 ; 
     int tot_count = 0 ; 
     for(int i=0 ; i < num_gas ; i++)
     {   
         const int4&  _inst_info = inst_info[i] ;
-        int ridx = _inst_info.x ; 
+        [[maybe_unused]] int ridx = _inst_info.x ; 
         int count = _inst_info.y ; 
         int offset = _inst_info.z ; 
 
@@ -4064,7 +4640,7 @@ inline std::string stree::desc_inst_info_check() const
         assert( ridx == i );  
         for(int j=0 ; j < count ; j++)
         {   
-            int idx = offset + j ; 
+            [[maybe_unused]] int idx = offset + j ; 
             assert( idx < num_inst );  
             assert( idx == tot );  
             tot += 1 ; 
@@ -4099,7 +4675,7 @@ inline int stree::find_inst_gas( int q_gas_idx, int q_gas_ordinal ) const
 
     const int4& _inst_info = inst_info[q_gas_idx] ;
 
-    int ridx = _inst_info.x ; 
+    [[maybe_unused]] int ridx = _inst_info.x ; 
     int count = _inst_info.y ; 
     int offset = _inst_info.z ; 
 
@@ -4535,11 +5111,10 @@ inline void stree::init_material_mapping()
 
     // fill (int,int) map from the mtline and mtindex vectors 
     init_mtindex_to_mtline() ; 
- 
-    //if( level > 1 ) 
-    std::cerr 
+
+    if(ssys::getenvbool(_init_material_mapping_DUMP)) std::cerr 
         << "stree::init_material_mapping" 
-        << " level > 1 [" << level << "]" 
+        << " [" << _init_material_mapping_DUMP <<  "] "
         << " desc_mt " 
         << std::endl 
         << desc_mt() 

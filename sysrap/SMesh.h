@@ -30,6 +30,7 @@ struct SMesh
 {
     static SMesh* Concatenate(std::vector<const SMesh*>& submesh, int ridx ); 
 
+    static constexpr const bool DUMP = false ; 
     static constexpr const int LIMIT = 50 ; 
     static constexpr const char* NAME = "SMesh" ;  
     static constexpr const char* VTX_SPEC = "3,GL_FLOAT,GL_FALSE,12,0,false" ;  // 12=3*sizeof(float)
@@ -42,6 +43,7 @@ struct SMesh
     const char* name    ;            // metadata : loaddir or manually set name
     glm::tmat4x4<double> tr0 = {} ;  // informational for debug only, as gets applied by init  
     std::vector<std::string> names ; // used to hold subnames in concat SMesh
+    int   lvid = -1 ;      // set by Import from NPFold metadata for originals
 
     const NP* tri ; 
     const NP* vtx ; 
@@ -51,13 +53,15 @@ struct SMesh
     glm::tvec3<float> mx = {} ; 
     glm::tvec4<float> ce = {} ; 
 
+
     static SMesh* Load(const char* dir, const char* rel ); 
     static SMesh* Load(const char* dir ); 
     static SMesh* LoadTransformed(const char* dir, const char* rel,  const glm::tmat4x4<double>* tr ); 
     static SMesh* LoadTransformed(const char* dir,                   const glm::tmat4x4<double>* tr ); 
 
     static SMesh* Import(const NPFold* fold, const glm::tmat4x4<double>* tr=nullptr );
-
+    static SMesh* MakeCopy( const SMesh* src ); 
+    SMesh* copy() const ; 
 
     static bool IsConcat( const NPFold* fold ); 
     void import(          const NPFold* fold, const glm::tmat4x4<double>* tr ); 
@@ -160,7 +164,7 @@ inline SMesh* SMesh::Concatenate(std::vector<const SMesh*>& submesh, int ridx )
         const NP* _nrm = sub->nrm ;  
          
         int num_vtx = _vtx->num_items() ; 
-        int num_nrm = _nrm->num_items() ; 
+        [[maybe_unused]] int num_nrm = _nrm->num_items() ; 
         assert( num_vtx == num_nrm ); 
 
         subtri.push_back(NP::Incremented(_tri, tot_vtx)) ; 
@@ -179,11 +183,13 @@ inline SMesh* SMesh::Concatenate(std::vector<const SMesh*>& submesh, int ridx )
 
 inline SMesh* SMesh::Load(const char* dir, const char* rel )
 {
+    if(DUMP) std::cout << "SMesh::Load dir " << ( dir ? dir : "-" ) << " rel " << ( rel ? rel : "-" )  << "\n" ; 
     NPFold* fold = NPFold::Load(dir, rel) ; 
     return Import(fold, nullptr); 
 }
 inline SMesh* SMesh::Load(const char* dir)
 {
+    if(DUMP) std::cout << "SMesh::Load dir " << ( dir ? dir : "-" ) << "\n" ; 
     NPFold* fold = NPFold::Load(dir)  ; 
     return Import(fold, nullptr); 
 }
@@ -207,12 +213,42 @@ inline SMesh* SMesh::Import(const NPFold* fold, const glm::tmat4x4<double>* tr)
     return mesh ; 
 }
 
+inline SMesh* SMesh::MakeCopy( const SMesh* src ) // static
+{
+    SMesh* dst = new SMesh ; 
+
+    dst->name = src->name ? strdup(src->name) : nullptr ; 
+    dst->tr0  = src->tr0 ; 
+    dst->names = src->names ;    
+    dst->lvid = src->lvid ; 
+
+    dst->tri = src->tri->copy() ; 
+    dst->vtx = src->vtx->copy() ; 
+    dst->nrm = src->nrm->copy() ; 
+ 
+    dst->mn = src->mn ; 
+    dst->mx = src->mx ; 
+    dst->ce = src->ce ; 
+
+    return dst ; 
+}
+
+inline SMesh* SMesh::copy() const 
+{
+    return MakeCopy(this); 
+}
+
+
+
+
 /**
 SMesh::IsConcat
 ----------------
 
 Concat distinguished by having float vertices (not double like originals)
 and having normals (unlike originals). 
+
+WIP : SUSPECT THIS IS RETURNING TRUE FOR ORIGINALS
 
 **/
 
@@ -225,7 +261,9 @@ inline bool SMesh::IsConcat( const NPFold* fold ) // static
 
 inline void SMesh::import(const NPFold* fold, const glm::tmat4x4<double>* tr )
 {
+    lvid = fold->get_meta<int>("lvid", -1); 
     bool is_concat = IsConcat( fold ); 
+    if(DUMP) std::cout << "SMesh::import lvid " << lvid << " is_concat " << is_concat << "\n" ; 
 
     if( is_concat )
     {
@@ -264,15 +302,16 @@ inline void SMesh::import_original(const NPFold* fold, const glm::tmat4x4<double
     const NP* vertices = fold->get("vtx") ; // copy ?
     const NP* normals = fold->get("nrm") ;
 
-    bool valid_import_original = triangles != nullptr && vertices != nullptr && normals == nullptr ; 
+    bool valid_import_original = lvid > -1 && triangles != nullptr && vertices != nullptr && normals == nullptr ; 
     if(!valid_import_original) std::cerr 
         << "SMesh::import_original\n"
-        << " FATAL : FAILED TO IMPORT TRI OR VTX \n" 
+        << " FATAL : FAILED IMPORT \n" 
         << " valid_import_original " << ( valid_import_original ? "YES" : "NO ") << "\n"
         << " triangles " << ( triangles ? "YES" : "NO " ) << "\n"
         << " vertices " << ( vertices ? "YES" : "NO " ) << "\n"
         << " normals " << ( normals ? "YES" : "NO " ) << " (not execting normals in originals)\n" 
         << " name " << ( name ? name : "-" ) << "\n"
+        << " lvid " << lvid  
         << "\n"
         ; 
 
@@ -301,6 +340,7 @@ NPFold* SMesh::serialize() const
     fold->add("vtx", vtx); 
     fold->add("nrm", nrm); 
     fold->names = names ; 
+    fold->set_meta<int>("lvid", lvid) ; 
     return fold ; 
 }
 void SMesh::save(const char* dir) const 
@@ -454,7 +494,7 @@ inline std::string SMesh::Desc2D(const NP* a, const NP* b, int limit, const char
         int a_nj = a->shape[1] ; 
 
         const S* b_vv = b->cvalues<T>(); 
-        int b_ni = b->shape[0] ; 
+        [[maybe_unused]] int b_ni = b->shape[0] ; 
         int b_nj = b->shape[1] ; 
 
         assert( a_ni == b_ni ); 
@@ -555,7 +595,7 @@ inline std::string SMesh::Desc2D_Ref_2D_int_float(const NP* a, const NP* b,  int
         int a_nj = a->shape[1] ;
 
         const float* b_vv = b->cvalues<float>(); 
-        int b_ni = b->shape[0] ; 
+        [[maybe_unused]] int b_ni = b->shape[0] ; 
         int b_nj = b->shape[1] ;
      
         for(int i=0 ; i < a_ni ; i++)

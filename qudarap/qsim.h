@@ -60,6 +60,7 @@ TODO:
 #include "qbase.h"
 #include "qprop.h"
 #include "qmultifilm.h"
+#include "qrng.h"
 #include "qbnd.h"
 #include "qscint.h"
 #include "qcerenkov.h"
@@ -80,6 +81,7 @@ struct qsim
     qbase*              base ; 
     sevent*             evt ; 
     curandStateXORWOW*  rngstate ; 
+    qrng*               rng ; 
     qbnd*               bnd ; 
     qmultifilm*         multifilm;
     qcerenkov*          cerenkov ; 
@@ -150,6 +152,7 @@ inline qsim::qsim()    // instanciated on CPU (see QSim::init_sim) and copied to
         base(nullptr),
         evt(nullptr),
         rngstate(nullptr),
+        rng(nullptr),
         bnd(nullptr),
         multifilm(nullptr),
         cerenkov(nullptr),
@@ -1756,7 +1759,7 @@ inline QSIM_METHOD int qsim::propagate_at_surface_CustomART(unsigned& flag, cura
     }
 #endif
 
-    if(lpmtid < 0 )
+    if(lpmtid < 0 || lpmtid >= 17612 )
     {
         flag = NAN_ABORT ; 
 #if !defined(PRODUCTION) && defined(DEBUG_PIDX)
@@ -1766,6 +1769,11 @@ inline QSIM_METHOD int qsim::propagate_at_surface_CustomART(unsigned& flag, cura
         return BREAK ; 
     }
 
+#if !defined(PRODUCTION) && defined(DEBUG_PIDX)
+    if( ctx.idx == base->pidx ) 
+    printf("//qsim::propagate_at_surface_CustomART idx %d lpmtid %d wl %7.3f mct %7.3f dpcmn %7.3f pre-ARTE \n", 
+           ctx.idx, lpmtid, p.wavelength, minus_cos_theta, dot_pol_cross_mom_nrm );  
+#endif
 
     float ARTE[4] ; 
     if(lpmtid > -1) pmt->get_lpmtid_ARTE(ARTE, lpmtid, p.wavelength, minus_cos_theta, dot_pol_cross_mom_nrm );   
@@ -1796,9 +1804,23 @@ inline QSIM_METHOD int qsim::propagate_at_surface_CustomART(unsigned& flag, cura
     {
         float u_theEfficiency = curand_uniform(&rng) ; 
         flag = u_theEfficiency < theEfficiency ? SURFACE_DETECT : SURFACE_ABSORB ;  
+
+#if !defined(PRODUCTION) && defined(DEBUG_PIDX)
+    if( ctx.idx == base->pidx ) 
+    printf("//qsim.propagate_at_surface_CustomART.BREAK.SD/SA idx %d lpmtid %d ARTE ( %7.3f %7.3f %7.3f %7.3f ) u_theEfficiency  %7.3f theEfficiency %7.3f flag %d \n", 
+        ctx.idx, lpmtid, ARTE[0], ARTE[1], ARTE[2], ARTE[3], u_theEfficiency, theEfficiency, flag  );   
+#endif
+
     }
     else
     {
+
+#if !defined(PRODUCTION) && defined(DEBUG_PIDX)
+    if( ctx.idx == base->pidx ) 
+    printf("//qsim.propagate_at_surface_CustomART.CONTINUE idx %d lpmtid %d ARTE ( %7.3f %7.3f %7.3f %7.3f ) theTransmittance %7.3f  \n", 
+        ctx.idx, lpmtid, ARTE[0], ARTE[1], ARTE[2], ARTE[3], theTransmittance  );   
+#endif
+
         propagate_at_boundary( flag, rng, ctx, theTransmittance  );  
     } 
     return action ; 

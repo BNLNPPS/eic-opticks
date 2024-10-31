@@ -111,6 +111,8 @@ struct CSG_API CSGFoundry : public SGeo
 
     static const char* ResolveCFBase_(); 
     static const char* ResolveCFBase(); 
+
+    static constexpr const char* _Load_DUMP = "CSGFoundry__Load_DUMP" ; 
     static CSGFoundry* Load_();
     static CSGFoundry* Load(const char* base, const char* rel=RELDIR );
 
@@ -125,6 +127,7 @@ struct CSG_API CSGFoundry : public SGeo
 
     template<typename T>
     static int CompareVec( const char* name, const std::vector<T>& a, const std::vector<T>& b );
+
 
     template<typename T>
     static int CompareStruct( const char* name, const std::vector<T>& a, const std::vector<T>& b );
@@ -213,6 +216,10 @@ struct CSG_API CSGFoundry : public SGeo
     const CSGSolid*   getSolidByName(const char* name) const ;
     const CSGSolid*   getSolid_(int solidIdx) const ;   // -ve counts from back 
     unsigned          getSolidIdx(const CSGSolid* so) const ; 
+
+    const char* getSolidLabel_(int ridx) const ; 
+    char getSolidIntent(int ridx) const ; 
+    std::string descSolidIntent() const ; 
 
 
     unsigned getNumSolid(int type_) const ;
@@ -356,10 +363,12 @@ struct CSG_API CSGFoundry : public SGeo
     sframe getFrame() const ; 
     sframe getFrame(const char* moi_or_iidx) const ; 
 
+    static constexpr const char* getFrame_VERBOSE = "CSGFoundry__getFrame_VERBOSE" ; 
     int getFrame(sframe& fr, const char* frs ) const ; 
     int getFrame(sframe& fr, int midx, int mord, int gord) const ; 
     int getFrame(sframe& fr, int ins_idx ) const ; 
 
+    static constexpr const char* getFrameE_VERBOSE = "CSGFoundry__getFrameE_VERBOSE" ; 
     sframe getFrameE() const ; 
     static void AfterLoadOrCreate(); 
 
@@ -378,7 +387,8 @@ struct CSG_API CSGFoundry : public SGeo
     unsigned getNumMeshName() const ; 
     unsigned getNumSolidLabel() const ; 
     int findSolidWithLabel(const char* q_mml) const ; 
-    bool isSolidTrimesh(int gas_idx) const ;  // see SGeoConfig::SolidTrimesh 
+    bool isSolidTrimesh_posthoc_kludge(int gas_idx) const ;  // see SGeoConfig::SolidTrimesh 
+    bool isSolidTrimesh(int gas_idx) const ;  // see notes/issues/flexible_forced_triangulation.rst 
 
     static void CopyNames(    CSGFoundry* dst, const CSGFoundry* src ); 
     static void CopyMeshName( CSGFoundry* dst, const CSGFoundry* src ); 
@@ -400,12 +410,12 @@ struct CSG_API CSGFoundry : public SGeo
 
     int findMeshIndex(const char* qname) const ; 
 
+    const std::string descELV2(const SBitSet* elv) const ; 
     const std::string descELV(const SBitSet* elv) const ; 
 
-    const std::string& getSolidLabel(unsigned sidx) const ; 
-
+    const std::string& getSolidMMLabel(unsigned sidx) const ; 
+    void addSolidMMLabel(const char* label); 
     void addMeshName(const char* name); 
-    void addSolidLabel(const char* label); 
 
     // MEMBERS
 

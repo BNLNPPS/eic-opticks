@@ -276,6 +276,8 @@ prim extent is used.
 
 void SBT::createGAS()  
 {
+    LOG(LEVEL) << SGeoConfig::DescEMM() ; 
+
     unsigned num_solid = foundry->getNumSolid();   // STANDARD_SOLID
     for(unsigned i=0 ; i < num_solid ; i++)
     {
@@ -317,14 +319,15 @@ void SBT::createGAS(unsigned gas_idx)
     SOPTIX_BuildInput* bi = nullptr ; 
     SOPTIX_Accel* gas = nullptr ; 
 
-    bool trimesh = foundry->isSolidTrimesh(gas_idx); 
-    const std::string& label = foundry->getSolidLabel(gas_idx); 
+    bool trimesh = foundry->isSolidTrimesh(gas_idx); // now based on forced triangulation config 
+
+    const std::string& mmlabel = foundry->getSolidMMLabel(gas_idx); 
 
     LOG(LEVEL) 
         << " WITH_SOPTIX_ACCEL "
         << " gas_idx " << gas_idx
         << " trimesh " << ( trimesh ? "YES" : "NO " )
-        << " label " << label 
+        << " mmlabel " << mmlabel 
         ;
 
     if(trimesh)
@@ -690,7 +693,7 @@ int SBT::_getOffset(unsigned q_gas_idx , unsigned q_layer_idx ) const
     {
         unsigned gas_idx = it->first ; 
         bool trimesh = foundry->isSolidTrimesh(gas_idx); 
-        const std::string& label = foundry->getSolidLabel(gas_idx); 
+        const std::string& mmlabel = foundry->getSolidMMLabel(gas_idx); 
         const CSGSolid* so = foundry->getSolid(gas_idx) ;
         int numPrim = so->numPrim ; 
 
@@ -705,12 +708,23 @@ int SBT::_getOffset(unsigned q_gas_idx , unsigned q_layer_idx ) const
             << " gas_idx " << gas_idx 
             << " num_bi " << num_bi 
             << " trimesh " << ( trimesh ? "YES" : "NO " )
-            << " label " << label 
+            << " mmlabel " << mmlabel 
             ;
 
         if(!trimesh) assert(num_bi == 1); 
-        if(trimesh)  assert(num_bi == numPrim ); 
-
+        if(trimesh)
+        {
+            bool are_equal = num_bi == numPrim ; 
+            LOG_IF(fatal, !are_equal )
+                << " UNEXPECTED trimesh with  "  
+                << " UNEQUAL: "
+                << " num_bi " << num_bi 
+                << " numPrim " << numPrim
+                << " gas_idx " << gas_idx
+                << " mmlabel " << mmlabel 
+                ; 
+            assert(are_equal ); 
+        }
 
         for(int j=0 ; j < num_bi ; j++)
         {
@@ -771,7 +785,7 @@ unsigned SBT::getTotalRec() const
     {
         unsigned gas_idx = it->first ; 
         bool trimesh = foundry->isSolidTrimesh(gas_idx); 
-        const std::string& label = foundry->getSolidLabel(gas_idx); 
+        const std::string& mmlabel = foundry->getSolidMMLabel(gas_idx); 
 
         bool enabled = SGeoConfig::IsEnabledMergedMesh(gas_idx)  ; 
         LOG_IF(error, !enabled) << "gas_idx " << gas_idx << " enabled " << enabled ; 
@@ -789,7 +803,7 @@ unsigned SBT::getTotalRec() const
             << " gas_idx " << gas_idx
             << " num_bi " << num_bi
             << " trimesh " << ( trimesh ? "YES" : "NO " )
-            << " label " << label  
+            << " mmlabel " << mmlabel  
             ;
 
         for(unsigned j=0 ; j < num_bi ; j++)
@@ -844,7 +858,7 @@ std::string SBT::descGAS() const
     {
         unsigned gas_idx = it->first ; 
         bool trimesh = foundry->isSolidTrimesh(gas_idx); 
-        const std::string& label = foundry->getSolidLabel(gas_idx); 
+        const std::string& mmlabel = foundry->getSolidMMLabel(gas_idx); 
 
 #ifdef WITH_SOPTIX_ACCEL
         SOPTIX_Accel* gas = it->second ; 
@@ -858,7 +872,7 @@ std::string SBT::descGAS() const
              << " gas_idx " << gas_idx 
              << " enabled " << enabled
              << " trimesh " << ( trimesh ? "YES" : "NO " )
-             << " label " << label  
+             << " mmlabel " << mmlabel  
              ; 
 
         unsigned num_bi = gas->bis.size(); 
@@ -970,7 +984,7 @@ void SBT::createHitgroup()
         int num_bi = gas->bis.size(); 
 
         bool trimesh = foundry->isSolidTrimesh(gas_idx); 
-        const std::string& label = foundry->getSolidLabel(gas_idx); 
+        const std::string& mmlabel = foundry->getSolidMMLabel(gas_idx); 
 
         const SOPTIX_MeshGroup* xmg = trimesh ? xgas.at(gas_idx) : nullptr ;
         const SCUDA_MeshGroup* cmg = xmg ? xmg->cmg : nullptr ;
@@ -985,7 +999,7 @@ void SBT::createHitgroup()
             << " gas_idx " << gas_idx 
             << " trimesh " << ( trimesh ? "YES" : "NO " )
             << " num_bi " << num_bi  
-            << " label " << label 
+            << " mmlabel " << mmlabel 
             << " so.numPrim " << numPrim 
             << " so.primOffset " << primOffset  
             ; 

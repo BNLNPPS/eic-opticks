@@ -6,8 +6,6 @@
 #include <cstring>
 
 #include "ssys.h"
-
-#include "SStr.hh"   // TODO: eliminate in favor of sstr.h
 #include "sstr.h"
 
 #include "SBit.hh"   // TODO: sbit.h 
@@ -45,21 +43,61 @@ const char* SGeoConfig::ArglistPath(){    return _ArglistPath ; }
 const char* SGeoConfig::CXSkipLV(){       return _CXSkipLV ? _CXSkipLV : "" ; }
 const char* SGeoConfig::CXSkipLV_IDXList(){  return _CXSkipLV_IDXList ? _CXSkipLV_IDXList : "" ; }
 
-/**
-SGeoConfig::ELVSelection
---------------------------
-**/
 
 const char* SGeoConfig::GEOM(){           return _GEOM ; }
 const char* SGeoConfig::ELVSelection(){   return _ELVSelection ; }
+
+
+/**
+SGeoConfig::ELVSelection
+--------------------------
+
+Examples using "filepath:" prefix to select volumes via solid names(aka meshnames) listed in files::
+
+    GEOM cf
+    cp meshname.txt /tmp/elv.txt
+    vi /tmp/elv.txt
+    ELV=filepath:/tmp/elv.txt MOI=sTarget:0:-1 ~/o/cx.sh 
+
+    grep Surftube meshname.txt > /tmp/elv.txt
+    echo sTarget >> /tmp/elv.txt
+    ELV=filepath:/tmp/elv.txt MOI=sTarget:0:-1 ~/o/cx.sh 
+
+Note that the file is read via sstr::SplitTrimSuppress which will ignore lines in the file 
+starting with "#", so another way::
+
+    GEOM cf
+    cp meshname.txt /tmp/elv.txt
+    vi /tmp/elv.txt ## comment names to skip with "#"
+    ELV=filepath:/tmp/elv.txt MOI=sTarget:0:-1 ~/o/cx.sh 
+ 
+    grep \# /tmp/elv.txt 
+    #HamamatsuR12860sMask_virtual
+    #NNVTMCPPMTsMask_virtual
+    #mask_PMT_20inch_vetosMask_virtual
+ 
+
+Examples using "t:" prefix to exclude volumes::
+
+   ELV=t:HamamatsuR12860sMask_virtual,NNVTMCPPMTsMask_virtual MOI=NNVTMCPPMTsMask:0:-2  ~/o/cx.sh
+
+   DISPLAY=:1 ELV=t:HamamatsuR12860sMask_virtual,NNVTMCPPMTsMask_virtual MOI=NNVTMCPPMTsMask:0:-2  ~/o/cx.sh
+
+
+
+**/
+
 const char* SGeoConfig::ELVSelection(const SName* id )
 {
     const char* elv_selection_ = ELVSelection() ; 
     const char* elv = nullptr ; 
     char delim = ',' ; 
+    bool VERBOSE = ssys::getenvbool(ELVSelection_VERBOSE); 
+    bool starting = false ;  // NOW REQUIRE EXACT NAMES FOR ELV SELECTION
 
     if(VERBOSE) std::cerr 
         << "SGeoConfig::ELVSelection"
+        << " [" << ELVSelection_VERBOSE << "] "
         << " elv_selection_ " << ( elv_selection_ ? elv_selection_ : "-" )
         << std::endl 
         ;
@@ -75,7 +113,7 @@ const char* SGeoConfig::ELVSelection(const SName* id )
             << std::endl
             ;
 
-        bool has_names = id->hasNames(elv_selection_, delim, prefix );  
+        bool has_names = id->hasNames(elv_selection_, delim, prefix, starting );  
 
         if(VERBOSE) std::cerr
             << "SGeoConfig::ELVSelection" 
@@ -85,7 +123,7 @@ const char* SGeoConfig::ELVSelection(const SName* id )
 
         if(has_names)
         {    
-            elv = id->getIDXListFromNames(elv_selection_, delim, prefix ); 
+            elv = id->getIDXListFromNames(elv_selection_, delim, prefix, starting ); 
         }    
         else 
         {    
@@ -141,9 +179,19 @@ std::string SGeoConfig::Desc()
     ss << std::setw(25) << kArglistPath      << " : " << ( _ArglistPath    ? _ArglistPath    : "-" ) << std::endl ;    
     ss << std::setw(25) << kCXSkipLV         << " : " << CXSkipLV() << std::endl ;    
     ss << std::setw(25) << kCXSkipLV_IDXList << " : " << CXSkipLV_IDXList() << std::endl ;    
-    std::string s = ss.str(); 
-    return s ; 
+    std::string str = ss.str(); 
+    return str ; 
 }
+
+std::string SGeoConfig::desc() const
+{
+    std::stringstream ss ; 
+    ss << "SGeoConfig::desc\n" ; 
+    std::string str = ss.str(); 
+    return str ; 
+}
+
+
 
 bool SGeoConfig::IsEnabledMergedMesh(unsigned mm) // static
 {
@@ -161,6 +209,9 @@ bool SGeoConfig::IsEnabledMergedMesh(unsigned mm) // static
 std::string SGeoConfig::DescEMM()
 {
     std::stringstream ss ; 
+    ss << "SGeoConfig::DescEMM " ; 
+    ss << std::setw(25) << kEMM              << " : " << SBit::HexString(_EMM) << " 0x" << std::hex << _EMM << std::dec << std::endl ;
+
     for(unsigned i=0 ; i < 64 ; i++) 
     {
         bool emm = SGeoConfig::IsEnabledMergedMesh(i) ; 
@@ -173,7 +224,7 @@ std::string SGeoConfig::DescEMM()
 
 std::vector<std::string>*  SGeoConfig::Arglist() 
 {
-    return SStr::LoadList( _ArglistPath, '\n' );   // TODO: sstr
+    return sstr::LoadList( _ArglistPath, '\n' );  
 }
 
 
@@ -224,7 +275,8 @@ bool SGeoConfig::IsCXSkipLV(int lv) // static
 {
     if( _CXSkipLV_IDXList == nullptr ) return false ; 
     std::vector<int> cxskip ;
-    SStr::ISplit(_CXSkipLV_IDXList, cxskip, ',');   // TODO: sstr
+    sstr::split<int>(cxskip, _CXSkipLV_IDXList, ',' ); 
+
     return std::count( cxskip.begin(), cxskip.end(), lv ) == 1 ;   
 }
 

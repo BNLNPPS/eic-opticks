@@ -1,4 +1,4 @@
-#!/bin/bash -l 
+#!/bin/bash 
 usage(){ cat << EOU
 cxs_min.sh : minimal executable and script for shakedown
 ============================================================
@@ -64,6 +64,50 @@ export BASE=${TMP:-/tmp/$USER/opticks}/GEOM/$GEOM
 export BINBASE=$BASE/$bin
 export SCRIPT=$(basename $BASH_SOURCE)
 
+
+Resolve_CFBaseFromGEOM()
+{
+   : LOOK FOR CFBase directory containing CSGFoundry geometry 
+   : HMM COULD PUT INTO GEOM.sh TO AVOID DUPLICATION ? BUT TOO MUCH HIDDEN ? 
+   : G4CXOpticks_setGeometry_Test GEOM TAKES PRECEDENCE OVER .opticks/GEOM
+   : HMM : FOR SOME TESTS WANT TO LOAD GDML BUT FOR OTHERS CSGFoundry 
+   : to handle that added gdml resolution to eg g4cx/tests/GXTestRunner.sh 
+
+   local C_CFBaseFromGEOM=$TMP/G4CXOpticks_setGeometry_Test/$GEOM
+   local B_CFBaseFromGEOM=$HOME/.opticks/GEOM/$GEOM
+   local A_CFBaseFromGEOM=/cvmfs/opticks.ihep.ac.cn/.opticks/GEOM/$GEOM
+
+   local TestPath=CSGFoundry/prim.npy
+   local GDMLPathFromGEOM=$HOME/.opticks/GEOM/$GEOM/origin.gdml 
+
+    if [ -d "$A_CFBaseFromGEOM" -a -f "$A_CFBaseFromGEOM/$TestPath" ]; then
+        export ${GEOM}_CFBaseFromGEOM=$A_CFBaseFromGEOM
+        echo $BASH_SOURCE : FOUND A_CFBaseFromGEOM $A_CFBaseFromGEOM containing $TestPath
+    elif [ -d "$B_CFBaseFromGEOM" -a -f "$B_CFBaseFromGEOM/$TestPath" ]; then
+        export ${GEOM}_CFBaseFromGEOM=$B_CFBaseFromGEOM
+        echo $BASH_SOURCE : FOUND B_CFBaseFromGEOM $B_CFBaseFromGEOM containing $TestPath
+    elif [ -d "$C_CFBaseFromGEOM" -a -f "$C_CFBaseFromGEOM/$TestPath" ]; then
+        export ${GEOM}_CFBaseFromGEOM=$C_CFBaseFromGEOM
+        echo $BASH_SOURCE : FOUND C_CFBaseFromGEOM $C_CFBaseFromGEOM containing $TestPath
+    elif [ -f "$GDMLPathFromGEOM" ]; then 
+        export ${GEOM}_GDMLPathFromGEOM=$GDMLPathFromGEOM
+        echo $BASH_SOURCE : FOUND GDMLPathFromFromGEOM $GDMLPathFromFromGEOM 
+    else
+        echo $BASH_SOURCE : NOT-FOUND A_CFBaseFromGEOM $A_CFBaseFromGEOM containing $TestPath
+        echo $BASH_SOURCE : NOT-FOUND B_CFBaseFromGEOM $B_CFBaseFromGEOM containing $TestPath
+        echo $BASH_SOURCE : NOT-FOUND C_CFBaseFromGEOM $C_CFBaseFromGEOM containing $TestPath
+        echo $BASH_SOURCE : NOT-FOUND GDMLPathFromGEOM $GDMLPathFromGEOM
+    fi  
+}
+Resolve_CFBaseFromGEOM
+
+
+
+
+
+
+
+
 knobs()
 {
    type $FUNCNAME 
@@ -93,11 +137,17 @@ knobs()
    #export Ctx=INFO
    #export PIP=INFO
    #export CSGOptiX=INFO
+
+
+   export NPFold__substamp_DUMP=1
+
 }
 knobs
 
 
 version=1
+#version=98   ## set to 98 for low stats debugging
+
 VERSION=${VERSION:-$version}   ## see below currently using VERSION TO SELECT OPTICKS_EVENT_MODE
 export VERSION
 ## VERSION CHANGES OUTPUT DIRECTORIES : SO USEFUL TO ARRANGE SEPARATE STUDIES
@@ -113,9 +163,6 @@ mkdir -p $LOGDIR
 cd $LOGDIR 
 LOGFILE=$bin.log
 
-cvd=1   # default 1:TITAN RTX
-export CUDA_VISIBLE_DEVICES=${CVD:-$cvd}
-
 case $VERSION in 
  0) opticks_event_mode=Minimal ;;
  1) opticks_event_mode=Hit ;; 
@@ -127,14 +174,41 @@ case $VERSION in
 99) opticks_event_mode=DebugHeavy ;;  # formerly StandardFullDebug
 esac 
 
-test=reference
+#test=debug
+#test=ref1
+#test=ref5
+#test=ref8
+test=ref10
 #test=input_genstep
+#test=input_photon
+
 TEST=${TEST:-$test}
 
-if [ "$TEST" == "reference" ]; then 
+if [ "$TEST" == "debug" ]; then 
+
+   opticks_num_photon=100
+   opticks_max_photon=M1
+   opticks_num_event=1
+   opticks_running_mode=SRM_TORCH
+
+elif [ "$TEST" == "ref1" ]; then 
 
    opticks_num_photon=M1
    opticks_max_photon=M1
+   opticks_num_event=1
+   opticks_running_mode=SRM_TORCH
+
+elif [ "$TEST" == "ref5" -o "$TEST" == "ref6" -o "$TEST" == "ref7" -o "$TEST" == "ref8" -o "$TEST" == "ref9" -o "$TEST" == "ref10" ]; then 
+
+   opticks_num_photon=M${TEST:3}
+   opticks_max_photon=M10
+   opticks_num_event=1
+   opticks_running_mode=SRM_TORCH
+
+elif [ "$TEST" == "refX" ]; then 
+
+   opticks_num_photon=${X:-7500000}
+   opticks_max_photon=M10
    opticks_num_event=1
    opticks_running_mode=SRM_TORCH
 
@@ -152,6 +226,20 @@ elif [ "$TEST" == "large_scan" ]; then
    opticks_num_event=20
    opticks_running_mode=SRM_TORCH
 
+elif [ "$TEST" == "medium_scan" ]; then 
+
+   opticks_num_photon=M1,1,10,20,30,40,50,60,70,80,90,100  # duplication of M1 is to workaround lack of metadata
+   opticks_max_photon=M100   
+   opticks_num_event=12
+   opticks_running_mode=SRM_TORCH
+
+elif [ "$TEST" == "larger_scan" ]; then 
+
+   opticks_num_photon=M1,1,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200  # duplication of M1 is to workaround lack of metadata
+   opticks_max_photon=M200   
+   opticks_num_event=22
+   opticks_running_mode=SRM_TORCH
+
 elif [ "$TEST" == "large_evt" ]; then 
 
    opticks_num_photon=M200   ## OOM with TITAN RTX 24G 
@@ -166,6 +254,14 @@ elif [ "$TEST" == "input_genstep" ]; then
    opticks_num_event=1000 
    opticks_running_mode=SRM_INPUT_GENSTEP
    opticks_event_mode=Nothing
+
+elif [ "$TEST" == "input_photon" ]; then
+
+   opticks_num_photon=     # ignored ?
+   opticks_max_photon=M1 
+   opticks_num_event=1
+   opticks_running_mode=SRM_INPUT_PHOTON
+   #opticks_event_mode=Nothing
 
 fi 
 
@@ -257,19 +353,51 @@ fi
 
 
 
+gdb__() 
+{ 
+    : prepares and invokes gdb - sets up breakpoints based on BP envvar containing space delimited symbols;
+    if [ -z "$BP" ]; then
+        H="";
+        B="";
+        T="-ex r";
+    else
+        H="-ex \"set breakpoint pending on\"";
+        B="";
+        for bp in $BP;
+        do
+            B="$B -ex \"break $bp\" ";
+        done;
+        T="-ex \"info break\" -ex r";
+    fi;
+    local runline="gdb $H $B $T --args $* ";
+    echo $runline;
+    date;
+    eval $runline;
+    date
+}
+
+
 logging(){ 
     export CSGFoundry=INFO
     export CSGOptiX=INFO
     export QEvent=INFO 
     export QSim=INFO
     export SEvt__LIFECYCLE=1
+
 }
 [ -n "$LOG" ] && logging
 [ -n "$LIFECYCLE" ] && export SEvt__LIFECYCLE=1
 [ -n "$MEMCHECK" ] && export QU__MEMCHECK=1
 
 
-vars="GEOM LOGDIR BINBASE CVD CUDA_VISIBLE_DEVICES SDIR FOLD LOG NEVT"
+#export SEvt__transformInputPhoton_VERBOSE=1
+#export CSGFoundry__getFrameE_VERBOSE=1
+#export CSGFoundry__getFrame_VERBOSE=1
+export QRng__init_VERBOSE=1
+
+
+
+vars="GEOM BASE TEST LOGDIR BINBASE CVD CUDA_VISIBLE_DEVICES SDIR FOLD LOG NEVT opticks_num_photon OPTICKS_NUM_PHOTON"
 
 if [ "${arg/info}" != "$arg" ]; then
    for var in $vars ; do printf "%20s : %s \n" $var ${!var} ; done 
@@ -296,7 +424,7 @@ if [ "${arg/run}" != "$arg" -o "${arg/dbg}" != "$arg" ]; then
        [ $? -ne 0 ] && echo $BASH_SOURCE run error && exit 1 
        date +"%Y-%m-%d %H:%M:%S.%3N  %N : ]$BASH_SOURCE "
    elif [ "${arg/dbg}" != "$arg" ]; then
-       dbg__ $bin 
+       gdb__ $bin 
        [ $? -ne 0 ] && echo $BASH_SOURCE dbg error && exit 1 
    fi 
 fi 
@@ -316,6 +444,10 @@ fi
 
 if [ "${arg/grab}" != "$arg" ]; then
     source $OPTICKS_HOME/bin/rsync.sh $LOGDIR
+fi 
+
+if [ "${arg/grep}" != "$arg" ]; then
+    source $OPTICKS_HOME/bin/rsync.sh ${LOGDIR}_sreport
 fi 
 
 if [ "${arg/gevt}" != "$arg" ]; then

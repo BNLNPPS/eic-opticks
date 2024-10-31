@@ -89,8 +89,12 @@ controlled via envvar::
 #include "U4TreeBorder.h"
 
 
+#include <plog/Log.h>
+
+
 struct U4Tree
 {
+    static constexpr const plog::Severity LEVEL = plog::info ; 
     friend struct U4SimtraceTest ; // for U4Tree ctor  
 
     stree*                                      st ; 
@@ -207,17 +211,29 @@ inline U4Tree* U4Tree::Create(
 {
     if(st->level > 0) std::cout << "[ U4Tree::Create " << std::endl ; 
 
+    LOG(LEVEL) << "[new U4Tree" ; 
     U4Tree* tree = new U4Tree(st, top, sid ) ;
+    LOG(LEVEL) << "]new U4Tree" ; 
 
+    LOG(LEVEL) << "[stree::factorize" ; 
     st->factorize(); 
+    LOG(LEVEL) << "]stree::factorize" ; 
 
+    LOG(LEVEL) << "[U4Tree::identifySensitive" ; 
     tree->identifySensitive(); 
+    LOG(LEVEL) << "]U4Tree::identifySensitive" ; 
 
+
+    LOG(LEVEL) << "[stree::add_inst" ; 
     st->add_inst(); 
+    LOG(LEVEL) << "]stree::add_inst" ; 
 
     if(st->level > 0) std::cout << "] U4Tree::Create " << std::endl ; 
 
+    
+    LOG(LEVEL) << "[stree::postcreate" ; 
     st->postcreate() ;  
+    LOG(LEVEL) << "]stree::postcreate" ; 
 
     return tree ; 
 }
@@ -251,17 +267,27 @@ inline void U4Tree::init()
 {
     if(top == nullptr) return ; 
 
+    LOG(LEVEL) << "-initRayleigh" ; 
     initRayleigh(); 
+    LOG(LEVEL) << "-initMaterials" ; 
     initMaterials();
+    LOG(LEVEL) << "-initMaterials_NoRINDEX" ; 
     initMaterials_NoRINDEX(); 
 
+    LOG(LEVEL) << "-initScint" ; 
     initScint();
 
+    LOG(LEVEL) << "-initSurfaces" ; 
     initSurfaces();
+
+    LOG(LEVEL) << "-initSolids" ; 
     initSolids();
+    LOG(LEVEL) << "-initNodes" ; 
     initNodes(); 
+    LOG(LEVEL) << "-initSurfaces_Serialize" ; 
     initSurfaces_Serialize();
 
+    LOG(LEVEL) << "-initStandard" ; 
     initStandard(); 
 
     std::cout << "U4Tree::init " <<  desc() << std::endl; 
@@ -522,9 +548,13 @@ cf X4PhysicalVolume::convertSolids
 
 inline void U4Tree::initSolids()
 {
+    std::cout << "[U4Tree::initSolids" << std::endl ; 
+
     initSolids_r(top);
     initSolids_Keys(); 
-    initSolids_Mesh(); 
+    initSolids_Mesh();
+ 
+    std::cout << "]U4Tree::initSolids" << std::endl ; 
 }
 
 /**
@@ -665,6 +695,26 @@ enable_osur:true
     THIS MUST BE ENABLED FOR Geant4 matching 
     WITHOUT IT SOME Water///Steel boundaries for example
     FAIL TO ABSORB PHOTONS : SEE ~/j/issues/3inch_PMT_geometry_after_virtual_delta.rst
+
+
+NB no-selection collection of below vectors for consistent "nidx" node indices
+
+stree::nds 
+    snode for all structural nodes aka volumes 
+
+stree::digs
+    digests for all nodes 
+
+stree::m2w
+    model2world transforms for all nodes
+
+stree::w2m
+    world2model transforms for all nodes
+
+stree::gtd
+    flattened transforms for all nodes "GGeo Transform Debug"
+
+Q:if gtd really just for debug, can it be macroed away ? 
 
 **/
 

@@ -101,7 +101,7 @@ struct sstr
     template<typename T>
     static void ParsePair( const char* txt, T& x, T& y, char delim=':' ); 
 
-
+    static bool IsInteger(const char* str); 
     static bool IsWhitespace(const std::string& s ); 
 
     static bool isdigit_(char c );
@@ -130,6 +130,11 @@ struct sstr
     static void Extract( std::vector<long>& vals, const char* s ); 
     static long ExtractLong( const char* s, long fallback ); 
 
+
+    static bool LooksLikePath(const char* arg);
+    static void LoadList(const char* arg, std::vector<std::string>& lines, char delim  );
+    static std::vector<std::string>* LoadList( const char* arg, char delim );
+
 };
 
 inline void sstr::Write(const char* path, const char* txt )
@@ -140,7 +145,7 @@ inline void sstr::Write(const char* path, const char* txt )
 
 inline bool sstr::Match( const char* s, const char* q, bool starting )
 {
-    return starting ? MatchStart(s, q) : MatchAll(s, q) == 0 ;
+    return starting ? MatchStart(s, q) : MatchAll(s, q) ;
 }
 
 inline bool sstr::Match_( const char* s, const char* q, int mode )
@@ -314,7 +319,7 @@ inline void sstr::StripTail_Unique( std::vector<std::string>& keys, const std::v
     StripTail( stripped, src, end ); 
 
     int num_src = src.size(); 
-    int num_stripped = stripped.size(); 
+    [[maybe_unused]] int num_stripped = stripped.size(); 
     assert( num_src == num_stripped ); 
 
     for(int i=0 ; i < num_src ; i++)
@@ -348,7 +353,7 @@ inline std::string sstr::DescKeySrc(const std::vector<std::string>& key, const s
     std::stringstream ss ;  
     ss << "sstr::DescKeySrc" << std::endl ; 
     int num_src = src.size(); 
-    int num_key = key.size(); 
+    [[maybe_unused]] int num_key = key.size(); 
     assert( num_src == num_key );  
 
     for(int i=0 ; i < num_src ; i++)
@@ -465,15 +470,31 @@ inline void sstr::SplitTrim( const char* str, char delim,   std::vector<std::str
     while (std::getline(ss, s, delim)) elem.push_back(Trim(s.c_str())) ; 
 }
 
+/**
+sstr::SplitTrimSuppress
+------------------------
+
+* when str contains '\n' the argument delim is overridden to become '\n'
+* elem that start with # are skipped 
+
+**/
+
 inline void sstr::SplitTrimSuppress( const char* str, char delim,   std::vector<std::string>& elem  )
 {
+    bool is_multiline = Contains(str,"\n");
+    char udelim = is_multiline ? '\n' : delim ; 
+
     std::stringstream ss; 
     ss.str(str)  ;
     std::string s;
-    while (std::getline(ss, s, delim)) 
+    while (std::getline(ss, s, udelim)) 
     {
         const char* t = Trim(s.c_str());
-        if(t && strlen(t) > 0) elem.push_back(t) ; 
+        if(t && strlen(t) > 0) 
+        {
+            if(t[0] == '#') continue ;  
+            elem.push_back(t) ;
+        } 
     }
 }
 
@@ -734,7 +755,14 @@ inline void sstr::ParsePair( const char* txt, T& x, T& y, char delim )
     y = To<T>( elem[1].c_str() ); 
 }
 
+inline bool sstr::IsInteger(const char* str)
+{
+    if(!str) return false ; 
+    if(strlen(str)==0) return false ; 
 
+    std::string s(str);
+    return s.find_first_not_of("0123456789") == std::string::npos ; 
+}
 
 inline bool sstr::IsWhitespace(const std::string& str )
 {
@@ -916,5 +944,54 @@ inline long sstr::ExtractLong( const char* s, long fallback ) // static
 }
 
 
+
+
+
+inline bool sstr::LooksLikePath(const char* arg)
+{
+    if(!arg) return false ;
+    if(strlen(arg) < 2) return false ; 
+    return arg[0] == '/' || arg[0] == '$' ; 
+}
+
+
+
+/**
+sstr::LoadList
+----------------
+
+Interprets the arg as either a filepath with lines to be loaded
+or a comma delimited string to be split into lines.   
+
+**/
+
+inline void sstr::LoadList(const char* arg, std::vector<std::string>& lines, char delim  )
+{
+    if(arg == nullptr) return ; 
+
+    if(LooksLikePath(arg) && delim == '\n' )  // eg starts with slash
+    {   
+        std::ifstream ifs(arg);
+        std::string line;
+        while(std::getline(ifs, line)) lines.push_back(line) ; 
+    }   
+    else if( delim == ',' )
+    {   
+        sstr::Split( arg,  delim, lines );    
+    }   
+    else
+    {   
+        lines.push_back(arg);
+    }   
+}
+
+inline std::vector<std::string>* sstr::LoadList( const char* arg, char delim )
+{
+    if(arg == nullptr) return nullptr ; 
+    typedef std::vector<std::string> VS ; 
+    VS* lines = new VS ; 
+    LoadList(arg, *lines, delim ); 
+    return lines ; 
+}
 
 

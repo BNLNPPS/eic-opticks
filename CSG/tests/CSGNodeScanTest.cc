@@ -159,11 +159,13 @@ void Scan::init()
             const float4* plan = nullptr ; 
             const qat4* itra = nullptr ; 
             const CSGNode* node = &nd ; 
+            bool dump = false ; 
 
-            bool valid_intersect = intersect_node(*isect, node, node, plan, itra, t_min, *ray_origin, *ray_direction ); 
+            bool valid_isect(false) ; 
+            intersect_node(valid_isect, *isect, node, node, plan, itra, t_min, *ray_origin, *ray_direction, dump ); 
             // TODO: this should be using higher level intersect_prim ???
 
-            if(valid_intersect)
+            if(valid_isect)
             {
                 float t = (*isect).w ;  
                 *position = *ray_origin + t*(*ray_direction) ; 

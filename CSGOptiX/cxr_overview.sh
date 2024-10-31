@@ -1,7 +1,12 @@
-#!/bin/bash -l 
+#!/bin/bash 
 usage(){ cat << EOU
 cxr_overview.sh
 ================
+
+::
+
+   ~/o/CSGOptiX/cxr_overview.sh  
+
 
 For some views its good to remove large container volumes::
 
@@ -24,22 +29,22 @@ On workstation, make renders::
 
 From laptop, grab renders and metadata from workstation::
 
-   SCAN=scan-emm CVD=1 ./cxr_overview.sh  
-   SCAN=scan-elv CVD=1 ./cxr_overview.sh 
+   SCAN=scan-emm ./cxr_overview.sh  
+   SCAN=scan-elv ./cxr_overview.sh 
 
 On laptop, create time ordered lists of jpgs and txt tables::
 
-   CVD=1 ./cxr_overview.sh jstab
+   ./cxr_overview.sh jstab
 
-   CVD=1 SELECTSPEC=all SCAN=scan-elv SNAP_LIMIT=512 SNAP_ARGS="--jpg --out --outpath=/tmp/elv_jpg.txt" ./cxr_overview.sh jstab
-   CVD=1 SELECTSPEC=all SCAN=scan-elv SNAP_LIMIT=512 SNAP_ARGS="--txt --out --outpath=/tmp/elv_txt.txt" ./cxr_overview.sh jstab
+   SELECTSPEC=all SCAN=scan-elv SNAP_LIMIT=512 SNAP_ARGS="--jpg --out --outpath=/tmp/elv_jpg.txt" ./cxr_overview.sh jstab
+   SELECTSPEC=all SCAN=scan-elv SNAP_LIMIT=512 SNAP_ARGS="--txt --out --outpath=/tmp/elv_txt.txt" ./cxr_overview.sh jstab
 
    open -n $(cat /tmp/elv_jpg.txt)   ## open all jpg in time order 
    vim -R /tmp/elv_txt.txt           ## view txt table to see the ELV exclusion names
 
 
-   CVD=1 SELECTSPEC=all SELECTMODE=all SCAN=scan-emm SNAP_ARGS="--jpg --out --outpath=/tmp/emm_jpg.txt" ./cxr_overview.sh jstab
-   CVD=1 SELECTSPEC=all SELECTMODE=all SCAN=scan-emm SNAP_ARGS="--txt --out --outpath=/tmp/emm_txt.txt" ./cxr_overview.sh jstab
+   SELECTSPEC=all SELECTMODE=all SCAN=scan-emm SNAP_ARGS="--jpg --out --outpath=/tmp/emm_jpg.txt" ./cxr_overview.sh jstab
+   SELECTSPEC=all SELECTMODE=all SCAN=scan-emm SNAP_ARGS="--txt --out --outpath=/tmp/emm_txt.txt" ./cxr_overview.sh jstab
 
    open -n $(cat /tmp/emm_jpg.txt)    ## to avoid Preview.app splitting into multiple windows exit Preview.app first 
    vim -R /tmp/emm_txt.txt
@@ -70,7 +75,8 @@ JUNO (trunk:Mar 2, 2022)
 EOU
 }
 
-DIR=$(dirname $BASH_SOURCE)
+
+cd $(dirname $(realpath $BASH_SOURCE))
 
 case $(uname) in 
   Linux) defarg="run" ;;
@@ -120,9 +126,9 @@ export TOPLINE="./cxr_overview.sh    # EYE $EYE MOI $MOI ZOOM $ZOOM stamp $stamp
 export BOTLINE=" GEOM $GEOM RELDIR $OPTICKS_RELDIR NAMEPREFIX $NAMEPREFIX SCAN $SCAN "
 
 if [ -z "$SCAN" ]; then 
-   vars="stamp version TOPLINE BOTLINE"
+   vars="BASH_SOURCE stamp version TOPLINE BOTLINE"
    for var in $vars ; do printf "%20s : %s \n" $var "${!var}" ; done
 fi
 
-source $DIR/cxr.sh $arg
+source cxr.sh $arg
 

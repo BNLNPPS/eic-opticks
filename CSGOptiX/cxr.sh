@@ -1,4 +1,4 @@
-#!/bin/bash -l 
+#!/bin/bash  
 usage(){ cat << EOU
 cxr.sh : basis for higher level render scripts using CSGOptiXRenderTest
 =========================================================================
@@ -32,6 +32,9 @@ TODO: former support for "--arglist" "--solid_label" "--sizescale" "--size" need
 EOU
 }
 
+cd $(dirname $(realpath $BASH_SOURCE))
+SDIR=$PWD
+
 msg="=== $BASH_SOURCE :"
 
 if [ -n "$CFNAME" ]; then
@@ -54,7 +57,6 @@ pkg=CSGOptiX
 bin=CSGOptiXRenderTest
 
 # defaults 
-cvd=1            # default GPU to use  0:TITAN V 1:TITAN RTX
 emm=t0           # what to include in the GPU geometry : default to t0 ie ~0 which means everything 
 moi=sWaterTube   # should be same as lLowerChimney_phys
 eye=-1,-1,-1,1   # where to look from, see okc/View::home 
@@ -68,7 +70,6 @@ sizescale=1.5
 
 # [ "$(uname)" == "Darwin" ] && cvd=0    # only one GPU on laptop : BUT are usually just grabbing from remote
 
-export CUDA_VISIBLE_DEVICES=${CVD:-$cvd}
 export CVDLabel="CVD${CUDA_VISIBLE_DEVICES}" 
 
 export EMM=${EMM:-$emm}    # -e 
@@ -123,7 +124,7 @@ mkdir -p $LOGDIR
 cd $LOGDIR 
 
 
-export OPTICKS_OUT_FOLD=${CFBASE:-$TMPDIR}/$bin/$CVDLabel/$optix_version
+export OPTICKS_OUT_FOLD=${CFBASE:-$TMPDIR}/$bin/$CVDLabel/${optix_version}
 export OPTICKS_OUT_NAME=$MOI
 if [ -n "$SCAN" ]; then
     OPTICKS_OUT_NAME=$OPTICKS_OUT_NAME/$SCAN
@@ -131,6 +132,9 @@ fi
 export BASE=$OPTICKS_OUT_FOLD/$OPTICKS_OUT_NAME
 
 
+# Example BASE directory path for scan outputs 
+#      /tmp/blyth/opticks/GEOM/J_2024aug27/CSGOptiXRenderTest/CVD1/70500/ALL/scan-emm
+#
 # SEventConfig::OutDir 
 #    $OPTICKS_OUT_FOLD/$OPTICKS_OUT_NAME  (should be same as BASE)
 # 
@@ -142,7 +146,7 @@ export BASE=$OPTICKS_OUT_FOLD/$OPTICKS_OUT_NAME
 
 if [ -z "$SCAN" ]; then 
 
-   vars="CVD CUDA_VISIBLE_DEVICES EMM MOI EYE TOP SLA CAM TMIN ZOOM CAMERATYPE OPTICKS_GEOM OPTICKS_RELDIR SIZE SIZESCALE CFBASE OPTICKS_OUT_FOLD OPTICKS_OUT_NAME"
+   vars="CUDA_VISIBLE_DEVICES EMM MOI EYE TOP SLA CAM TMIN ZOOM CAMERATYPE OPTICKS_GEOM OPTICKS_RELDIR SIZE SIZESCALE CFBASE OPTICKS_OUT_FOLD OPTICKS_OUT_NAME"
    for var in $vars ; do printf "%10s : %s \n" $var ${!var} ; done 
 
 fi 
@@ -194,22 +198,19 @@ if [ "$arg" == "run" ]; then
 
 elif [ "$arg" == "grab" -o "$arg" == "open" -o "$arg" == "grab_open" ]; then 
 
-    source $OPTICKS_HOME/bin/BASE_grab.sh $arg 
+    source $SDIR/../bin/BASE_grab.sh $arg 
 
 elif [ "$arg" == "jstab" ]; then 
 
-    source $OPTICKS_HOME/bin/BASE_grab.sh $arg 
+    source $SDIR/../bin/BASE_grab.sh $arg 
 
 elif [ "$arg" == "pub" -o "$arg" == "list" ]; then 
 
-    source $OPTICKS_HOME/bin/BASE_grab.sh $arg 
+    source $SDIR/../bin/BASE_grab.sh $arg 
 
 elif [ "$arg" == "info" ]; then 
 
-    vars="TMPDIR LOGDIR NAMEPREFIX"
+    vars="BASH_SOURCE BASE TMPDIR LOGDIR NAMEPREFIX SDIR optix_version"
     for var in $vars ; do printf " %20s : %s \n" "$var" "${!var}" ; done
 fi 
-
-
-
 

@@ -81,6 +81,11 @@ Bringing over functions from  ~/opticks/optixrap/cu/csg_intersect_primitive.h
 #include "CSGDebug_Cylinder.hh"
 #endif
 
+#if !defined(PRODUCTION) && defined(DEBUG_PIDXYZ)
+#include <stdio.h>
+#endif 
+
+
 #include "csg_intersect_leaf_sphere.h"
 #include "csg_intersect_leaf_zsphere.h"
 #include "csg_intersect_leaf_cylinder.h"
@@ -157,11 +162,22 @@ Notice that only the inverse CSG transforms are needed on the GPU as these are u
 transform the ray_origin and ray_direction into the local origin and direction in the 
 local frame of the node.   
 
+This is called from both::
+
+    csg_intersect_node.h
+    csg_intersect_tree.h
+
 **/
 
 LEAF_FUNC
-bool intersect_leaf( float4& isect, const CSGNode* node, const float4* plan, const qat4* itra, const float t_min , const float3& ray_origin , const float3& ray_direction )
+void intersect_leaf(bool& valid_isect, float4& isect, const CSGNode* node, const float4* plan, const qat4* itra, const float t_min , const float3& ray_origin , const float3& ray_direction, bool dumpxyz )
 {
+    valid_isect = false ; 
+    isect.x = 0.f ; 
+    isect.y = 0.f ; 
+    isect.z = 0.f ; 
+    isect.w = 0.f ; 
+
     const unsigned typecode = node->typecode() ;  
     const unsigned gtransformIdx = node->gtransformIdx() ; 
     const bool complement = node->is_complement();
@@ -192,40 +208,79 @@ bool intersect_leaf( float4& isect, const CSGNode* node, const float4* plan, con
     */
 #endif
 
-    bool valid_isect = false ; 
     switch(typecode)
     {
-        case CSG_SPHERE:           valid_isect = intersect_leaf_sphere(           isect, node->q0,               t_min, origin, direction ) ; break ; 
-        case CSG_ZSPHERE:          valid_isect = intersect_leaf_zsphere(          isect, node->q0, node->q1,     t_min, origin, direction ) ; break ; 
-        case CSG_CYLINDER:         valid_isect = intersect_leaf_cylinder(         isect, node->q0, node->q1,     t_min, origin, direction ) ; break ;
-        case CSG_BOX3:             valid_isect = intersect_leaf_box3(             isect, node->q0,               t_min, origin, direction ) ; break ;
-        case CSG_CONE:             valid_isect = intersect_leaf_newcone(          isect, node->q0,               t_min, origin, direction ) ; break ;
-        case CSG_CONVEXPOLYHEDRON: valid_isect = intersect_leaf_convexpolyhedron( isect, node, plan,             t_min, origin, direction ) ; break ;
-        case CSG_HYPERBOLOID:      valid_isect = intersect_leaf_hyperboloid(      isect, node->q0,               t_min, origin, direction ) ; break ;
+        case CSG_SPHERE:           intersect_leaf_sphere(           valid_isect, isect, node->q0,               t_min, origin, direction ) ; break ; 
+        case CSG_ZSPHERE:          intersect_leaf_zsphere(          valid_isect, isect, node->q0, node->q1,     t_min, origin, direction ) ; break ; 
+        case CSG_CYLINDER:         intersect_leaf_cylinder(         valid_isect, isect, node->q0, node->q1,     t_min, origin, direction ) ; break ;
+        case CSG_BOX3:             intersect_leaf_box3(             valid_isect, isect, node->q0,               t_min, origin, direction ) ; break ;
+        case CSG_CONE:             intersect_leaf_newcone(          valid_isect, isect, node->q0,               t_min, origin, direction ) ; break ;
+        case CSG_CONVEXPOLYHEDRON: intersect_leaf_convexpolyhedron( valid_isect, isect, node, plan,             t_min, origin, direction ) ; break ;
+        case CSG_HYPERBOLOID:      intersect_leaf_hyperboloid(      valid_isect, isect, node->q0,               t_min, origin, direction ) ; break ;
 #if !defined(PRODUCTION) && defined(CSG_EXTRA)
-        case CSG_PLANE:            valid_isect = intersect_leaf_plane(            isect, node->q0,               t_min, origin, direction ) ; break ;
-        case CSG_SLAB:             valid_isect = intersect_leaf_slab(             isect, node->q0, node->q1,     t_min, origin, direction ) ; break ;
-        case CSG_OLDCYLINDER:      valid_isect = intersect_leaf_oldcylinder(      isect, node->q0, node->q1,     t_min, origin, direction ) ; break ;
-        case CSG_PHICUT:           valid_isect = intersect_leaf_phicut(           isect, node->q0,               t_min, origin, direction ) ; break ;
-        case CSG_THETACUT:         valid_isect = intersect_leaf_thetacut(         isect, node->q0, node->q1,     t_min, origin, direction ) ; break ;
-        case CSG_OLDCONE:          valid_isect = intersect_leaf_oldcone(          isect, node->q0,               t_min, origin, direction ) ; break ;
-        case CSG_INFCYLINDER:      valid_isect = intersect_leaf_infcylinder(      isect, node->q0, node->q1,     t_min, origin, direction ) ; break ;
-        case CSG_DISC:             valid_isect = intersect_leaf_disc(             isect, node->q0, node->q1,     t_min, origin, direction ) ; break ;
+        case CSG_PLANE:            intersect_leaf_plane(            valid_isect, isect, node->q0,               t_min, origin, direction ) ; break ;
+        case CSG_SLAB:             intersect_leaf_slab(             valid_isect, isect, node->q0, node->q1,     t_min, origin, direction ) ; break ;
+        case CSG_OLDCYLINDER:      intersect_leaf_oldcylinder(      valid_isect, isect, node->q0, node->q1,     t_min, origin, direction ) ; break ;
+        case CSG_PHICUT:           intersect_leaf_phicut(           valid_isect, isect, node->q0,               t_min, origin, direction ) ; break ;
+        case CSG_THETACUT:         intersect_leaf_thetacut(         valid_isect, isect, node->q0, node->q1,     t_min, origin, direction ) ; break ;
+        case CSG_OLDCONE:          intersect_leaf_oldcone(          valid_isect, isect, node->q0,               t_min, origin, direction ) ; break ;
+        case CSG_INFCYLINDER:      intersect_leaf_infcylinder(      valid_isect, isect, node->q0, node->q1,     t_min, origin, direction ) ; break ;
+        case CSG_DISC:             intersect_leaf_disc(             valid_isect, isect, node->q0, node->q1,     t_min, origin, direction ) ; break ;
 #endif
     }
     // NB: changing typecode->imp mapping is a handy way to use old imp with current geometry 
 
 
-    if(valid_isect)
-    {
-        if(q) q->left_multiply_inplace( isect, 0.f ) ;  
-        // normals transform differently : with inverse-transform-transposed 
-        // so left_multiply the normal by the inverse-transform rather than the right_multiply 
-        // done above to get the inverse transformed origin and direction
-        //const unsigned boundary = node->boundary();  ???
 
-        if(complement)  // flip normal for complement 
-        {
+#if defined(DEBUG_PIDXYZ)
+    // HMM MAGIC ACTIVE HERE TOO
+    //if(dumpxyz) printf("//[intersect_leaf.MAGIC typecode %d valid_isect %d isect (%10.4f %10.4f %10.4f %10.4f) complement %d \n",  typecode, valid_isect, isect.x, isect.y, isect.z, isect.w, complement ); 
+    //if(dumpxyz) printf("//[intersect_leaf.MAGIC typecode %d                isect (%10.4f %10.4f %10.4f %10.4f) complement %d \n",  typecode,              isect.x, isect.y, isect.z, isect.w, complement ); 
+    //if(dumpxyz) printf("//[intersect_leaf.MAGIC typecode %d \n",  typecode ); 
+    //if(dumpxyz) printf("//[intersect_leaf.MAGIC \n"); 
+
+    /**
+    when applying the MAGIC here just a string will do 
+    **/
+#endif
+
+  
+//#define WITH_HEISENBUG 1
+#if !defined(WITH_HEISENBUG)
+
+   if(valid_isect && q ) q->left_multiply_inplace( isect, 0.f ) ;  
+    // normals transform differently : with inverse-transform-transposed 
+    // so left_multiply the normal by the inverse-transform rather than the right_multiply 
+    // done above to get the inverse transformed origin and direction
+
+
+    /// BIZARRO : RE-EXPRESSING THE MISS-COMPLEMENT-SIGNALLING IMPL FROM THE ABOVE TO A 
+    /// TERSE FORM BELOW (WHICH SHOULD DO EFFECTIVELY THE SAME THING)
+    /// AVOIDS THE HEISENBUG : NO NEED FOR MAGIC PRINTF IN intersect_leaf
+
+    if(complement)
+    {
+#if defined(DEBUG_PIDXYZ)
+        //if(dumpxyz) printf("// intersect_leaf complement %d valid_isect %d \n", complement, valid_isect );
+#endif
+
+        // flip normal for hit, signal complement for miss 
+        isect.x = valid_isect ? -isect.x : -0.f ;    // miss needs to signal complement with -0.f signbit 
+        isect.y = valid_isect ? -isect.y : isect.y ; // miss unbounded exit signalled in isect.y for intersect_tree
+        isect.z = valid_isect ? -isect.z : isect.z ; 
+    }
+
+#else
+    /// CAUTION : SOMETHING ABOUT THE BELOW MISS-COMPLEMENT-SIGNALLING 
+    /// CODE CAUSES OPTIX 7.5 AND 8.0 HEISENBUG WITH CUDA 12.4 AS REVEALED 
+    /// WITH RTX 5000 Ada GENERATION GPU
+
+     if(valid_isect)
+     {
+         if(q) q->left_multiply_inplace( isect, 0.f ); 
+
+         if(complement)  // flip normal for complement 
+         {
             isect.x = -isect.x ;
             isect.y = -isect.y ;
             isect.z = -isect.z ;
@@ -233,16 +288,35 @@ bool intersect_leaf( float4& isect, const CSGNode* node, const float4* plan, con
     }   
     else
     {
-         // even for miss need to signal the complement with a -0.f in isect.x
-         if(complement) isect.x = -isect.x ;  
-         // note that isect.y is also flipped for unbounded exit : for consumption by intersect_tree
+        // even for miss need to signal the complement with a -0.f in isect.x
+        if(complement) isect.x = -0.f ;
+        // note that isect.y is also flipped for unbounded exit : for consumption by intersect_tree
     }
+#endif
 
+
+    // NOTICE THAT "VALID_ISECT" IS A BIT MIS-NAMED : AS FALSE JUST MEANS A GEOMETRY MISS 
 
 #if !defined(PRODUCTION) && defined(DEBUG_RECORD)
     printf("//]intersect_leaf typecode %d name %s valid_isect %d isect (%10.4f %10.4f %10.4f %10.4f)   \n", typecode, CSG::Name(typecode), valid_isect, isect.x, isect.y, isect.z, isect.w); 
 #endif
 
-    return valid_isect ; 
+#if defined(DEBUG_PIDXYZ)
+    // BIZARRELY WITH OptiX 7.5.0 CUDA 12.4 "RTX 5000 Ada Generation" : commenting the below line breaks boolean intersects 
+    // NOPE SAME WITH OptiX 8.0.0 CUDA 12.4 "RTX 5000 Ada Generation" 
+
+    //if(dumpxyz) printf("%d\n", valid_isect );  // HUH : NEED THIS LINE WITH OPTIX 7.5 CUDA 12.4 RTX 5000 ADA
+    //if(dumpxyz) printf("//]intersect_leaf typecode %d valid_isect %d isect (%10.4f %10.4f %10.4f %10.4f) complement %d \n",  typecode, valid_isect, isect.x, isect.y, isect.z, isect.w, complement ); 
+
+    //if(dumpxyz) printf("//hello\n"); 
+    //if(dumpxyz) printf("//]intersect_leaf typecode %d \n", typecode );
+    //if(dumpxyz) printf("//]intersect_leaf isect (%10.4f %10.4f %10.4f %10.4f) \n", isect.x, isect.y, isect.z, isect.w ); 
+    //if(dumpxyz) printf("//]intersect_leaf complement %d \n", complement );
+
+    /**
+    Seems have to potentially dump valid_isect here for the restorative sorcery to work 
+    **/
+
+#endif
 }
 
