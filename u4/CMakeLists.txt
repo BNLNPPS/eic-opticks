@@ -18,12 +18,10 @@ include(OpticksBuildOptions NO_POLICY_SCOPE)
 
 message(STATUS "${CMAKE_CURRENT_LIST_FILE} : ====== 0 ======= find SysRap, G4  ")
 
-find_package(SysRap REQUIRED CONFIG)
 find_package(G4 REQUIRED MODULE)
 
 message(STATUS "${CMAKE_CURRENT_LIST_FILE} : ====== 1 ======= find GDXML CLHEP OpticksXercesC ")
 
-find_package(GDXML REQUIRED CONFIG)
 find_package(CLHEP  REQUIRED CONFIG) 
 find_package(OpticksXercesC REQUIRED MODULE)
 
@@ -177,6 +175,8 @@ target_link_libraries( ${name} PUBLIC
 
 target_include_directories( ${name} PUBLIC 
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> 
+    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:include/U4>
 )
 
 target_compile_definitions( ${name} PUBLIC OPTICKS_U4 ) # THIS MUST BE PUBLIC FOR SLOG-ING TO WORK FULLY 

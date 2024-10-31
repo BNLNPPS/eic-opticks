@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector_types.h>
 
 #if defined(__CUDACC__) || defined(__CUDABE__)
    #define SMATH_METHOD __device__

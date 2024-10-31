@@ -4,8 +4,6 @@ project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions)
 
 find_package(CUDA REQUIRED)   
-find_package(QUDARap REQUIRED)
-find_package(CSG REQUIRED)
 
 set(OpticksOptiX_VERBOSE ON)
 find_package(OpticksOptiX REQUIRED MODULE)   
@@ -125,7 +123,11 @@ WITH_THRUST compile definition
 
 target_compile_definitions( ${name} PRIVATE WITH_THRUST )
 
-
+target_include_directories( ${name} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/sysrap/inc>
+    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:include/CSGOptiX>
+)
 
 target_link_libraries(${name} 
      PUBLIC 

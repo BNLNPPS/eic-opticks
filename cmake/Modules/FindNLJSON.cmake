@@ -5,6 +5,7 @@ find_path(
     NLJSON_INCLUDE_DIR
     NAMES "json.hpp"
     PATHS "${OPTICKS_PREFIX}/externals/include/nljson"
+    PATH_SUFFIXES "nlohmann"
 )
 
 if(NLJSON_INCLUDE_DIR)
@@ -29,7 +30,7 @@ set(_tgt Opticks::NLJSON)
 if(NLJSON_FOUND AND NOT TARGET ${_tgt})
     add_library(${_tgt} INTERFACE IMPORTED)
     set_target_properties(${_tgt} PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${NLJSON_INCLUDE_DIR}"
+        INTERFACE_INCLUDE_DIRECTORIES "${NLJSON_INCLUDE_DIR};${NLJSON_INCLUDE_DIR}/../"
         INTERFACE_PKG_CONFIG_NAME "NLJSON"
     )
     set(NLJSON_targets "NLJSON")

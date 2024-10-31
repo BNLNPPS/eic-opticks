@@ -63,6 +63,7 @@ npy/NStep.cpp
 
 #include "scurand.h"
 #include "smath.h"
+#include "sphoton.h"
 #include "storchtype.h"
 
 /**

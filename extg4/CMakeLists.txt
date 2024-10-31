@@ -256,6 +256,8 @@ endif()
 
 target_include_directories( ${name} PUBLIC 
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> 
+   $<INSTALL_INTERFACE:include>
+   $<INSTALL_INTERFACE:include/${name}>
 )
 target_compile_definitions( ${name} PUBLIC OPTICKS_X4 )  
 

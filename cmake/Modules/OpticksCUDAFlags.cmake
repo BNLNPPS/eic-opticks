@@ -81,7 +81,7 @@ if(NOT (COMPUTE_CAPABILITY LESS 30))
 
    #list(APPEND CUDA_NVCC_FLAGS "-arch=sm_${COMPUTE_CAPABILITY}")
    list(APPEND CUDA_NVCC_FLAGS "-Xcompiler -fPIC")
-   list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_${COMPUTE_CAPABILITY},code=sm_${COMPUTE_CAPABILITY}")
+   list(APPEND CUDA_NVCC_FLAGS "-arch=compute_70")
 
    list(APPEND CUDA_NVCC_FLAGS "-std=${OPTICKS_CUDA_NVCC_DIALECT}")
    # https://github.com/facebookresearch/Detectron/issues/185

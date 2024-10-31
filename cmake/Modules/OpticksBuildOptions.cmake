@@ -86,55 +86,6 @@ include(TopMetaTarget)
 
 set(BUILD_SHARED_LIBS ON)
 
-
-
-
-# macOS RPATH
-# ------------
-#
-# CMAKE_INSTALL_RPATH_USE_LINK_PATH : adds the automatically determined parts of the RPATH
-# which point to directories outside the build tree to the install RPATH
-#
-# see env-;otool-;otool-rpath  
-#
-# * https://blogs.oracle.com/dipol/dynamic-libraries,-rpath,-and-mac-os
-#
-#
-# Linux RPATH 
-# --------------------
-#
-# install RPATH is prefixed with $ORIGIN/.. to simplify deployment of Opticks binaries 
-# users then only need to set PATH and the executables are able to find the libs relative to themselves  
-# see notes/issues/packaging-opticks-and-externals-for-use-on-gpu-cluster.rst 
-#
-# to check the RPATH of a library or executable use chrpath on it, eg: chrpath $(which OKTest) 
-#
-
-
-if(UNIX AND NOT APPLE)
-    if(CMAKE_INSTALL_PREFIX STREQUAL ${OPTICKS_PREFIX})
-       set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib64:$ORIGIN/../externals/lib:$ORIGIN/../externals/lib64:$ORIGIN/../externals/OptiX/lib64")
-    else()
-       message(STATUS " Below two strings differ : forced to use absolute RPATH ")
-       message(STATUS " CMAKE_INSTALL_PREFIX : ${CMAKE_INSTALL_PREFIX} ")
-       message(STATUS " OPTICKS_PREFIX       : ${OPTICKS_PREFIX} ")
-       set(ABSOLUTE_INSTALL_RPATH
-                     ${OPTICKS_PREFIX}/lib64  
-                     ${OPTICKS_PREFIX}/externals/lib  
-                     ${OPTICKS_PREFIX}/externals/lib64  
-                     ${OPTICKS_PREFIX}/externals/OptiX/lib64  
-          ) 
-       set(CMAKE_INSTALL_RPATH  "${ABSOLUTE_INSTALL_RPATH}")
-    endif()
-
-elseif(APPLE)
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-endif()
-
-
-
-
-
 include(OpticksCXXFlags)   
 
 if(OBO_VERBOSE)
