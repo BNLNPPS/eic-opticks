@@ -18,8 +18,8 @@ in order to flexibly create complete binary trees with any number of leaf nodes.
 
 Hence the *sn* nodes are developed. Initially sn.h was used as transient 
 template for binary trees that are subsequently solidified into *snd* trees. 
-But have now moved most snd functionality over to sn. So can directly use 
-only sn and eliminate the old WITH_SND. 
+But have now moved all snd functionality over to sn. So can directly use 
+only sn and the old "WITH-SND" is removed. 
 
 sn ctor/dtor register/de-register from s_pool<sn,_sn> 
 -------------------------------------------------------
@@ -141,6 +141,8 @@ inline bool _sn::is_root() const
 #include "SYSRAP_API_EXPORT.hh"
 struct SYSRAP_API sn
 {
+    static int Check_LEAK(const char* msg, int i=-1);
+
     // persisted
     int   typecode ; 
     int   complement ; 
@@ -187,15 +189,20 @@ struct SYSRAP_API sn
     template<typename N> static std::string Brief(const std::vector<N*>& nds, bool reverse=false); 
 
 
+    static int Index(const sn* n); 
 
     int  idx() const ;  // to match snd.hh
     int  index() const ; 
+    int  parent_index() const ; 
+
     bool is_root() const ; 
 
     int  num_child() const ; 
     sn*  first_child() const ; 
     sn*  last_child() const ; 
     sn*  get_child(int ch) const ;
+    sn*  get_left() const ; 
+    sn*  get_right() const ; 
 
     int  total_siblings() const ;
     int  child_index( const sn* ch ) ; 
@@ -222,7 +229,18 @@ struct SYSRAP_API sn
     sn* deepcopy() const ; 
     sn* deepcopy_r(int d) const ; 
 
+    sn* deepcopy_excluding_leaf(const sn* l) const ; 
+    sn* deepcopy_excluding_leaf_r(int d, const sn* l) const ; 
+
+
+    sn* copy() const ; 
+
+    static void DeepCopy(std::vector<sn*>& p1, const std::vector<sn*>& p0) ; 
+
     void set_child( int ix, sn* ch, bool copy ); 
+    void set_child_leaking_prior( int ix, sn* ch, bool copy ); 
+
+
     void set_left( sn* left, bool copy ); 
     void set_right( sn* right, bool copy  );
 
@@ -282,6 +300,8 @@ struct SYSRAP_API sn
     std::string desc() const ; 
     std::string desc_prim() const ; 
     std::string desc_prim_all(bool reverse) const ; 
+
+    std::string id() const ; 
     std::string brief() const ; 
     std::string desc_child() const ; 
     std::string desc_this() const ; 
@@ -295,9 +315,12 @@ struct SYSRAP_API sn
 
 
     std::string render() const ; 
+    std::string render_typetag() const ; 
+    std::string render_parent() const ; 
+    std::string rdr() const ; 
     std::string render(int mode) const ; 
 
-    enum { MINIMAL, TYPECODE, DEPTH, SUBDEPTH, TYPETAG, PID } ; 
+    enum { MINIMAL, TYPECODE, DEPTH, SUBDEPTH, TYPETAG, PID, NOTE, PARENT, IDX,  NUM_MODE=9 } ; 
 
     static constexpr const char* MODE_MINIMAL = "MINIMAL" ; 
     static constexpr const char* MODE_TYPECODE = "TYPECODE" ; 
@@ -305,6 +328,10 @@ struct SYSRAP_API sn
     static constexpr const char* MODE_SUBDEPTH = "SUBDEPTH" ; 
     static constexpr const char* MODE_TYPETAG = "TYPETAG" ; 
     static constexpr const char* MODE_PID = "PID" ; 
+    static constexpr const char* MODE_NOTE = "NOTE" ; 
+    static constexpr const char* MODE_PARENT = "PARENT" ; 
+    static constexpr const char* MODE_IDX = "IDX" ; 
+
     static const char* rendermode(int mode); 
 
     void render_r(scanvas* canvas, std::vector<const sn*>& order, int mode, int d) const ; 
@@ -337,7 +364,8 @@ struct SYSRAP_API sn
     void set_label( const char* label_ ); 
     void set_lvid(int lvid_); 
     void set_lvid_r(int lvid_, int d); 
-
+    int  check_idx(const char* msg) const ;
+    int  check_idx_r(int d, const char* msg) const ;
 
 
     void setPA( double x, double y, double z, double w, double z1, double z2 );
@@ -417,8 +445,19 @@ struct SYSRAP_API sn
 
     enum {
             NOTE_INCREASE_ZMAX = 0x1 << 0, 
-            NOTE_DECREASE_ZMIN = 0x1 << 1
+            NOTE_DECREASE_ZMIN = 0x1 << 1,
+            HINT_LISTNODE_PRIM_DISCONTIGUOUS = 0x1 << 2, 
+            HINT_LISTNODE_PRIM_CONTIGUOUS    = 0x1 << 3 
          };
+
+    static unsigned NameHint(const char* name); 
+    static constexpr const char* _HINT_LISTNODE_PRIM_DISCONTIGUOUS = "HINT_LISTNODE_PRIM_DISCONTIGUOUS" ; 
+    static constexpr const char* _HINT_LISTNODE_PRIM_CONTIGUOUS    = "HINT_LISTNODE_PRIM_CONTIGUOUS" ; 
+    void set_hint_note(unsigned hint); 
+    void set_hint_listnode_prim_discontiguous(); 
+    void set_hint_listnode_prim_contiguous(); 
+    bool  is_hint_listnode_prim_discontiguous() const ; 
+    bool  is_hint_listnode_prim_contiguous() const ; 
 
     void increase_zmax( double dz ); // expand upwards in +Z direction 
     void decrease_zmin( double dz ); // expand downwards in -Z direction
@@ -477,6 +516,7 @@ struct SYSRAP_API sn
     static bool Includes(const std::vector<sn*>& nds, sn* nd ); 
 
     static sn* Get(int idx); 
+    static void FindLVRootNodes( std::vector<sn*>& nds, int lvid ); 
     static sn* GetLVRoot( int lvid ); 
 
     std::string rbrief() const ; 
@@ -511,6 +551,20 @@ struct SYSRAP_API sn
     void collect_prim( std::vector<const sn*>& prim ) const ; 
     void collect_prim_r( std::vector<const sn*>& prim, int d ) const ; 
 
+    bool has_note(int q_note) const ; 
+    void collect_prim_note(  std::vector<sn*>& prim, int q_note ); 
+    void collect_prim_note_r( std::vector<sn*>& prim, int q_note, int d ); 
+
+    sn* find_joint_to_candidate_listnode( std::vector<sn*>& prim, int q_note ) ; 
+    sn* find_joint_to_candidate_listnode_r( int d,  std::vector<sn*>& prim, int q_note ); 
+    bool has_candidate_listnode(int q_note); 
+    bool has_candidate_listnode_discontiguous() ; 
+    bool has_candidate_listnode_contiguous() ; 
+
+    static sn* CreateSmallerTreeWithListNode(sn* root0, int q_note); 
+    static sn* CreateSmallerTreeWithListNode_discontiguous(sn* root0); 
+    static sn* CreateSmallerTreeWithListNode_contiguous(   sn* root0); 
+    static int TypeFromNote(int q_note); 
 
     void collect_monogroup( std::vector<const sn*>& monogroup ) const ; 
 
@@ -570,6 +624,48 @@ struct SYSRAP_API sn
     
 };  // END
 
+
+
+inline int sn::Check_LEAK(const char* msg, int i)  // static
+{
+    //const char* spacer = "\n\n" ; 
+    const char* spacer = "" ; 
+
+    std::stringstream ss ; 
+    ss << "sn::Check_LEAK[" << std::setw(3) << i << "] " << std::setw(30) << ( msg ? msg : "-" ) << "  " << sn::pool->brief() << spacer << std::endl ; 
+    std::string str = ss.str(); 
+    std::cout << str ; 
+
+    if(!sn::LEAK)
+    {
+        assert( sn::pool->size() == 0 ); 
+    }
+
+    if(!s_tv::LEAK)
+    {
+        assert( s_tv::pool->size() == 0 ); 
+    }
+
+    if(!s_pa::LEAK)
+    {
+        assert( s_pa::pool->size() == 0 ); 
+    }
+
+    if(!s_bb::LEAK)
+    {
+        assert( s_bb::pool->size() == 0 ); 
+    }
+
+    return 0 ; 
+}
+
+
+
+
+
+
+
+
 inline void        sn::SetPOOL( POOL* pool_ ){ pool = pool_ ; }
 inline int         sn::level() {  return ssys::getenvint("sn__level",-1) ; } // static 
 inline std::string sn::Desc(){    return pool ? pool->desc() : "-" ; } // static
@@ -623,9 +719,13 @@ inline std::string sn::Brief(const std::vector<N*>& nds, bool reverse) // static
 
 
 
-inline int  sn::idx() const { return index() ; } // to match snd.hh 
-inline int  sn::index() const { return pool ? pool->index(this) : -1 ; }
+inline int sn::Index(const sn* n){ return pool ? pool->index(n) : -1 ; } // static
+inline int  sn::idx() const { return Index(this); } // to match snd.hh 
+inline int  sn::index() const { return Index(this); }
+inline int  sn::parent_index() const { return parent ? Index(parent) : -2 ; }
 inline bool sn::is_root() const { return parent == nullptr ; }
+
+
 
 inline int sn::num_child() const
 {
@@ -665,6 +765,35 @@ inline sn* sn::get_child(int ch) const
     return nullptr ; 
 #endif
 }
+
+
+inline sn* sn::get_left() const
+{
+    sn* l = nullptr ; 
+#ifdef WITH_CHILD
+    assert( child.size() == 2 ); 
+    l = child[0] ; 
+#else
+    l = left ;
+#endif
+    return l ; 
+}
+
+inline sn* sn::get_right() const
+{
+    sn* r = nullptr ; 
+#ifdef WITH_CHILD
+    assert( child.size() == 2 ); 
+    r = child[1] ; 
+#else
+    r = right ;
+#endif
+    return r ; 
+}
+
+
+
+
 
 
 inline int sn::total_siblings() const
@@ -895,7 +1024,10 @@ inline sn::sn(int typecode_, sn* left_, sn* right_)
     pid(pool ? pool->add(this) : -1),
     subdepth(0)
 {
-    if(level() > 1) std::cout << "sn::sn pid " << pid << std::endl ; 
+    // note that the pid cannot be relied upon for indexing into the pool
+    // as other ctor/dtor can change the pool while this holds on to the old stale pid
+ 
+    if(level() > 1) std::cout << "[ sn::sn " << id() << "\n" ; 
     zero_label(); 
 
 #ifdef WITH_CHILD
@@ -911,6 +1043,8 @@ inline sn::sn(int typecode_, sn* left_, sn* right_)
         right->parent = this ; 
     }
 #endif
+
+    if(level() > 1) std::cout << "] sn::sn " << id() << "\n" ; 
 }
 
 #ifdef WITH_CHILD
@@ -929,9 +1063,12 @@ inline void sn::add_child( sn* ch )
 // dtor 
 inline sn::~sn()   
 {
-    if(level() > 1) std::cout << "[ sn::~sn pid " << pid << std::endl ; 
+    if(level() > 1) std::cout << "[ sn::~sn " << id() << "\n" ; 
 
     delete xform ; 
+    delete param ; 
+    delete aabb  ; 
+    // parent is not deleted : as it is regarded as weakly linked (ie not owned by this node)
 
 
 #ifdef WITH_CHILD
@@ -947,7 +1084,7 @@ inline sn::~sn()
 
     if(pool) pool->remove(this); 
 
-    if(level() > 1) std::cout << "] sn::~sn pid " << pid << std::endl ; 
+    if(level() > 1) std::cout << "] sn::~sn " << id() << "\n" ; 
 }
 
 
@@ -961,9 +1098,18 @@ inline sn::~sn()
 sn::disown_child
 ------------------
 
-Note that the erase calls the dtor which 
-will also delete child nodes (recursively)
-and removes pool entries. 
+* find ch pointer within child vector
+* appy std::vector::erase with the iterator
+
+HUH: contrary to prior note the std::vector::erase 
+simply removes from the vector, it DOES NOT 
+call the dtor of the erased pointer
+
+Prior note was wrong::
+
+    Note that the erase calls the dtor which 
+    will also delete child nodes (recursively)
+    and removes pool entries. 
 
 **/
 inline void sn::disown_child(sn* ch)
@@ -973,6 +1119,19 @@ inline void sn::disown_child(sn* ch)
     if(it != child.end() ) child.erase(it) ; 
 }
 #endif
+
+
+/**
+sn::deepcopy
+-------------
+
+Note that the xform, param and aabb pointers are 
+now copied by sn::copy which is invoked from sn::deepcopy.
+This means that the copied tree is now fully independent 
+from the source tree. This allows the source tree to be 
+fully deleted without effecting the copied tree. 
+
+**/
 
 inline sn* sn::deepcopy() const 
 {
@@ -985,43 +1144,141 @@ sn::deepcopy_r
 
 The default copy ctor copies the child vector, but that is a shallow copy  
 just duplicating pointers into the new child vector. 
-Hence within the child loop 
-so in the below the shallow copies are disowned and deep copies made and added 
-to the copy child vector
+Hence within the child loop below those shallow copies are disowned 
+(removed from the child vector) and deep copies are made and added 
+to the child vector of the copy
 
 **/
 
 inline sn* sn::deepcopy_r(int d) const 
 {
-    sn* copy = new sn(*this) ;    
+    sn* n = copy(); 
+
 #ifdef WITH_CHILD
     for(int i=0 ; i < int(child.size()) ; i++)
     {
         sn* ch = child[i] ; 
-        copy->disown_child( ch ) ;          // remove shallow copied child from the vector
+        n->disown_child( ch ) ;          // remove shallow copied child from the vector
         sn* deep_ch = ch->deepcopy_r(d+1) ; 
-        copy->child.push_back( deep_ch ); 
+        n->child.push_back( deep_ch ); 
     }
 #else
     // whether nullptr or not the shallow default copy 
     // should have copied left and right 
-    assert( copy->left == left ); 
-    assert( copy->right == right ); 
+    assert( n->left == left ); 
+    assert( n->right == right ); 
     // but thats just a shallow copy so replace here with deep copies
-    copy->left  = left  ? left->deepcopy_r(d+1) : nullptr ; 
-    copy->right = right ? right->deepcopy_r(d+1) : nullptr ;   
+    n->left  = left  ? left->deepcopy_r(d+1) : nullptr ; 
+    n->right = right ? right->deepcopy_r(d+1) : nullptr ;   
 #endif
-    copy->parent = nullptr ; 
 
-    return copy ;   
+    return n ;   
 }
+
+
+
+inline sn* sn::deepcopy_excluding_leaf(const sn* l) const 
+{
+    return deepcopy_excluding_leaf_r(0, l ); 
+}
+
+inline sn* sn::deepcopy_excluding_leaf_r(int d, const sn* l) const 
+{
+    if(this == l) return nullptr ; 
+
+    sn* n = copy(); 
+
+#ifdef WITH_CHILD
+    for(int i=0 ; i < int(child.size()) ; i++)
+    {
+        sn* ch = child[i] ; 
+        n->disown_child( ch ) ;          // remove shallow copied child from the vector
+        sn* deep_ch = ch->deepcopy_excluding_leaf_r(d+1, l ) ; 
+        n->child.push_back( deep_ch ); 
+    }
+#else
+    // whether nullptr or not the shallow default copy 
+    // should have copied left and right 
+    assert( n->left == left ); 
+    assert( n->right == right ); 
+    // but thats just a shallow copy so replace here with deep copies
+    n->left  = left  ? left->deepcopy_excluding_leaf_r(d+1) : nullptr ; 
+    n->right = right ? right->deepcopy_excluding_leaf_r(d+1) : nullptr ;   
+#endif
+    return n ; 
+}
+
+
+
+
+
+
+
+
+
+
+/**
+sn::copy
+---------
+
+default copy ctor just shallow copies the pointers and the pid, 
+so fix those up here to make the copy truly independant of the 
+original node 
+
+**/
+
+inline sn* sn::copy() const
+{
+    sn* n = new sn(*this) ;    
+
+    n->pid = pool ? pool->add(n) : -1 ;
+    n->parent = nullptr ; 
+    n->xform = xform ? xform->copy() : nullptr ; 
+    n->param = param ? param->copy() : nullptr ; 
+    n->aabb  = aabb ? aabb->copy() : nullptr ; 
+
+    return n ; 
+}
+
+
+/**
+sn::DeepCopy
+-------------
+
+It makes most sense to use this for copying prim nodes
+
+**/
+
+inline void sn::DeepCopy(std::vector<sn*>& p1, const std::vector<sn*>& p0) // static 
+{
+    for(unsigned i=0 ; i < p0.size() ; i++) p1.push_back(p0[i]->deepcopy());  
+}
+
+
 
 /**
 sn::set_child
 ---------------
 
-When the new child is from within the tree when pruning 
-it is necessary to deepcopy it first. 
+When *ch* (the new child to be set) is from within the tree and 
+not a newly created disconnected node, eg when pruning and moving 
+around nodes it is necessary to deepcopy that preexisting node 
+using copy:true 
+
+
+copy:false
+
+   * parent of *ch* is set to this 
+   * reference to child[ix] slot is obtained
+   * old occupier of the child[ix] slot is deleted (for LEAK:false the standard)
+   * child[ix] slot pointer set to *ch* 
+
+copy:true 
+
+   * as above but deepcopy the *ch* first 
+
+
+* NB former slot residents are deleted
 
 **/
 
@@ -1043,6 +1300,25 @@ inline void sn::set_child( int ix, sn* ch, bool copy )
 
 }
 
+inline void sn::set_child_leaking_prior( int ix, sn* ch, bool copy )
+{
+    sn* new_ch = copy ? ch->deepcopy() : ch ; 
+    new_ch->parent = this ; 
+
+#ifdef WITH_CHILD
+    assert( ix < int(child.size()) );   
+    sn*& target = child[ix] ;
+    target = new_ch ; 
+#else
+    sn** target = ix == 0 ? &left : &right ;  
+    *target = new_ch ;  
+#endif
+
+}
+
+
+
+
 inline void sn::set_left( sn* ch, bool copy )
 {
     set_child(0, ch, copy ); 
@@ -1051,6 +1327,9 @@ inline void sn::set_right( sn* ch, bool copy )
 {
     set_child(1, ch, copy ); 
 }
+
+
+
 
 
 
@@ -1485,12 +1764,17 @@ inline std::string sn::desc() const
 
 inline std::string sn::desc_prim() const 
 {
+    bool hint_lnprd = is_hint_listnode_prim_discontiguous(); 
+    bool hint_lnprc = is_hint_listnode_prim_contiguous(); 
+
     std::stringstream ss ;
     ss 
        << " idx " << std::setw(4) << index()
        << " lvid " << std::setw(3) << lvid 
        << " " << tag()
        << ( aabb ? aabb->desc() : "-" )
+       << " " << ( hint_lnprd ? "HINT_LNPRD" : "" )  
+       << " " << ( hint_lnprc ? "HINT_LNPRC" : "" )  
        ; 
 
     std::string str = ss.str();
@@ -1507,6 +1791,17 @@ inline std::string sn::desc_prim_all(bool reverse) const
     return DescPrim(prim, reverse); 
 }
 
+
+inline std::string sn::id() const
+{
+    std::stringstream ss ;
+    ss << "sn::id" 
+       << " pid " << pid
+       << " idx " << idx() 
+       ; 
+    std::string str = ss.str();
+    return str ;
+}
 
 inline std::string sn::brief() const
 {
@@ -1607,12 +1902,15 @@ inline std::string sn::detail() const
 inline std::string sn::render() const
 {
     std::stringstream ss ;
-    for(int mode=0 ; mode < 6 ; mode++) ss << render(mode) << std::endl ; 
+    for(int mode=0 ; mode < NUM_MODE ; mode++) ss << render(mode) << std::endl ; 
     std::string str = ss.str();
     return str ;
 }
 
+inline std::string sn::render_typetag() const { return render(TYPETAG);  }
+inline std::string sn::render_parent() const {  return render(PARENT);  }
 
+inline std::string sn::rdr() const {            return render_typetag();  }
 
 inline std::string sn::render(int mode) const
 {
@@ -1646,7 +1944,7 @@ inline std::string sn::render(int mode) const
     ss << "sn::render mode " << mode << " " << rendermode(mode) << std::endl ;
     ss << canvas.c << std::endl ;
 
-    if(mode == 0 || mode == 5)
+    if(mode == MINIMAL || mode == PID)
     {
         ss << "preorder  " << desc_order(pre)  << std::endl ; 
         ss << "inorder   " << desc_order(in)   << std::endl ; 
@@ -1675,6 +1973,9 @@ inline const char* sn::rendermode(int mode) // static
         case SUBDEPTH: md = MODE_SUBDEPTH ; break ; 
         case TYPETAG:  md = MODE_TYPETAG  ; break ; 
         case PID:      md = MODE_PID      ; break ; 
+        case NOTE:     md = MODE_NOTE     ; break ; 
+        case PARENT:   md = MODE_PARENT   ; break ; 
+        case IDX:      md = MODE_IDX      ; break ; 
     }
     return md ; 
 }
@@ -1690,12 +1991,15 @@ inline void sn::render_r(scanvas* canvas, std::vector<const sn*>& order, int mod
 
     switch(mode)
     {
-        case 0: canvas->drawch( ix, iy, 0,0, 'o' )         ; break ; 
-        case 1: canvas->draw(   ix, iy, 0,0,  typecode  )      ; break ; 
-        case 2: canvas->draw(   ix, iy, 0,0,  depth )      ; break ;   
-        case 3: canvas->draw(   ix, iy, 0,0,  subdepth )   ; break ; 
-        case 4: canvas->draw(   ix, iy, 0,0,  tag.c_str()) ; break ;    
-        case 5: canvas->draw(   ix, iy, 0,0,  pid )        ; break ;    
+        case MINIMAL  : canvas->drawch( ix, iy, 0,0, 'o' )            ; break ; 
+        case TYPECODE : canvas->draw(   ix, iy, 0,0,  typecode  )     ; break ; 
+        case DEPTH    : canvas->draw(   ix, iy, 0,0,  depth )         ; break ;   
+        case SUBDEPTH : canvas->draw(   ix, iy, 0,0,  subdepth )      ; break ; 
+        case TYPETAG  : canvas->draw(   ix, iy, 0,0,  tag.c_str())    ; break ;    
+        case PID      : canvas->draw(   ix, iy, 0,0,  pid )           ; break ;    
+        case NOTE     : canvas->draw(   ix, iy, 0,0,  note )          ; break ;    
+        case PARENT   : canvas->draw(   ix, iy, 0,0,  parent_index()) ; break ;    
+        case IDX      : canvas->draw(   ix, iy, 0,0,  idx())          ; break ;    
     } 
 
 #ifdef WITH_CHILD
@@ -2008,27 +2312,61 @@ inline void sn::prune()
 
     if(has_dangle())
     {
-        if(level() > -1) std::cout << "sn::prune ERROR left with dangle " << std::endl ; 
+        if(level() > -1) std::cout << "sn::prune ERROR root still has dangle " << std::endl ; 
     }
 
 }
 
 /**
-Based on npy/NTreeBuilder
+sn::prune_r
+-------------
+
+* based on npy/NTreeBuilder
+* returning to tree integrity relies on actions of set_left/set_right   
+
+
+
+
+l->is_lrzero::
+
+
+      before                   after prune_r
+
+            this                    this 
+            /   \                  /    \
+           /     \                /      \
+          l       r              0        r
+         / \
+        /   \
+       0     0
+
+
+l->is_rzero::
+
+
+     before                    after prune_r  
+
+           this                    this
+          /    \                  /     \
+         /      \                /       \
+        l        r             l=>"ll"    r 
+       / \
+      /   \
+     ll    0 
+
 **/
 
 inline void sn::prune_r(int d) 
 {   
     if(!is_operator()) return ; 
 
-#ifdef WITH_CHILD
-    assert( child.size() == 2 ); 
-
-    sn* l = child[0] ; 
-    sn* r = child[1] ; 
+    sn* l = get_left(); 
+    sn* r = get_right(); 
 
     l->prune_r(d+1); 
     r->prune_r(d+1); 
+
+    // postorder visit : so both children always visited before their parents 
 
     if( l->is_lrzero() )     // left node is an operator which has both its left and right zero
     {
@@ -2036,8 +2374,8 @@ inline void sn::prune_r(int d)
     }  
     else if( l->is_rzero() )  // left node is an operator with left non-zero and right zero 
     {
-        sn* ll = l->child[0] ; 
-        set_left( ll, true ); 
+        sn* ll = l->get_left(); 
+        set_left( ll, true );   // moving the lonely primitive up to higher elevation 
     }
 
     if(r->is_lrzero())        // right node is operator with both its left and right zero 
@@ -2046,37 +2384,24 @@ inline void sn::prune_r(int d)
     }
     else if( r->is_rzero() )  // right node is operator with its left non-zero and right zero
     {  
-        sn* rl = r->child[0] ; 
+        sn* rl = r->get_left() ; 
         set_right(rl, true) ;         // moving the lonely primitive up to higher elevation   
     }
-#else
-
-    left->prune_r(d+1);
-    right->prune_r(d+1);
-    
-    // postorder visit : so both children always visited before their parents 
-    
-    if(left->is_lrzero())         // left node is an operator which has both its left and right zero 
-    {   
-        set_left(sn::Zero(), false) ;       // prune : ie replace operator with CSG_ZERO placeholder  
-    }
-    else if( left->is_rzero() )   // left node is an operator with left non-zero and right zero   
-    {  
-        set_left(left->left, true) ;          // moving the lonely primitive up to higher elevation   
-    }
-    
-    if(right->is_lrzero())        // right node is operator with both its left and right zero 
-    {   
-        set_right(sn::Zero(), false) ;      // prune
-    }
-    else if( right->is_rzero() )  // right node is operator with its left non-zero and right zero
-    {   
-        set_right(right->left, true) ;         // moving the lonely primitive up to higher elevation   
-    }
-#endif
-
-
 }
+
+
+
+/**
+sn::has_dangle   (non recursive)
+---------------------------------
+
+A dangle node is an operator with a one or two placeholder children (aka zeros), eg::
+
+      op           op           op
+     /  \         /  \         /  \
+    0    V       V    0       0    0
+
+**/
 
 inline bool sn::has_dangle() const  // see NTreeBuilder::rootprune
 {
@@ -2209,9 +2534,22 @@ inline void sn::set_label( const char* label_ )
     strncpy( &label[0], label_, sizeof(label) );
 }
 
+/**
+sn::set_lvid
+-------------
+
+Recursively set:  
+
+* lvid 
+* depth
+* parent pointers : ordinarily this is not necessary as it is done in the ctor, 
+  but after deepcopy the parent pointers are scrubbed, so set that here too
+  
+
+**/
+
 inline void sn::set_lvid(int lvid_)
 {
-
     set_lvid_r(lvid_, 0);  
 
     int chk = checktree();
@@ -2234,13 +2572,55 @@ inline void sn::set_lvid_r(int lvid_, int d)
     for(int i=0 ; i < num_child() ; i++)
     {
         sn* ch = get_child(i) ;       
-        ch->set_lvid_r(lvid_, d+1 ); 
+        ch->set_lvid_r(lvid_, d+1 );
+ 
+        if(ch->parent == nullptr)
+        {  
+            ch->parent = this ; // ordinarily not needed, but deepcopy scrubs parent pointers 
+        }
+        else
+        {
+            assert( ch->parent == this ) ;    
+        }  
     }
 }
 
 
+/**
+sn::check_idx
+--------------
 
+Recursive check that all nodes of the tree are 
+accessible from the pool
 
+**/
+
+inline int sn::check_idx(const char* msg) const 
+{
+    return check_idx_r(0, msg); 
+}
+inline int sn::check_idx_r(int d, const char* msg) const
+{
+    int idx_ = idx(); // lookup contiguous index of this object within the pool of active nodes
+    const sn* chk = Get(idx_);  
+
+    bool expect = chk == this ; 
+    if(!expect) std::cerr 
+        << "sn::check_idx_r"
+        << " ERROR Get(idx()) != this  ? " 
+        << " idx_ " << idx_
+        << " msg " << ( msg ? msg : "-" )
+        << "\n"
+        << " this.desc " << desc() << "\n"
+        << " chk.desc  " << ( chk ? chk->desc() : "-" ) << "\n"
+        ;  
+
+    int rc = expect ? 0 : 1 ; 
+    //assert(expect); 
+
+    for(int i=0 ; i < num_child() ; i++) rc += get_child(i)->check_idx_r(d+1, msg);
+    return rc ; 
+}
 
 
 
@@ -2551,6 +2931,9 @@ inline sn* sn::Boolean(int typecode_, sn* left_, sn* right_)  // static
 
 
 
+
+
+
 /**
 sn::ZNudgeExpandEnds
 ---------------------
@@ -2794,6 +3177,40 @@ inline bool sn::CanZNudgeAll(std::vector<sn*>& prims)  // static
     for(int i=0 ; i < num_prim ; i++) if(prims[i]->can_znudge()) count += 1 ; 
     return count == num_prim ; 
 }
+
+
+inline unsigned sn::NameHint(const char* name) // static
+{
+    unsigned hint = 0 ; 
+    if(     strstr(name, _HINT_LISTNODE_PRIM_DISCONTIGUOUS) != nullptr) hint = HINT_LISTNODE_PRIM_DISCONTIGUOUS ; 
+    else if(strstr(name, _HINT_LISTNODE_PRIM_CONTIGUOUS)    != nullptr) hint = HINT_LISTNODE_PRIM_CONTIGUOUS ; 
+    return hint ;
+}
+
+
+/**
+sn::set_hint_note
+------------------
+
+Canonically invoked from U4Solid::init_Tree based on the solid name
+
+**/
+
+inline void sn::set_hint_note(unsigned hint)
+{
+    if(hint == 0u) return ; 
+    if(      (hint & HINT_LISTNODE_PRIM_DISCONTIGUOUS) != 0 )  note |= HINT_LISTNODE_PRIM_DISCONTIGUOUS ;   
+    else if( (hint & HINT_LISTNODE_PRIM_CONTIGUOUS)    != 0 )  note |= HINT_LISTNODE_PRIM_CONTIGUOUS    ;   
+}
+
+inline void sn::set_hint_listnode_prim_discontiguous(){ set_hint_note( HINT_LISTNODE_PRIM_DISCONTIGUOUS ); } 
+inline void sn::set_hint_listnode_prim_contiguous(){    set_hint_note( HINT_LISTNODE_PRIM_CONTIGUOUS    ); } 
+
+inline bool sn::is_hint_listnode_prim_discontiguous() const { return ( note & HINT_LISTNODE_PRIM_DISCONTIGUOUS ) != 0 ; }
+inline bool sn::is_hint_listnode_prim_contiguous() const {    return ( note & HINT_LISTNODE_PRIM_CONTIGUOUS )    != 0 ; }
+
+
+
 
 
 inline void sn::increase_zmax( double dz )
@@ -3553,13 +3970,35 @@ struct sn_find_lvid_root
     bool operator()(const sn* n){ return lvid == n->lvid && n->is_root() ; }  
 };
 
+
+inline void sn::FindLVRootNodes( std::vector<sn*>& nds, int lvid ) // static
+{
+    sn_find_lvid_root flvr(lvid); 
+    pool->find(nds, flvr );   
+}
+
+
 inline sn* sn::GetLVRoot( int lvid ) // static
 {
     std::vector<sn*> nds ; 
-    sn_find_lvid_root flvr(lvid); 
-    pool->find(nds, flvr );   
+    FindLVRootNodes( nds, lvid ); 
+
     int count = nds.size() ; 
-    assert( count == 0 || count == 1 ); 
+    bool expect = count == 0 || count == 1 ; 
+
+    const char* _DUMP = "sn__GetLVRoot_DUMP" ; 
+    bool DUMP = ssys::getenvbool(_DUMP) ; 
+    if(DUMP || !expect) std::cout 
+        << _DUMP << ":" << ( DUMP ? "YES" : "NO " ) << "\n" 
+        << "Desc(nds)\n"
+        << Desc(nds)
+        << "\n" 
+        << " nds.size " << count 
+        << " expect " << ( expect ? "YES" : "NO " )
+        << "\n" 
+        ;    
+
+    assert(expect); 
     return count == 1 ? nds[0] : nullptr ; 
 }
 
@@ -3972,6 +4411,236 @@ inline void sn::collect_prim_r( std::vector<const sn*>& prim, int d ) const
 }
 
 
+inline bool sn::has_note( int q_note ) const
+{
+    return ( note & q_note ) != 0 ;  
+}
+
+/**
+sn::collect_prim_note
+----------------------
+
+Collect prim with sn::note that bitwise includes the q_note bit 
+Due to tail recursion this descends all the way before unwinding 
+and collecting any prim, so the order is from the bottom first. 
+
+**/
+
+inline void sn::collect_prim_note( std::vector<sn*>& prim, int q_note ) 
+{
+    collect_prim_note_r(prim, q_note, 0); 
+}
+inline void sn::collect_prim_note_r( std::vector<sn*>& prim, int q_note, int d ) 
+{
+    if(is_primitive() && has_note(q_note)) prim.push_back(this); 
+    for(int i=0 ; i < num_child() ; i++) get_child(i)->collect_prim_note_r(prim, q_note, d+1) ; 
+}
+
+
+
+/**
+sn::find_joint_to_candidate_listnode
+--------------------------------------
+
+::
+
+    sn::desc pid   18 idx   18 typecode   1 num_node  19 num_leaf  10 maxdepth  9 is_positive_form Y lvid   0 tag un
+    sn::render mode 4 TYPETAG
+                                                       un       
+                                                                
+                                                 un       cy    
+                                                                
+                                           un       cy          
+                                                                
+                                     un       cy                
+                                                                
+                               un       cy                      
+                                                                
+                         un       cy                            
+                                                                
+                   un       cy                                  
+                                                                
+            [un]      cy                                        
+                                                                
+       in       cy                                              
+                                                                
+    cy    !cy                          
+
+
+
+
+* off the top, where d=0, find all the listnode hinted prim (tail recursion, so the order is from bottom) 
+* recursive traverse, not descending to leaves
+
+  * look for left and right listnode hinted sub-trees  
+  * where left has no listnode hinted and right has fun : return that joint node
+
+
+Q: HMM does this require having run postconvert ? 
+
+
+**/
+
+
+inline sn* sn::find_joint_to_candidate_listnode(std::vector<sn*>& prim, int q_note ) 
+{
+    sn* j = find_joint_to_candidate_listnode_r(0, prim, q_note ); 
+    return j ; 
+}
+
+inline sn* sn::find_joint_to_candidate_listnode_r( int d, std::vector<sn*>& prim, int q_note ) 
+{
+    if( d == 0 )
+    {
+        prim.clear(); 
+        collect_prim_note(prim, q_note); 
+    }
+    if(prim.size()==0) return nullptr ;  // none of the prim are hinted as listnode constituents
+
+    sn* joint = nullptr ; 
+    if(num_child() != 2) return nullptr ;  // dont traverse leaves or compounds 
+
+    // look left and right 
+    std::vector<sn*> l_prim ; 
+    std::vector<sn*> r_prim ; 
+    get_child(0)->collect_prim_note(l_prim, q_note); 
+    get_child(1)->collect_prim_note(r_prim, q_note); 
+
+    if(r_prim.size() == 1 && l_prim.size() == 0 )
+    {
+        joint = this ; 
+    } 
+    else
+    {
+        for(int i=0 ; i < num_child() ; i++)
+        { 
+            joint = get_child(i)->find_joint_to_candidate_listnode_r(d+1, prim, q_note ) ; 
+            if(joint) break ; 
+        }
+    }
+    return joint ; 
+}
+
+inline bool sn::has_candidate_listnode(int q_note) 
+{
+    std::vector<sn*> prim ; 
+    sn* j = find_joint_to_candidate_listnode(prim, q_note); 
+    return j != nullptr && prim.size() > 0 ; 
+}
+
+inline bool sn::has_candidate_listnode_discontiguous(){ return has_candidate_listnode( HINT_LISTNODE_PRIM_DISCONTIGUOUS ) ; }
+inline bool sn::has_candidate_listnode_contiguous(){    return has_candidate_listnode( HINT_LISTNODE_PRIM_CONTIGUOUS    ) ; }
+
+
+
+
+/**
+sn::CreateSmallerTreeWithListNode
+-----------------------------------
+
+Example tree, where the eight nodes with + are hinted as listnode prim::
+
+
+                                                      (un)      
+                                                                
+                                                (un)      cy+    
+                                                                
+                                          (un)      cy+          
+                                                                
+                                    (un)      cy+                
+                                                                
+                              (un)      cy+                      
+                                                                
+                       (un)       cy+                            
+                                                                
+                  (un)      cy+                                  
+                                                                
+            {un}      cy+                                        
+                                                                
+       in       cy+                                              
+                                                                
+    cy    !cy                          
+
+
+After shrinkage::
+
+
+            {un}                                             
+                                                                
+       in       ln[cy+,cy+,cy+,cy+,cy+,cy+,cy+,cy+]                                            
+                                                                
+    cy    !cy                          
+
+
+
+Manipulations needed::
+
+1. find the joint node {un} between the extraneous (un) union nodes and 
+   the hinted prim cy+ to be incorporated into listnode
+
+2. collect the cy+ hinted prim doing a deepcopy that includes xform, param, aabb
+
+3. form the "ln" listnode from the deepcopied cy+ hinted prim 
+
+4. set the right node of the deepcopied joint node {un} to the listnode "ln"
+  
+
+Note that the created tree including param, xform, aabb is independent 
+of the original tree due to the use of deepcopy for everything. 
+This enables the entire old tree root to be deleted. 
+
+Note that deepcopy excludes the parent pointer, but includes xform, param, aabb
+
+NB : this depends a lot on deepcopy 
+
+**/
+
+inline sn* sn::CreateSmallerTreeWithListNode(sn* root0, int q_note ) // static
+{
+    std::cerr << "[sn::CreateSmallerTreeWithListNode\n" ; 
+
+    std::vector<sn*> prim0 ;  // populated with the hinted listnode prim 
+    sn* j0 = root0->find_joint_to_candidate_listnode(prim0, q_note); 
+    if(j0 == nullptr) return nullptr ; 
+
+    std::vector<sn*> prim1 ; 
+    sn::DeepCopy(prim1, prim0); 
+ 
+    sn* ln = sn::Compound( prim1, TypeFromNote(q_note) );
+
+    sn* j1 = j0->deepcopy(); 
+
+    //j1->set_right( ln, false );  // NB this deletes the extraneous RHS just copied by j0->deepcopy  
+    j1->set_child_leaking_prior(1, ln, false);
+
+
+    // ordering may be critical here as nodes get created and deleted by the above 
+
+    std::cerr << "]sn::CreateSmallerTreeWithListNode\n" ; 
+    return j1 ; 
+}
+
+inline sn* sn::CreateSmallerTreeWithListNode_discontiguous(sn* root0) 
+{
+    return CreateSmallerTreeWithListNode( root0, HINT_LISTNODE_PRIM_DISCONTIGUOUS ) ; 
+}
+inline sn* sn::CreateSmallerTreeWithListNode_contiguous(sn* root0) 
+{
+    return CreateSmallerTreeWithListNode( root0, HINT_LISTNODE_PRIM_CONTIGUOUS ) ; 
+}
+
+inline int sn::TypeFromNote(int q_note) // static
+{
+    int type = CSG_ZERO ; 
+    switch(q_note)
+    {
+       case HINT_LISTNODE_PRIM_DISCONTIGUOUS: type = CSG_DISCONTIGUOUS ; break ; 
+       case HINT_LISTNODE_PRIM_CONTIGUOUS:    type = CSG_CONTIGUOUS    ; break ; 
+    }
+    assert( type != CSG_ZERO ) ; 
+    return type ; 
+}
+
 
 
 
@@ -4358,10 +5027,10 @@ inline void sn::setAABB_TreeFrame_All()
 
 
 /**
-sn::postconvert (HMM: think of better name)
----------------------------------------------
+sn::postconvert 
+-----------------
 
-This is called from U4Solid::init_Tree only from the depth zero solid
+This is called from U4Solid::init_Tree only from the depth zero solid (ie root node of trees)
 
 Note that uncoincide needs the leaf bbox in tree frame so they can be compared
 to look for coincidences and make some parameter nudges.  
@@ -4609,4 +5278,6 @@ inline void sn::uncoincide_zminmax( int i, sn* lower, sn* upper, bool enable, st
    assert( upper_lower_pos_z_equal && "EXPECTED upper_lower_pos_z_equal FOR COINCIDENT " ); 
 
 }
+
+
 

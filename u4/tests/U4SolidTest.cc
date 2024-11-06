@@ -43,7 +43,11 @@ int U4SolidTest::Convert(const G4VSolid* solid )
     int depth = 0 ; 
     int level = ssys::getenvint(_Convert_level,1) ; 
     sn* nd = U4Solid::Convert(solid, lvid, depth, level); 
-    std::cout << nd->desc() << "\n"  ;  
+    std::cout 
+        << "[U4SolidTest::Convert nd.desc\n"
+        <<   nd->desc() 
+        << "]U4SolidTest::Convert nd.desc\n"
+        ;
 
     if(level > 2 ) std::cout 
         << "\nU4SolidTest::Convert nd->render() \n\n" 
@@ -62,6 +66,11 @@ int U4SolidTest::Convert(const G4VSolid* solid )
         << nd->desc_prim_all(false) 
         << "\n" 
         ; 
+
+    std::cout << "sn::Desc.0.before-delete-expect-some-nodes\n"  << sn::Desc() << "\n" ; 
+
+    delete nd ; 
+    std::cout << "sn::Desc.1.after-delete-expect-no-nodes\n"  << sn::Desc() << "\n" ; 
 
 
     return 0 ; 

@@ -2679,7 +2679,7 @@ inline std::string stree::desc_combined_transform(
 stree::get_combined_tran_and_aabb
 --------------------------------------
 
-Critical usage of ths from CSGImport::importNode
+Critical usage of this from CSGImport::importNode
 
 0. early exits returning nullptr for non leaf nodes
 1. gets combined structural(snode.h) and CSG tree(sn.h) transform 
@@ -3258,12 +3258,8 @@ inline void stree::import(const NPFold* fold)
     NPFold* csg_f = fold->get_subfold(_CSG) ;
 
     if(csg_f == nullptr) std::cerr
-        << "stree::import.NOT:WITH_SND"
+        << "stree::import"
         << " FAILED : DUE TO LACK OF subfold _CSG : " << _CSG 
-        << std::endl 
-        << " PROBABLY THE PERSISTED TREE WAS CREATED WITH_SND "
-        << std::endl 
-        << " SWITCH OPTION TO WITH_SND OR RECREATE THE TREE NOT:WITH_SND "
         << std::endl 
         ;
 
