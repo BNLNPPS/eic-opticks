@@ -738,7 +738,7 @@ target_compile_definitions( ${name}
 
       OPTICKS_SYSRAP 
       WITH_CHILD
-      PLOG_GLOBAL
+      PLOG_LOCAL
       $<$<CONFIG:Debug>:DEBUG_TAG>
       $<$<CONFIG:Debug>:DEBUG_PIDX>
       $<$<CONFIG:Debug>:DEBUG_PIDXYZ>
