@@ -9,6 +9,8 @@ sxf.h : simple wrapper to give uniform behaviour to spa/sxf/sbb
 #include <sstream>
 #include <iomanip>
 
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include <glm/glm.hpp>
 #include "glm/gtx/string_cast.hpp"
 
