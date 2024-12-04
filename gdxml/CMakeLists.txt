@@ -14,7 +14,7 @@ include(OpticksBuildOptions NO_POLICY_SCOPE)
 #set(OpticksXercesC_VERBOSE YES)
 
 find_package(G4 REQUIRED MODULE)   # may be needed at CMake level only to find G4Persistency target for consistent XercesC version
-find_package(OpticksXercesC REQUIRED MODULE)
+find_package(XercesC REQUIRED)
 
 set(SOURCES
     GDXML_LOG.cc 
@@ -36,7 +36,7 @@ add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
 
 target_link_libraries( ${name} PUBLIC
     Opticks::SysRap 
-    Opticks::OpticksXercesC
+    XercesC::XercesC
 )
 
 target_include_directories( ${name} PUBLIC 

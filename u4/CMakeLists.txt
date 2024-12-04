@@ -20,10 +20,10 @@ message(STATUS "${CMAKE_CURRENT_LIST_FILE} : ====== 0 ======= find SysRap, G4  "
 
 find_package(G4 REQUIRED MODULE)
 
-message(STATUS "${CMAKE_CURRENT_LIST_FILE} : ====== 1 ======= find GDXML CLHEP OpticksXercesC ")
+message(STATUS "${CMAKE_CURRENT_LIST_FILE} : ====== 1 ======= find GDXML CLHEP XercesC ")
 
 find_package(CLHEP  REQUIRED CONFIG) 
-find_package(OpticksXercesC REQUIRED MODULE)
+find_package(XercesC REQUIRED)
 
 message(STATUS "${CMAKE_CURRENT_LIST_FILE} : ====== 2 =======  find Custom4 PMTSim  ")
 
@@ -169,7 +169,7 @@ target_link_libraries( ${name} PUBLIC
     Opticks::G4
     Opticks::SysRap 
     CLHEP::CLHEP
-    Opticks::OpticksXercesC
+    XercesC::XercesC
     Opticks::GDXML
 )
 
