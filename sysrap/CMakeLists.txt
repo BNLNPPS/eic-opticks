@@ -659,9 +659,10 @@ endif()
 
 
 if(UNIX AND NOT APPLE)
+find_package(OpenSSL REQUIRED)
 message(STATUS "adding ssl crypto for UNIX AND NOT APPLE")
 #target_link_libraries( ${name} PUBLIC ssl crypto )
-target_link_libraries( ${name} ssl crypto )
+target_link_libraries( ${name} OpenSSL::SSL OpenSSL::Crypto )
 endif()
 
 set(SysRap_VERBOSE OFF)
