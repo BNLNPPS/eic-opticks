@@ -163,7 +163,10 @@ struct NP
     std::string sliceArrayString(Args ... idxx ) const ;  
 
     // use -1 to mark the last dimension to select upon 
-    // eg to select first item use (0, -1) 
+    // eg to select first item use (0, -1)
+    //
+    // Like think NumPy indexing 
+ 
     template<typename T, typename... Args> 
     void slice(std::vector<T>& out, Args ... idxx ) const ;  // slice_ellipsis
 
@@ -423,8 +426,8 @@ struct NP
 
     static NP* Concatenate(const char* dir, const std::vector<std::string>& names); 
 
-    template<typename T>
-    static NP* Concatenate(const std::vector<T*>& aa ); 
+    template<typename T>                    
+    static NP* Concatenate(const std::vector<T*>& aa );  // template allows use with "NP" and "const NP"
 
     static NP* Combine(const std::vector<const NP*>& aa, bool annotate=true, const NP* parasite=nullptr ); 
     template<typename... Args> static NP* Combine_(Args ... aa);  // Combine_ellipsis
@@ -5690,6 +5693,15 @@ inline int NP::Memcmp(const NP* a, const NP* b ) // static
     return a_bytes == b_bytes ? memcmp(a->bytes(), b->bytes(), a_bytes) : -1 ; 
 }
 
+/**
+NP::Concatenate
+----------------
+
+Load the named NP arrays from directory and concatenate them in name order 
+
+**/
+
+
 inline NP* NP::Concatenate(const char* dir, const std::vector<std::string>& names) // static 
 {
     std::vector<NP*> aa ;
@@ -5703,6 +5715,15 @@ inline NP* NP::Concatenate(const char* dir, const std::vector<std::string>& name
     return concat ; 
 }
 
+/**
+NP::Concatenate
+----------------
+
+* template allows same code to work with both "NP" and "const NP"
+* arrays must have the same number of itemvalues, ie values after first dimension
+
+
+**/
 
 template<typename T>
 inline NP* NP::Concatenate(const std::vector<T*>& aa )  // static 
@@ -5718,7 +5739,7 @@ inline NP* NP::Concatenate(const std::vector<T*>& aa )  // static
     {
         auto a = aa[i] ;
 
-        unsigned nv = a->num_itemvalues() ; 
+        unsigned nv = a->num_itemvalues() ;  
         bool compatible = nv == nv0 && strcmp(dtype0, a->dtype) == 0 ; 
         if(!compatible) 
             std::cout 
