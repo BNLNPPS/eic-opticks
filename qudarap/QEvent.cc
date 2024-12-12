@@ -947,8 +947,7 @@ NP* QEvent::gatherComponent_(unsigned cmp) const
     NP* a = nullptr ; 
     switch(cmp)
     {   
-        //case SCOMP_GENSTEP:   a = getGenstep()     ; break ;   
-        case SCOMP_GENSTEP:   a = gatherGenstepFromDevice() ; break ;   
+        case SCOMP_GENSTEP:   a = getGenstep()     ; break ;   
         case SCOMP_INPHOTON:  a = getInputPhoton() ; break ;   
 
         case SCOMP_PHOTON:    a = gatherPhoton()   ; break ;   
