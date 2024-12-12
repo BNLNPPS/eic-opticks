@@ -41,10 +41,10 @@ But as OpticksCSG.h updates are rare, For now just need to remember to generate 
 
 #]=]
 
-find_package(OKConf REQUIRED CONFIG)
 find_package(NLJSON REQUIRED MODULE)
 find_package(PLog   REQUIRED MODULE)
 find_package(OpticksCUDA REQUIRED MODULE)
+find_package(GLM REQUIRED)
 
 set(Custom4_VERBOSE ON) 
 find_package(Custom4 CONFIG)
@@ -551,18 +551,6 @@ set(HEADERS
     SOpBoundaryProcess.hh
 )
 
-set(RETIRED_SOURCES
-    SProc.cc
-)
-
-set(RETIRED_HEADERS
-    SProc.hh
-)
-
-
-
-
-
 # using absolute ANADIR avoids build environment requiring it in PATH 
 get_filename_component(ANADIR ../ana ABSOLUTE)
 get_filename_component(BINDIR ../bin ABSOLUTE)
@@ -680,9 +668,10 @@ endif()
 
 
 if(UNIX AND NOT APPLE)
+find_package(OpenSSL REQUIRED)
 message(STATUS "adding ssl crypto for UNIX AND NOT APPLE")
 #target_link_libraries( ${name} PUBLIC ssl crypto )
-target_link_libraries( ${name} ssl crypto )
+target_link_libraries( ${name} OpenSSL::SSL OpenSSL::Crypto )
 endif()
 
 set(SysRap_VERBOSE OFF)
@@ -691,10 +680,14 @@ if(SysRap_VERBOSE)
   #echo_target_std(${name}) 
 endif()
 
-target_include_directories( ${name} PUBLIC 
+target_include_directories( ${name} PUBLIC
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/okconf>
+   $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/okconf/inc>
+   $<INSTALL_INTERFACE:include>
+   $<INSTALL_INTERFACE:include/SysRap>
    ${CUDA_INCLUDE_DIRS}
-   ${OPTICKS_PREFIX}/externals/glm/glm
+   ${GLM_INCLUDE_DIR}
 )
 
 

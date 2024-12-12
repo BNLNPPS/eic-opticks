@@ -45,7 +45,10 @@ set(FORMER_HEADERS
 
 
 add_library( ${name}  SHARED ${SOURCES})
-target_include_directories( ${name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> )
+target_include_directories( ${name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:include/${name}>
+)
 target_compile_definitions( ${name} PUBLIC OPTICKS_OKGEO )
 target_link_libraries( ${name} PUBLIC  Opticks::OpticksCore )
 

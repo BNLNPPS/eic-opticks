@@ -193,7 +193,11 @@ endif()
 
 
 add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
-target_include_directories( ${name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>) 
+target_include_directories( ${name} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:include/${name}>
+)
 target_link_libraries( ${name} PUBLIC Opticks::OpticksCore)
 
 if(YoctoGLRap_FOUND)

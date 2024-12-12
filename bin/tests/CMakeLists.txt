@@ -4,8 +4,6 @@ project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions)
 
 
-find_package(SysRap REQUIRED CONFIG)
-
 set(TEST_SOURCES
     BinTest.cc
 )

@@ -54,6 +54,7 @@ foreach(SRC ${TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} QUDARap )
+    target_include_directories(${TGT} PRIVATE $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/sysrap/inc>)
     install(TARGETS ${TGT} DESTINATION lib)
 
     #add_test(${name}.${TGT} ${TGT})

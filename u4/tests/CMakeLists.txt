@@ -139,7 +139,6 @@ set(U4HitTest_SOURCES
     U4HitTest.cc
 )
 
-find_package(CSG REQUIRED)
 set(TGT U4HitTest)
 add_executable(${TGT} ${U4HitTest_SOURCES})
 target_link_libraries(${TGT} U4 Opticks::CSG)

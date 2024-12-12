@@ -476,10 +476,13 @@ endif()
 add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
 
 # needed for PyMCubes/marchingcubes.cpp
-target_include_directories( ${name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>) 
+target_include_directories( ${name} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:include/NPY>
+)
 
 # some external header inclusion expects the package name prefix, eg OpenMesh YoctoGL : see notes/issues/NPY-remove-deps-OpenMesh-ImplicitMesher.rst
-target_include_directories( ${name} PUBLIC ${OPTICKS_PREFIX}/externals/include )
 
 target_compile_definitions( ${name} PUBLIC OPTICKS_NPY )
 

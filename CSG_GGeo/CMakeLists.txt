@@ -34,6 +34,10 @@ list(APPEND HEADERS
 add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
 
 target_link_libraries(${name} PUBLIC Opticks::GGeo Opticks::CSG)
+target_include_directories( ${name} PUBLIC 
+   $<INSTALL_INTERFACE:include>
+   $<INSTALL_INTERFACE:include/${name}>
+)
 target_compile_definitions( ${name} PUBLIC OPTICKS_CSG_GGEO )
 
 bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)
