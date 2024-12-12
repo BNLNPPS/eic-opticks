@@ -31,6 +31,7 @@ set(TEST_SOURCES
    QMultiFilmTest.cc
 
 
+   QCurandStateMonolithicTest.cc
    QCurandStateTest.cc
 )
 

@@ -79,8 +79,8 @@ struct QUDARAP_API QSim
     const QPMT<float>*   pmt ; 
     const QMultiFilm*    multifilm ;
 
-    qsim*             sim ;  
-    qsim*           d_sim ;  
+    qsim*                 sim ;  
+    qsim*               d_sim ;  
 
     qdebug*           dbg ; 
     qdebug*           d_dbg ; 
@@ -97,7 +97,12 @@ private:
 public:
     void setLauncher(SCSGOptiX* cx_ ); 
 
+    static constexpr const char* QSim__simulate_KEEP_SUBFOLD = "QSim__simulate_KEEP_SUBFOLD" ; 
+    static bool KEEP_SUBFOLD ; 
+
     double simulate(int eventID, bool reset_ );      // via cx launch 
+    int    getPhotonSlotOffset() const ; 
+
     void   reset( int eventID);  
 
     double simtrace(int eventID);

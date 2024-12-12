@@ -111,6 +111,8 @@ struct sevent
 
     // TODO: make all these below unsigned
     // sevent::init sets these max using values from SEventConfig 
+    int      max_curand ; 
+    int      max_slot   ; 
     int      max_genstep ;  // eg:      100,000
     int      max_photon  ;  // eg:  100,000,000
     int      max_simtrace ; // eg: 100,000,000
@@ -130,6 +132,7 @@ struct sevent
     //[ counts and pointers, zeroed by sevent::zero  
     //  only first 4 are always in use, the last 7 are only relevant whilst debugging 
     //
+    int      num_curand ; 
     int      num_genstep ; 
     int      num_seed ; 
     int      num_hit ;    // set by QEvent::gatherHit using SU::count_if_sphoton
@@ -202,6 +205,8 @@ struct sevent
 
 SEVENT_METHOD void sevent::init()
 {
+    max_curand   = SEventConfig::MaxCurand() ; 
+    max_slot     = SEventConfig::MaxSlot() ; 
     max_genstep  = SEventConfig::MaxGenstep() ; 
     max_photon   = SEventConfig::MaxPhoton()  ; 
     max_simtrace = SEventConfig::MaxSimtrace()  ; 
@@ -253,6 +258,8 @@ SEVENT_METHOD std::string sevent::descMax() const
     std::stringstream ss ; 
     ss 
         << "sevent::descMax    " << std::endl 
+        << " evt.max_curand    " << std::setw(w) << max_curand   << std::endl 
+        << " evt.max_slot      " << std::setw(w) << max_slot     << std::endl 
         << " evt.max_genstep   " << std::setw(w) << max_genstep  << std::endl 
         << " evt.max_photon    " << std::setw(w) << max_photon   << std::endl 
         << " evt.max_simtrace  " << std::setw(w) << max_simtrace << std::endl 
@@ -277,6 +284,7 @@ SEVENT_METHOD std::string sevent::descNum() const
     std::stringstream ss ; 
     ss 
         << " sevent::descNum  "  << std::endl 
+        << " evt.num_curand   "  << std::setw(w) << num_curand   << std::endl 
         << " evt.num_genstep  "  << std::setw(w) << num_genstep  << std::endl 
         << " evt.num_seed     "  << std::setw(w) << num_seed     << std::endl 
         << " evt.num_photon   "  << std::setw(w) << num_photon   << std::endl 
@@ -427,6 +435,8 @@ SEVENT_METHOD void sevent::get_config( quad4& cfg ) const
 
 SEVENT_METHOD void sevent::get_meta(std::string& meta) const 
 {
+    NP::SetMeta<uint64_t>(meta,"evt.max_curand", max_curand); 
+    NP::SetMeta<uint64_t>(meta,"evt.max_slot", max_slot); 
     NP::SetMeta<uint64_t>(meta,"evt.max_photon", max_photon); 
     NP::SetMeta<uint64_t>(meta,"evt.max_record", max_record); 
     NP::SetMeta<uint64_t>(meta,"evt.max_rec", max_rec); 
@@ -459,6 +469,8 @@ SEVENT_METHOD void sevent::zero()
 {
     index = 0 ; 
 
+    //num_slot = 0 ; 
+    num_curand = 0 ; 
     num_genstep = 0 ; 
     num_seed  = 0 ; 
     num_hit = 0 ; 
@@ -556,5 +568,7 @@ SEVENT_METHOD void sevent::add_simtrace( unsigned idx, const quad4& p, const qua
     a.q3.u.w = prd->identity() ;  // identity from __closesthit__ch (( prim_idx & 0xffff ) << 16 ) | ( instance_id & 0xffff ) 
 
     simtrace[idx] = a ;
+    // NB this is the from zero slot idx not the offset "photon_idx" 
+    // for multi-launch simtrace with separate buffers for each launch 
 }
 

@@ -1,12 +1,19 @@
 // ~/o/sysrap/tests/curand_uniform_test.sh
 
-
 #include <cstdlib>
 #include <array>
 #include "NP.hh"
 #include "scuda.h"
 
+
+
 #include "curand_kernel.h"
+#include "curandlite/curandStatePhilox4_32_10_OpticksLite.h"
+
+//using RNG = curandStateXORWOW ; 
+//using RNG = curandStatePhilox4_32_10 ; 
+using RNG = curandStatePhilox4_32_10_OpticksLite ; 
+
 
 /**
 _test_curand_uniform
@@ -14,6 +21,7 @@ _test_curand_uniform
 
 **/
 
+template<typename T>
 __global__ void _test_curand_uniform(float* ff, int ni, int nj)
 {
     unsigned ix = blockIdx.x * blockDim.x + threadIdx.x;
@@ -22,12 +30,22 @@ __global__ void _test_curand_uniform(float* ff, int ni, int nj)
     unsigned long long subsequence = ix ;    // follow approach of ~/o/qudarap/QCurandState.cu 
     unsigned long long offset = 0ull ; 
 
-    curandStateXORWOW rng ; 
+    T rng ; 
+
     curand_init( seed, subsequence, offset, &rng ); 
 
-    if(ix == 0) printf("//_test_curand_uniform sizeof(curandStateXORWOW) %lu \n", sizeof(curandStateXORWOW)); 
+    if(ix == 0) printf("//_test_curand_uniform sizeof(T) %lu \n", sizeof(T)); 
 
-    for(int j=0 ; j < nj ; j++) ff[ix*nj+j] = curand_uniform(&rng) ; 
+    int nk = nj/4 ;  
+
+    for(int k=0 ; k < nk ; k++) 
+    {
+        float4 ans = curand_uniform4(&rng); 
+        ff[4*(ix*nk+k)+0] = ans.x ;  
+        ff[4*(ix*nk+k)+1] = ans.y ; 
+        ff[4*(ix*nk+k)+2] = ans.z ; 
+        ff[4*(ix*nk+k)+3] = ans.w ; 
+    }
 }
 
 void ConfigureLaunch(dim3& numBlocks, dim3& threadsPerBlock, unsigned width )
@@ -41,6 +59,9 @@ void ConfigureLaunch(dim3& numBlocks, dim3& threadsPerBlock, unsigned width )
     numBlocks.z = 1 ; 
 }
 
+
+
+template<typename T>
 void test_curand_uniform()
 {
     int ni = 1000 ; 
@@ -50,7 +71,7 @@ void test_curand_uniform()
     dim3 threadsPerBlock ; 
     ConfigureLaunch(numBlocks, threadsPerBlock, ni ); 
 
-    printf("//test_curand_uniform \n"); 
+    printf("//test_curand_uniform  sizeof(T) %d \n", sizeof(T) ); 
     NP* h = NP::Make<float>( ni, nj ) ; 
     int arr_bytes = h->arr_bytes() ;
     float* hh = h->values<float>(); 
@@ -58,7 +79,7 @@ void test_curand_uniform()
     float* dd = nullptr ; 
     cudaMalloc(reinterpret_cast<void**>( &dd ), arr_bytes );     
 
-    _test_curand_uniform<<<numBlocks,threadsPerBlock>>>(dd, ni, nj );  
+    _test_curand_uniform<T><<<numBlocks,threadsPerBlock>>>(dd, ni, nj );  
 
     cudaMemcpy( hh, dd, arr_bytes, cudaMemcpyDeviceToHost ) ; 
     cudaDeviceSynchronize();
@@ -67,7 +88,32 @@ void test_curand_uniform()
 }
 int main()
 {
-    test_curand_uniform();
+    int MODE = U::GetEnvInt("MODE", 0); 
+
+    
+
+    if(MODE == 0)
+    {
+        printf("test_curand_uniform<curandStateXORWOW>()"); 
+        test_curand_uniform<curandStateXORWOW>();
+    }
+    else if(MODE == 1)
+    {
+        printf("test_curand_uniform<curandStatePhilox4_32_10>()"); 
+        test_curand_uniform<curandStatePhilox4_32_10>();
+    }
+    else if(MODE == 2)
+    {
+        printf("test_curand_uniform<curandStatePhilox4_32_10_OpticksLite>()"); 
+        test_curand_uniform<curandStatePhilox4_32_10_OpticksLite>();
+    }
+    else if(MODE == 3)
+    {
+        printf("test_curand_uniform<RNG>()"); 
+        test_curand_uniform<RNG>();
+    }
+
+
     return 0 ; 
 }
 

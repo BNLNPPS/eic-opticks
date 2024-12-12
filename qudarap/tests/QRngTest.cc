@@ -1,35 +1,53 @@
-
-#include "NP.hh"
-#include "spath.h"
-#include "QRng.hh"
-#include "OPTICKS_LOG.hh"
-
-const char* FOLD = spath::Resolve("$TMP/QRngTest") ; 
-
 /**
-test_generate
----------------
+QRngTest.cc
+============
+
+~/o/qudarap/tests/QRngTest.sh 
+
+OPTICKS_MAX_PHOTON=M4 ~/o/qudarap/tests/QRngTest.sh
 
 
 **/
 
+#include "NP.hh"
+#include "ssys.h"
+#include "spath.h"
 
-template <typename T>
-void test_generate( QRng& qr, unsigned num, const char* reldir )
+#include "QRng.hh"
+#include "OPTICKS_LOG.hh"
+
+struct QRngTest
 {
-    NP* u = NP::Make<T>( num ); 
+    typedef unsigned long long ULL ; 
+    static constexpr const ULL M = 1000000ull ;
+    static constexpr const ULL skipahead_event_offset = 1ull  ;  // small for visibility  
+ 
+    QRng qr ;
+    QRngTest(); 
 
-    unsigned long long skipahead_ = 0ull ; 
+    template <typename T, int MODE> NP* generate_evid( unsigned num_event, unsigned num_item, unsigned num_value ); 
 
-    qr.generate<T>(u->values<T>(), num, skipahead_ );
+    int generate_evid();
 
-    u->save(FOLD, reldir, "u.npy" ); 
+    static constexpr const char* _SKIPAHEAD = "QRngTest__generate_SKIPAHEAD" ; 
+    static constexpr const char* _NV = "QRngTest__generate_NV" ; 
 
-    LOG(info) << "save to " << FOLD << "/" << reldir  ; 
-}
+    int generate();
+    int main();
+};
 
+
+QRngTest::QRngTest()
+    :
+    qr()  // loads and uploads curandState
+{
+    LOG(info) << qr.desc() ; 
+} 
+   
 
 /**
+QRngTest::generate_evid
+-------------------------
 
 num_event
 
@@ -39,82 +57,115 @@ num_item
 num_value
     number of randoms for the item 
 
+mode:0
+    low level manual setting of the skipahead using skipahead_event_offset
+
+mode:1
+    slight encapsulation for the event skipaheads
+
+skipahead_event_offset
+    would normally be estimate of maximum number of random 
+    values for the items : setting to 1 allows to check are getting the expected offsets into the sequence
+
 **/
 
-template <typename T>
-void test_generate_skipahead( QRng& qr, unsigned num_event, unsigned num_item, unsigned num_value, unsigned skipahead_event_offset, const char* reldir )
+template <typename T, int MODE>
+NP* QRngTest::generate_evid( unsigned num_event, unsigned num_item, unsigned num_value )
 {
     NP* uu = NP::Make<T>( num_event, num_item, num_value ); 
-
-    unsigned long long offset = skipahead_event_offset ; 
-
-    for( unsigned i=0 ; i < num_event ; i++)
+    for( unsigned evid=0 ; evid < num_event ; evid++)
     {
-        unsigned long long event_index = i ; 
-        unsigned long long skipahead_ = offset*event_index ; 
-
-        T* target = uu->values<T>() + num_item*num_value*i ; 
-
-        qr.generate<T>( target, num_item, num_value, skipahead_ );
+        T* target = uu->values<T>() + num_item*num_value*evid ; 
+        switch(MODE)
+        {
+           case 0: qr.generate<T>(      target, num_item, num_value, skipahead_event_offset*evid ) ; break ; 
+           case 1: qr.generate_evid<T>( target, num_item, num_value, evid  )                       ; break ; 
+        }
     }
+    return uu ; 
+}
 
-    uu->save(FOLD, reldir, "uu.npy" ); 
+int QRngTest::generate_evid()
+{
+    unsigned num_event = 3u ; 
+    unsigned num_item = unsigned(qr.rngmax) ; ; 
+    unsigned num_value = 16u ; 
 
-    LOG(info) << "save to " << FOLD << "/" << reldir  ; 
+    NP* uu = generate_evid<float,1>( num_event, num_item, num_value ) ; 
+
+    uu->save("$FOLD/float", QRng::IMPL, "uu.npy" ); 
+
+    return 0 ; 
 }
 
 
+/**
+QRngTest::generate
+-------------------
 
+For rngmax M100 and nv:16 this leads to ~6GB output array, 
+which was truncated to 2GB until improved NP.hh with NP::INT std::int64_t:: 
 
+    In [2]: 100*1e6*16*4/(1024*1024*1024)
+    Out[2]: 5.9604644775390625
 
+::
 
+    OPTICKS_MAX_PHOTON=M200 TEST=generate ~/o/qudarap/tests/QRngTest.sh 
 
-template <typename T>
-void test_generate_2( QRng& qr, unsigned num_event, unsigned num_item, unsigned num_value, const char* reldir )
+**/
+
+int QRngTest::generate()
 {
-    NP* uu = NP::Make<T>( num_event, num_item, num_value ); 
+    unsigned ni = unsigned(qr.rngmax) ; 
+    unsigned nv = ssys::getenvunsigned(_NV, 4u) ; 
+    unsigned long long skipahead = ssys::getenvull(_SKIPAHEAD, 0ull) ; 
 
-    for( unsigned i=0 ; i < num_event ; i++)
-    {
-        unsigned event_idx = i ; 
+    NP* u = NP::Make<float>( ni, nv ); 
 
-        T* target = uu->values<T>() + num_item*num_value*i ; 
+    qr.generate<float>( u->values<float>(), ni, nv,  skipahead );
 
-        qr.generate_2<T>( target, num_item, num_value, event_idx );
-    }
+    const char* name = sstr::Format("u_%llu.npy", skipahead ); 
+    u->save("$FOLD/float", QRng::IMPL, name ); 
 
-    uu->save(FOLD, reldir, "uu.npy" ); 
-
-    LOG(info) << "save to " << FOLD << "/" << reldir  ; 
+    return 0 ; 
 }
 
+int QRngTest::main()
+{
+    const char* TEST = ssys::getenvvar("TEST","generate"); 
+    bool ALL = strcmp(TEST, "ALL") == 0 ; 
 
+    std::cout << "[QRngTest::main TEST:[" << TEST << "]\n" ; 
 
+    int rc = 0 ; 
+    if(ALL||strcmp(TEST,"generate")==0)      rc += generate(); 
+    if(ALL||strcmp(TEST,"generate_evid")==0) rc += generate_evid(); 
 
+    std::cout << "]QRngTest::main rc:" << rc << "\n" ; 
 
+    return rc ; 
+}
 
 int main(int argc, char** argv)
 {   
     OPTICKS_LOG(argc, argv); 
+    std::cout 
+        << "[main argv[0] " << argv[0] 
+        << " QRng::IMPL[" << QRng::IMPL << "]"
+        << "\n"
+        ; 
 
-    QRng qr ;   // loads and uploads curandState 
+    QRngTest t ; 
+    int rc = t.main() ; 
 
-    LOG(info) << qr.desc() ; 
+    std::cout 
+        << "]main argv[0] " << argv[0] 
+        << " QRng::IMPL[" << QRng::IMPL << "]"
+        << " rc:" << rc 
+        << "\n" 
+        ; 
 
-    //test_generate<float>(qr, 1000u, "float" ); 
-
-    unsigned num_event = 10u ; 
-    unsigned num_item = 100u ; 
-    unsigned num_value = 256u ; 
-
-    // *skipahead_event_offset* would normally be estimate of maximum number of random 
-    // values for the items : setting to 1 allows to check are getting the expected offsets into the sequence
-    // from "event" to "event"
-    // unsigned skipahead_event_offset = 1u ; 
-    // test_generate_skipahead<float>(qr, num_event, num_item, num_value, skipahead_event_offset, "float" ); 
-
-    test_generate_2<float>(qr, num_event, num_item, num_value, "float" ); 
-
-    return 0 ; 
+    return rc ; 
 }
 

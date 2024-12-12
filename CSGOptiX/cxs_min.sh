@@ -3,6 +3,10 @@ usage(){ cat << EOU
 cxs_min.sh : minimal executable and script for shakedown
 ============================================================
 
+Uses ~oneline main::
+
+     CSGOptiX::SimulateMain();
+
 Usage::
 
     ~/o/cxs_min.sh
@@ -41,7 +45,9 @@ Monitor for GPU memory leaks::
 EOU
 }
 
+vars=""
 SDIR=$(dirname $(realpath $BASH_SOURCE))
+
 
 case $(uname) in
    Linux) defarg=run_report_info ;;
@@ -56,14 +62,20 @@ arg=${1:-$defarg}
 
 bin=CSGOptiXSMTest
 script=$SDIR/cxs_min.py
+script_AB=$SDIR/cxs_min_AB.py
 
 source ~/.opticks/GEOM/GEOM.sh   # sets GEOM envvar 
 
+vars="$vars BASH_SOURCE SDIR defarg arg bin script script_AB GEOM"
+
+tmp=/tmp/$USER/opticks
+export TMP=${TMP:-$tmp}
 export EVT=${EVT:-A000}
-export BASE=${TMP:-/tmp/$USER/opticks}/GEOM/$GEOM
+export BASE=$TMP/GEOM/$GEOM
 export BINBASE=$BASE/$bin
 export SCRIPT=$(basename $BASH_SOURCE)
 
+vars="$vars TMP EVT BASE BINBASE SCRIPT"
 
 Resolve_CFBaseFromGEOM()
 {
@@ -73,25 +85,25 @@ Resolve_CFBaseFromGEOM()
    : HMM : FOR SOME TESTS WANT TO LOAD GDML BUT FOR OTHERS CSGFoundry 
    : to handle that added gdml resolution to eg g4cx/tests/GXTestRunner.sh 
 
-   local C_CFBaseFromGEOM=$TMP/G4CXOpticks_setGeometry_Test/$GEOM
-   local B_CFBaseFromGEOM=$HOME/.opticks/GEOM/$GEOM
-   local A_CFBaseFromGEOM=/cvmfs/opticks.ihep.ac.cn/.opticks/GEOM/$GEOM
+   local A_CFBaseFromGEOM=$HOME/.opticks/GEOM/$GEOM
+   local B_CFBaseFromGEOM=$TMP/G4CXOpticks_setGeometry_Test/$GEOM
+   local C_CFBaseFromGEOM=/cvmfs/opticks.ihep.ac.cn/.opticks/GEOM/$GEOM
 
    local TestPath=CSGFoundry/prim.npy
    local GDMLPathFromGEOM=$HOME/.opticks/GEOM/$GEOM/origin.gdml 
 
     if [ -d "$A_CFBaseFromGEOM" -a -f "$A_CFBaseFromGEOM/$TestPath" ]; then
         export ${GEOM}_CFBaseFromGEOM=$A_CFBaseFromGEOM
-        echo $BASH_SOURCE : FOUND A_CFBaseFromGEOM $A_CFBaseFromGEOM containing $TestPath
+        #echo $BASH_SOURCE : FOUND A_CFBaseFromGEOM $A_CFBaseFromGEOM containing $TestPath
     elif [ -d "$B_CFBaseFromGEOM" -a -f "$B_CFBaseFromGEOM/$TestPath" ]; then
         export ${GEOM}_CFBaseFromGEOM=$B_CFBaseFromGEOM
-        echo $BASH_SOURCE : FOUND B_CFBaseFromGEOM $B_CFBaseFromGEOM containing $TestPath
+        #echo $BASH_SOURCE : FOUND B_CFBaseFromGEOM $B_CFBaseFromGEOM containing $TestPath
     elif [ -d "$C_CFBaseFromGEOM" -a -f "$C_CFBaseFromGEOM/$TestPath" ]; then
         export ${GEOM}_CFBaseFromGEOM=$C_CFBaseFromGEOM
-        echo $BASH_SOURCE : FOUND C_CFBaseFromGEOM $C_CFBaseFromGEOM containing $TestPath
+        #echo $BASH_SOURCE : FOUND C_CFBaseFromGEOM $C_CFBaseFromGEOM containing $TestPath
     elif [ -f "$GDMLPathFromGEOM" ]; then 
         export ${GEOM}_GDMLPathFromGEOM=$GDMLPathFromGEOM
-        echo $BASH_SOURCE : FOUND GDMLPathFromFromGEOM $GDMLPathFromFromGEOM 
+        echo $BASH_SOURCE : FOUND GDMLPathFromGEOM $GDMLPathFromGEOM 
     else
         echo $BASH_SOURCE : NOT-FOUND A_CFBaseFromGEOM $A_CFBaseFromGEOM containing $TestPath
         echo $BASH_SOURCE : NOT-FOUND B_CFBaseFromGEOM $B_CFBaseFromGEOM containing $TestPath
@@ -101,6 +113,7 @@ Resolve_CFBaseFromGEOM()
 }
 Resolve_CFBaseFromGEOM
 
+vars="$vars ${GEOM}_CFBaseFromGEOM ${GEOM}_GDMLPathFromGEOM"
 
 
 
@@ -142,26 +155,61 @@ knobs()
    export NPFold__substamp_DUMP=1
 
 }
-knobs
 
 
 version=1
 #version=98   ## set to 98 for low stats debugging
 
-VERSION=${VERSION:-$version}   ## see below currently using VERSION TO SELECT OPTICKS_EVENT_MODE
-export VERSION
+export VERSION=${VERSION:-$version}   ## see below currently using VERSION TO SELECT OPTICKS_EVENT_MODE
 ## VERSION CHANGES OUTPUT DIRECTORIES : SO USEFUL TO ARRANGE SEPARATE STUDIES
 
-export LOGDIR=$BINBASE/ALL$VERSION
-export AFOLD=$BINBASE/ALL$VERSION/$EVT
-export STEM=ALL${VERSION}_${PLOT}
+vars="$vars version VERSION"
 
-#export BFOLD=$BASE/G4CXTest/ALL0/$EVT  ## comparison with "A" from another executable
-#export BFOLD=$BASE/jok-tds/ALL0/A001    ## comparison with "A" from another executable
+
+#test=debug
+#test=ref1
+#test=ref5
+#test=ref8
+#test=ref10
+test=ref10_multilaunch
+#test=input_genstep
+#test=input_photon
+
+export TEST=${TEST:-$test}
+
+
+opticks_event_reldir=ALL${VERSION:-0}_${TEST:-none}   ## matches SEventConfig::_DefaultEventReldir OPTICKS_EVENT_RELDIR
+vars="$vars test TEST opticks_event_reldir"
+
+
+case $TEST in 
+ref10_multilaunch) alt_TEST=ref10_onelaunch ;;
+ref10_onelaunch)   alt_TEST=ref10_multilaunch ;;
+esac
+
+alt_opticks_event_reldir=ALL${VERSION:-0}_${alt_TEST} 
+vars="$vars alt_TEST alt_opticks_event_reldir"
+
+
+
+export LOGDIR=$BINBASE/$opticks_event_reldir
+export AFOLD=$BINBASE/$opticks_event_reldir/$EVT
+export STEM=${opticks_event_reldir}_${PLOT}
+
+#export BFOLD=$BASE/G4CXTest/ALL0/$EVT 
+#export BFOLD=$BASE/jok-tds/ALL0/A001  
+#BFOLD_NOTE="comparison with A from another executable"
+
+export BFOLD=$BINBASE/$alt_opticks_event_reldir/$EVT   # comparison with alt_TEST
+BFOLD_NOTE="comparison with alt_TEST:$alt_TEST"
+
 
 mkdir -p $LOGDIR 
 cd $LOGDIR 
 LOGFILE=$bin.log
+
+vars="$vars LOGDIR AFOLD BFOLD BFOLD_NOTE STEM LOGFILE"
+
 
 case $VERSION in 
  0) opticks_event_mode=Minimal ;;
@@ -174,19 +222,13 @@ case $VERSION in
 99) opticks_event_mode=DebugHeavy ;;  # formerly StandardFullDebug
 esac 
 
-#test=debug
-#test=ref1
-#test=ref5
-#test=ref8
-test=ref10
-#test=input_genstep
-#test=input_photon
+vars="$vars opticks_event_mode"
 
-TEST=${TEST:-$test}
 
 if [ "$TEST" == "debug" ]; then 
 
    opticks_num_photon=100
+   opticks_num_genstep=1
    opticks_max_photon=M1
    opticks_num_event=1
    opticks_running_mode=SRM_TORCH
@@ -194,13 +236,16 @@ if [ "$TEST" == "debug" ]; then
 elif [ "$TEST" == "ref1" ]; then 
 
    opticks_num_photon=M1
+   opticks_num_genstep=10
    opticks_max_photon=M1
    opticks_num_event=1
    opticks_running_mode=SRM_TORCH
 
+
 elif [ "$TEST" == "ref5" -o "$TEST" == "ref6" -o "$TEST" == "ref7" -o "$TEST" == "ref8" -o "$TEST" == "ref9" -o "$TEST" == "ref10" ]; then 
 
    opticks_num_photon=M${TEST:3}
+   opticks_num_genstep=1
    opticks_max_photon=M10
    opticks_num_event=1
    opticks_running_mode=SRM_TORCH
@@ -208,13 +253,38 @@ elif [ "$TEST" == "ref5" -o "$TEST" == "ref6" -o "$TEST" == "ref7" -o "$TEST" ==
 elif [ "$TEST" == "refX" ]; then 
 
    opticks_num_photon=${X:-7500000}
+   opticks_num_genstep=1
    opticks_max_photon=M10
    opticks_num_event=1
    opticks_running_mode=SRM_TORCH
 
+elif [ "$TEST" == "ref10_multilaunch" -o "$TEST" == "ref10_onelaunch" ]; then 
+
+   opticks_num_photon=M10
+   opticks_num_genstep=10
+   opticks_max_photon=M10
+   opticks_num_event=1
+   opticks_running_mode=SRM_TORCH
+
+   #export OPTICKS_MAX_CURAND=0    # zero loads all states : ready for whopper launches
+   export OPTICKS_MAX_CURAND=M10   # non-zero loads the specified number
+
+   case $TEST in 
+      *multilaunch) opticks_max_slot=M1 ;;     ## causes M10 to be done in 10 launches
+        *onelaunch) opticks_max_slot=M10 ;; 
+   esac 
+ 
+   export OPTICKS_MAX_SLOT=$opticks_max_slot      
+
+   export OPTICKS_EVENT_RELDIR='ALL${VERSION:-0}_$TEST' 
+
+   #export SEvt__NPFOLD_VERBOSE=1 
+   #export QSim__simulate_KEEP_SUBFOLD=1
+
 elif [ "$TEST" == "tiny_scan" ]; then 
 
    opticks_num_photon=K1:10
+   opticks_num_genstep=1,1,1,1,1,1,1,1,1,1
    opticks_max_photon=M1
    opticks_num_event=10
    opticks_running_mode=SRM_TORCH
@@ -222,6 +292,7 @@ elif [ "$TEST" == "tiny_scan" ]; then
 elif [ "$TEST" == "large_scan" ]; then 
 
    opticks_num_photon=H1:10,M2,3,5,7,10,20,40,60,80,100
+   opticks_num_genstep=1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
    opticks_max_photon=M100   ## cost: QRng init time + VRAM 
    opticks_num_event=20
    opticks_running_mode=SRM_TORCH
@@ -229,6 +300,7 @@ elif [ "$TEST" == "large_scan" ]; then
 elif [ "$TEST" == "medium_scan" ]; then 
 
    opticks_num_photon=M1,1,10,20,30,40,50,60,70,80,90,100  # duplication of M1 is to workaround lack of metadata
+   opticks_num_genstep=1,1,1,1,1,1,1,1,1,1,1,1
    opticks_max_photon=M100   
    opticks_num_event=12
    opticks_running_mode=SRM_TORCH
@@ -236,6 +308,7 @@ elif [ "$TEST" == "medium_scan" ]; then
 elif [ "$TEST" == "larger_scan" ]; then 
 
    opticks_num_photon=M1,1,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200  # duplication of M1 is to workaround lack of metadata
+   opticks_num_genstep=1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
    opticks_max_photon=M200   
    opticks_num_event=22
    opticks_running_mode=SRM_TORCH
@@ -243,6 +316,7 @@ elif [ "$TEST" == "larger_scan" ]; then
 elif [ "$TEST" == "large_evt" ]; then 
 
    opticks_num_photon=M200   ## OOM with TITAN RTX 24G 
+   opticks_num_genstep=1
    opticks_max_photon=M200   ## cost: QRng init time + VRAM 
    opticks_num_event=1
    opticks_running_mode=SRM_TORCH
@@ -250,6 +324,7 @@ elif [ "$TEST" == "large_evt" ]; then
 elif [ "$TEST" == "input_genstep" ]; then
 
    opticks_num_photon=     # ignored ?
+   opticks_num_genstep=    # ignored
    opticks_max_photon=M1 
    opticks_num_event=1000 
    opticks_running_mode=SRM_INPUT_GENSTEP
@@ -258,12 +333,17 @@ elif [ "$TEST" == "input_genstep" ]; then
 elif [ "$TEST" == "input_photon" ]; then
 
    opticks_num_photon=     # ignored ?
+   opticks_num_genstep=    # ignored
    opticks_max_photon=M1 
    opticks_num_event=1
    opticks_running_mode=SRM_INPUT_PHOTON
    #opticks_event_mode=Nothing
 
 fi 
+
+vars="$vars opticks_num_photon opticks_num_genstep opticks_max_photon opticks_num_event opticks_running_mode"
+
+
 
 #opticks_running_mode=SRM_DEFAULT
 #opticks_running_mode=SRM_INPUT_PHOTON
@@ -276,12 +356,16 @@ opticks_integration_mode=1
 
 export OPTICKS_EVENT_MODE=${OPTICKS_EVENT_MODE:-$opticks_event_mode}
 export OPTICKS_NUM_PHOTON=${OPTICKS_NUM_PHOTON:-$opticks_num_photon} 
+export OPTICKS_NUM_GENSTEP=${OPTICKS_NUM_GENSTEP:-$opticks_num_genstep} 
 export OPTICKS_NUM_EVENT=${OPTICKS_NUM_EVENT:-$opticks_num_event}
 export OPTICKS_MAX_PHOTON=${OPTICKS_MAX_PHOTON:-$opticks_max_photon}
 export OPTICKS_START_INDEX=${OPTICKS_START_INDEX:-$opticks_start_index}
 export OPTICKS_MAX_BOUNCE=${OPTICKS_MAX_BOUNCE:-$opticks_max_bounce}
 export OPTICKS_INTEGRATION_MODE=${OPTICKS_INTEGRATION_MODE:-$opticks_integration_mode}
 export OPTICKS_RUNNING_MODE=${OPTICKS_RUNNING_MODE:-$opticks_running_mode}
+
+vars="$vars OPTICKS_EVENT_MODE OPTICKS_NUM_PHOTON OPTICKS_NUM_GENSTEP OPTICKS_MAX_PHOTON OPTICKS_NUM_EVENT OPTICKS_RUNNING_MODE"
+
 
 
 
@@ -321,7 +405,11 @@ elif [ "$OPTICKS_RUNNING_MODE" == "SRM_INPUT_PHOTON" ]; then
 
 elif [ "$OPTICKS_RUNNING_MODE" == "SRM_TORCH" ]; then 
 
-    #export SEvent_MakeGenstep_num_ph=100000  NOT USED WHEN USING OPTICKS_NUM_PHOTON
+    #export SEvent_MakeGenstep_num_ph=100000  OVERRIDEN BY OPTICKS_NUM_PHOTON
+    #export SEvent__MakeGenstep_num_gs=10     OVERRIDEN BY OPTICKS_NUM_GENSTEP
+
+
+
     #src="rectangle"
     #src="disc"
     src="sphere"
@@ -344,6 +432,8 @@ elif [ "$OPTICKS_RUNNING_MODE" == "SRM_TORCH" ]; then
         export storch_FillGenstep_pos=0,0,0
         export storch_FillGenstep_distance=1.00 # frac_twopi control of polarization phase(tangent direction)
     fi 
+
+
 
 elif [ "$OPTICKS_RUNNING_MODE" == "SRM_GUN" ]; then 
 
@@ -397,10 +487,9 @@ export QRng__init_VERBOSE=1
 
 
 
-vars="GEOM BASE TEST LOGDIR BINBASE CVD CUDA_VISIBLE_DEVICES SDIR FOLD LOG NEVT opticks_num_photon OPTICKS_NUM_PHOTON"
 
 if [ "${arg/info}" != "$arg" ]; then
-   for var in $vars ; do printf "%20s : %s \n" $var ${!var} ; done 
+   for var in $vars ; do printf "%-30s : %s \n" "$var" "${!var}" ; done 
 fi 
 
 if [ "${arg/env}" != "$arg" ]; then 
@@ -412,6 +501,8 @@ if [ "${arg/fold}" != "$arg" ]; then
 fi 
 
 if [ "${arg/run}" != "$arg" -o "${arg/dbg}" != "$arg" ]; then
+
+   knobs
 
    if [ -f "$LOGFILE" ]; then 
        echo $BASH_SOURCE : run : delete prior LOGFILE $LOGFILE 
@@ -454,8 +545,22 @@ if [ "${arg/gevt}" != "$arg" ]; then
     source $OPTICKS_HOME/bin/rsync.sh $LOGDIR/$EVT
 fi 
 
+
+if [ "${arg/pdb1}" != "$arg" ]; then
+    ${ipython:-ipython} --pdb -i $script
+fi 
+
+if [ "${arg/pdb0}" != "$arg" ]; then
+    MODE=0 ${ipython:-ipython} --pdb -i $script
+fi 
+
+if [ "${arg/AB}" != "$arg" ]; then
+    MODE=0 ${ipython:-ipython} --pdb -i $script_AB
+fi 
+
+
 if [ "${arg/ana}" != "$arg" ]; then
-    ${IPYTHON:-ipython} --pdb -i $script
+    MODE=0 ${PYTHON:-python} $script
 fi 
 
 if [ "$arg" == "pvcap" -o "$arg" == "pvpub" -o "$arg" == "mpcap" -o "$arg" == "mppub" ]; then

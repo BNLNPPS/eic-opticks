@@ -45,6 +45,7 @@ struct ssys
     static int getenv_ParseInt(const char* ekey, const char* fallback);  
     static std::vector<int>* getenv_ParseIntSpecList(const char* ekey, const char* fallback); 
 
+    static unsigned long long getenvull(const char* ekey, unsigned long long fallback);  
     static int getenvint(const char* ekey, int fallback);  
     static int getenvintpick(const char* ekey, const std::vector<std::string>& strs, int fallback ); 
 
@@ -289,6 +290,14 @@ inline std::vector<int>* ssys::getenv_ParseIntSpecList(const char* ekey, const c
 }
 
 
+inline unsigned long long ssys::getenvull(const char* ekey, unsigned long long fallback)
+{
+    char* val = getenv(ekey);
+    return val ? std::atoll(val) : fallback ; 
+}
+
+
+
 inline int ssys::getenvint(const char* ekey, int fallback)
 {
     char* val = getenv(ekey);
@@ -338,6 +347,19 @@ inline bool ssys::getenvbool( const char* ekey )
 {
     char* val = getenv(ekey);
     bool ival = val ? true : false ;
+
+    /*
+    // special casing a value indicating NO ?
+    if(val)  
+    {
+        if(strcmp(val,"NO") == 0) ival = false ;   
+        if(strcmp(val,"no") == 0) ival = false ;   
+        if(strcmp(val,"False") == 0) ival = false ;   
+        if(strcmp(val,"false") == 0) ival = false ;   
+        if(strcmp(val,"0") == 0) ival = false ;   
+    }
+    */
+
     return ival ; 
 }
 

@@ -9,6 +9,7 @@
 #include "scuda.h"
 #include "squad.h"
 #include "sphoton.h"
+#include "sslice.h"
 
 #ifndef PRODUCTION
 #include "srec.h"
@@ -26,7 +27,7 @@
 #include "SU.hh"
 
 #include "SComp.h"
-#include "SGenstep.hh"
+#include "SGenstep.h"
 #include "SEvent.hh"
 #include "SEvt.hh"
 #include "SEventConfig.hh"
@@ -99,6 +100,7 @@ QEvent::QEvent()
     evt(sev ? sev->evt : nullptr),
     d_evt(QU::device_alloc<sevent>(1,"QEvent::QEvent/sevent")),
     gs(nullptr),
+    gss(nullptr),
     input_photon(nullptr),
     upload_count(0)
 {
@@ -205,6 +207,83 @@ int QEvent::setGenstep()  // onto device
 QEvent::setGenstepUpload_NP
 ------------------------------
 
+**/
+int QEvent::setGenstepUpload_NP(const NP* gs_ )
+{
+    return setGenstepUpload_NP(gs_, nullptr ); 
+} 
+
+int QEvent::setGenstepUpload_NP(const NP* gs_, const sslice* gss_ ) 
+{
+    gs = gs_ ; 
+    gss = gss_ ? new sslice(*gss_) : nullptr ; 
+
+    SGenstep::Check(gs); 
+
+    LOG(LEVEL) 
+        << " gs " << ( gs ? gs->sstr() : "-" )
+        << SGenstep::Desc(gs, 10)
+        ;
+
+    int num_gs = gs ? gs->shape[0] : 0 ;
+
+    int gs_start = gss ? gss->gs_start : 0 ; 
+    int gs_stop  = gss ? gss->gs_stop  : num_gs ; 
+
+    assert( gs_start >= 0 && gs_start <  num_gs ); 
+    assert( gs_stop  >= 1 && gs_stop  <= num_gs ); 
+
+    const char* data = gs ? gs->bytes() : nullptr ;
+    const quad6* qq = (const quad6*)data ; 
+
+    assert( gs_start < num_gs ); 
+    assert( gs_stop <= num_gs );     
+
+    int rc = setGenstepUpload(qq, gs_start, gs_stop ); 
+
+    if(gss == nullptr) return rc ; 
+
+
+    bool gss_consistent = gss->ph_count == evt->num_photon ; 
+    LOG_IF(fatal, !gss_consistent )
+        << " gss.desc " << gss->desc() << "\n"
+        << " gss->ph_count " << gss->ph_count << "\n"
+        << " evt->num_photon " << evt->num_photon << "\n"
+        << " gss_consistent " << ( gss_consistent ? "YES" : "NO " ) << "\n"
+        ;
+
+    int last_rng_state_idx = gss->ph_offset + gss->ph_count ; 
+    bool in_range = last_rng_state_idx <= evt->max_curand ; 
+
+    LOG_IF(fatal, !in_range)
+        << " gss.desc " << gss->desc() << "\n"
+        << " gss->ph_offset " << gss->ph_offset << "\n"
+        << " gss->ph_count " << gss->ph_count << "\n"
+        << " gss->ph_offset + gss->ph_count " << last_rng_state_idx << "(last_rng_state_idx) must be <= max_curand for valid rng_state access\n" 
+        << " evt->max_curand " << evt->max_curand << "\n"
+        << " evt->num_curand " << evt->num_curand << "\n"
+        << " evt->max_slot " << evt->max_slot << "\n"
+        ; 
+
+    assert( gss_consistent ); 
+    assert( in_range );  
+
+    return rc ; 
+}
+
+int QEvent::getPhotonSlotOffset() const
+{
+    return gss ? gss->ph_offset : 0 ; 
+}
+
+
+
+/**
+QEvent::setGenstepUpload
+---------------------------
+
+Switch to quad6* arg to allow direct from vector upload, 
+
 Recall that even with input photon running, still have gensteps.  
 If the number of gensteps is zero there are no photons and no launch. 
 
@@ -232,42 +311,21 @@ If the number of gensteps is zero there are no photons and no launch.
 
 **/
 
-
-int QEvent::setGenstepUpload_NP(const NP* gs_) 
+int QEvent::setGenstepUpload(const quad6* qq0, int num_gs )
 {
-    gs = gs_ ; 
-    SGenstep::Check(gs); 
-    LOG(LEVEL) 
-        << " gs " << ( gs ? gs->sstr() : "-" )
-        << SGenstep::Desc(gs, 10)
-        ;
-
-    int num_genstep = gs_ ? gs_->shape[0] : 0 ;
-    const char* data = gs_ ? gs_->bytes() : nullptr ;
-    const quad6* qq = (const quad6*)data ; 
-    int rc = setGenstepUpload(qq, num_genstep); 
-    return rc ; 
-}
-
-/**
-QEvent::setGenstepUpload
----------------------------
-
-Switch to quad6* arg to allow direct from vector upload, 
-avoiding the intermediate array.
-
-HMM: but then (NP)gs stays null so nothing to gather 
-
-**/
-
-
-int QEvent::setGenstepUpload(const quad6* qq, int num_genstep ) 
+    return setGenstepUpload(qq0, 0, num_gs ); 
+} 
+int QEvent::setGenstepUpload(const quad6* qq0, int gs_start, int gs_stop ) 
 {
+    const quad6* qq = qq0 + gs_start ; 
+
+
     LOG_IF(info, SEvt::LIFECYCLE) << "[" ; 
 #ifndef PRODUCTION 
     sev->t_setGenstep_3 = sstamp::Now(); 
 #endif
 
+    int num_genstep = gs_stop - gs_start ; 
     bool zero_genstep = num_genstep == 0 ; 
 
     evt->num_genstep = num_genstep ; 
@@ -276,6 +334,8 @@ int QEvent::setGenstepUpload(const quad6* qq, int num_genstep )
     LOG_IF(info, LIFECYCLE) << " not_allocated " << ( not_allocated ? "YES" : "NO" ) ;  
 
     LOG(LEVEL) 
+        << " gs_start " << gs_start
+        << " gs_stop " << gs_stop
         << " evt.num_genstep " << evt->num_genstep 
         << " not_allocated " << ( not_allocated ? "YES" : "NO" ) 
         << " zero_genstep " << ( zero_genstep ? "YES" : "NO " )
@@ -302,7 +362,7 @@ int QEvent::setGenstepUpload(const quad6* qq, int num_genstep )
     sev->t_setGenstep_5 = sstamp::Now(); 
 #endif
 
-    QU::device_memset<int>(   evt->seed,    0, evt->max_photon );
+    QU::device_memset<int>(   evt->seed,    0, evt->max_photon );    // need evt->max_slot ? 
 
 #ifndef PRODUCTION 
     sev->t_setGenstep_6 = sstamp::Now(); 
@@ -350,6 +410,11 @@ int QEvent::setGenstepUpload(const quad6* qq, int num_genstep )
 
     return rc ; 
 }
+
+
+
+
+
 
 /**
 QEvent::device_alloc_genstep_and_seed
@@ -551,6 +616,12 @@ NP* QEvent::getInputPhoton() const
 /**
 QEvent::gatherPhoton(NP* p) :  mutating API
 -------------------------------------------
+
+* QU::copy_device_to_host using (sevent)evt->photon/num_photon
+
+  * sevent.h needs changing for each sub-launch 
+
+
 **/
 
 void QEvent::gatherPhoton(NP* p) const 
@@ -753,7 +824,7 @@ unsigned QEvent::getNumHit() const
 QEvent::gatherHit
 ------------------
 
-1. count *evt.num_hit* passing the photon *selector* 
+1. on device count *evt.num_hit* passing the photon *selector* 
 2. allocate *evt.hit* GPU buffer
 3. copy_if from *evt.photon* to *evt.hit* using the photon *selector*
 4. host allocate the NP hits array
@@ -876,7 +947,8 @@ NP* QEvent::gatherComponent_(unsigned cmp) const
     NP* a = nullptr ; 
     switch(cmp)
     {   
-        case SCOMP_GENSTEP:   a = getGenstep()     ; break ;   
+        //case SCOMP_GENSTEP:   a = getGenstep()     ; break ;   
+        case SCOMP_GENSTEP:   a = gatherGenstepFromDevice() ; break ;   
         case SCOMP_INPHOTON:  a = getInputPhoton() ; break ;   
 
         case SCOMP_PHOTON:    a = gatherPhoton()   ; break ;   
@@ -925,6 +997,8 @@ void QEvent::setNumPhoton(unsigned num_photon )
     if( evt->photon == nullptr ) device_alloc_photon();  
     uploadEvt(); 
 }
+
+
 void QEvent::setNumSimtrace(unsigned num_simtrace)
 {
     sev->setNumSimtrace(num_simtrace); 

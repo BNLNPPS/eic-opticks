@@ -100,6 +100,7 @@ struct NPFold
     std::vector<std::string> ff ;  // keys of sub-NPFold 
     std::vector<NPFold*> subfold ;  
 
+
     // METADATA FIELDS 
     std::string               headline ; 
     std::string               meta ; 
@@ -109,11 +110,21 @@ struct NPFold
 
     // nodata:true used for lightweight access to metadata from many arrays
     bool                      nodata ; 
-    bool                      allowempty ; 
     bool                      verbose_ ; 
 
+    // [TRANSIENT FIELDS : NOT COPIED BY CopyMeta
+    bool                      allowempty ; 
+    bool                      skipdelete ;   // set to true on subfold during trivial concat
+    NPFold*                   parent ;      // set by add_subfold
+    // ]TRANSIENT FIELDS
+
+    static constexpr const char INTKEY_PREFIX = 'f' ; 
     static constexpr const int UNDEF = -1 ; 
     static constexpr const bool VERBOSE = false ; 
+    static constexpr const bool ALLOWEMPTY = false ; 
+    static constexpr const bool SKIPDELETE = false ; 
+    static constexpr NPFold*    PARENT = nullptr ; 
+
     static constexpr const char* DOT_NPY = ".npy" ;  // formerly EXT
     static constexpr const char* DOT_TXT = ".txt" ; 
     static constexpr const char* DOT_PNG = ".png" ; 
@@ -134,6 +145,7 @@ struct NPFold
 
     static const char* BareKey(const char* k);  // without .npy 
     static std::string FormKey(const char* k, bool change_txt_to_npy ); 
+    static std::string FormKey(const char* k ); 
 
     static bool    IsValid(const NPFold* fold); 
     static NPFold* LoadIfExists(const char* base);  
@@ -159,23 +171,50 @@ struct NPFold
 
     // CTOR
     NPFold(); 
+
     void set_verbose( bool v=true ); 
+    void set_skipdelete( bool v=true ); 
     void set_allowempty( bool v=true ); 
+
+    void set_verbose_r( bool v=true ); 
+    void set_skipdelete_r( bool v=true ); 
     void set_allowempty_r( bool v=true ); 
-    static int SetAllowempty_r(NPFold* nd, bool v) ; 
+
+    enum { SET_VERBOSE, SET_SKIPDELETE, SET_ALLOWEMPTY } ; 
+    static int SetFlag_r(NPFold* nd, int flag, bool v); 
 
 private:
     void check_integrity() const ; 
 public:
 
     // [subfold handling 
+    NPFold*      add_subfold(char prefix=INTKEY_PREFIX); 
+    void         add_subfold(int ikey     , NPFold* fo, char prefix=INTKEY_PREFIX ); // integer key formatted with prefix
+
+    static constexpr const char* _NPFold__add_subfold_ALLOW_DUPLICATE_KEY = "NPFold__add_subfold_ALLOW_DUPLICATE_KEY" ; 
     void         add_subfold(const char* f, NPFold* fo ); 
     int          get_num_subfold() const ;
     NPFold*      get_subfold(unsigned idx) const ; 
+
+    const char*  get_last_subfold_key() const ; 
     const char*  get_subfold_key(unsigned idx) const ; 
     int          get_subfold_idx(const char* f) const ; 
+    int          get_subfold_idx(const NPFold* fo) const ; 
+
+    const char*  get_subfold_key_within_parent() const ; 
+
+    void         get_treepath_(std::vector<std::string>& elem) const ; 
+    std::string  get_treepath(const char* k=nullptr) const ; 
+    static std::string Treepath(const NPFold* f); 
+
     NPFold*      get_subfold(const char* f) const ; 
     bool         has_subfold(const char* f) const ; 
+
+
+    void find_arrays_with_key(  std::vector<const NP*>& rr, std::vector<std::string>& tt, const char* q_key) const ; 
+    void find_arrays_with_key_r(std::vector<const NP*>& rr, std::vector<std::string>& tt, const char* q_key) const ; 
+    static void FindArraysWithKey_r(const NPFold* nd, std::vector<const NP*>& rr, std::vector<std::string>& tt, const char* q_key, int d); 
+    static std::string DescArraysAndPaths( std::vector<const NP*>& rr, std::vector<std::string>& tt ); 
 
 
     const NP*      find_array(const char* apath) const ; 
@@ -197,21 +236,40 @@ public:
         char delim=',' ) const ;  
 
 
+    void get_subfold_with_intkey(std::vector<const NPFold*>& subs, char prefix) const ; 
+    bool all_subfold_with_intkey(char prefix) const ; 
+
+    void concat(std::ostream* out=nullptr); 
+    NP* concat_(const char* k, std::ostream* out=nullptr); 
+    bool can_concat(std::ostream* out=nullptr) const ; 
+
+    int maxdepth() const ; 
+    static int MaxDepth_r(const NPFold* nd, int d); 
 
 
-    static int Traverse_r(const NPFold* nd, std::string nd_path, 
-          std::vector<const NPFold*>& folds, 
-          std::vector<std::string>& paths ); 
-    static std::string Concat(const char* base, const char* sub, char delim='/' ); 
+    static constexpr const int MXD_NOLIMIT = 0 ; 
+    static int Traverse_r(
+        const NPFold* nd, 
+        std::string nd_path, 
+        std::vector<const NPFold*>& folds, 
+        std::vector<std::string>& paths, 
+        int d, 
+        int mxd=MXD_NOLIMIT );   
+
+    static std::string FormSubPath(const char* base, const char* sub, char delim='/' ); 
 
     std::string desc_subfold(const char* top=TOP) const ;  
     void find_subfold_with_prefix(
          std::vector<const NPFold*>& subs, 
          std::vector<std::string>* subpaths,
-         const char* prefix ) const ; 
+         const char* prefix,
+         int maxdepth ) const ; 
+
+    static std::string DescFoldAndPaths( const std::vector<const NPFold*>& subs, const std::vector<std::string>& subpaths ); 
 
     bool is_empty() const ; 
     int total_items() const ; 
+
     // ]subfold handling 
 
 
@@ -225,18 +283,25 @@ public:
     void clear(); 
 private:
     void clear_(const std::vector<std::string>* keep); 
+    void clear_arrays(const std::vector<std::string>* keep); 
 public:
+    void clear_subfold(); 
     void clear_only(  const char* clrlist=nullptr, bool copy=true, char delim=','); 
     void clear_except(const char* keylist=nullptr, bool copy=true, char delim=','); 
     void clear_except_(const std::vector<std::string>& keep, bool copy ) ; 
 
 
-
-
-    NPFold* copy( const char* keylist, bool shallow, char delim=',' ) const ; 
-    NPFold* copy_all(bool shallow) const ; 
+    //OLD API: NPFold* copy( const char* keylist, bool shallow_array_copy, char delim=',' ) const ; 
+    NPFold* deepcopy(const char* keylist=nullptr, char delim=',' ) const ; 
+    NPFold* shallowcopy(const char* keylist=nullptr, char delim=',' ) const ; 
+private:
+    // make private to find them all and switch to above form
+    NPFold* copy(   bool shallow_array_copy, const char* keylist=nullptr, char delim=',' ) const ; 
+public:
+    static NPFold* Copy(const NPFold* src, bool shallow_array_copy, std::vector<std::string>* keys ); 
     static void CopyMeta( NPFold* b , const NPFold* a ); 
-
+    static void CopyArray(   NPFold* dst , const NPFold* src, bool shallow_array_copy, std::vector<std::string>* keys ); 
+    static void CopySubfold( NPFold* dst , const NPFold* src, bool shallow_array_copy, std::vector<std::string>* keys ); 
 
     int count_keys( const std::vector<std::string>* keys ) const ; 
 
@@ -250,7 +315,8 @@ public:
     int find(const char* k) const ; 
     bool has_key(const char* k) const ; 
     bool has_all_keys(const char* keys, char delim=',') const ; 
-
+    bool has_all_keys(const std::vector<std::string>& qq) const ; 
+    int  count_keys(const std::vector<std::string>& qq) const ; 
 
     const NP* get(const char* k) const ; 
     NP*       get_(const char* k); 
@@ -405,6 +471,7 @@ swapped to .npy for more standard handling.
 
 **/
 
+
 inline std::string NPFold::FormKey(const char* k, bool change_txt_to_npy) 
 {
     bool is_npy = IsNPY(k); 
@@ -424,9 +491,19 @@ inline std::string NPFold::FormKey(const char* k, bool change_txt_to_npy)
     }
 
 
-    std::string s = ss.str(); 
-    return s ; 
+    std::string str = ss.str(); 
+    return str ; 
 }
+
+inline std::string NPFold::FormKey(const char* k)
+{
+    bool is_npy = IsNPY(k); 
+    std::stringstream ss ; 
+    ss << k ; 
+    if(!is_npy) ss << DOT_NPY ; 
+    std::string str = ss.str(); 
+    return str ; 
+} 
 
 
 inline bool NPFold::IsValid(const NPFold* fold) // static
@@ -602,8 +679,6 @@ inline std::string NPFold::DescCompare(const NPFold* a, const NPFold* b )
 
 
 
-
-
 // CTOR
 
 inline NPFold::NPFold()
@@ -618,28 +693,50 @@ inline NPFold::NPFold()
     savedir(nullptr),
     loaddir(nullptr),
     nodata(false),
-    allowempty(false),
-    verbose_(VERBOSE)
+    verbose_(VERBOSE),
+    allowempty(ALLOWEMPTY),
+    skipdelete(SKIPDELETE),
+    parent(PARENT)
 {
     if(verbose_) std::cerr << "NPFold::NPFold" << std::endl ; 
 }
 
+
 inline void NPFold::set_verbose( bool v )
+{  
+     verbose_ = v ;  
+}
+inline void NPFold::set_skipdelete( bool v )
 {
-    verbose_ = v ;  
+    skipdelete = v ; 
 }
 inline void NPFold::set_allowempty( bool v )
 {
     allowempty = v ; 
 }
+
+inline void NPFold::set_verbose_r( bool v )
+{
+    SetFlag_r(this, SET_VERBOSE, v); 
+}
+inline void NPFold::set_skipdelete_r( bool v )
+{
+    SetFlag_r(this, SET_SKIPDELETE, v); 
+}
 inline void NPFold::set_allowempty_r( bool v )
 {
-    SetAllowempty_r(this, v); 
+    SetFlag_r(this, SET_ALLOWEMPTY, v); 
 }
 
-inline int NPFold::SetAllowempty_r(NPFold* nd, bool v)
+inline int NPFold::SetFlag_r(NPFold* nd, int flag, bool v)
 {
-    nd->set_allowempty(v); 
+    switch(flag)
+    {
+        case SET_VERBOSE   : nd->set_verbose(v)    ; break ;   
+        case SET_SKIPDELETE: nd->set_skipdelete(v) ; break ;   
+        case SET_ALLOWEMPTY: nd->set_allowempty(v) ; break ;   
+    }
+
     int tot_fold = 1 ; 
 
     assert( nd->subfold.size() == nd->ff.size() ); 
@@ -647,15 +744,11 @@ inline int NPFold::SetAllowempty_r(NPFold* nd, bool v)
     for(int i=0 ; i < num_sub ; i++) 
     {
         NPFold* sub = nd->subfold[i] ; 
-        int num = SetAllowempty_r( sub, v );  
+        int num = SetFlag_r( sub, flag, v );  
         tot_fold += num ; 
     }
     return tot_fold ; 
 }
-
-
-
-
 
 
 
@@ -679,27 +772,95 @@ inline void NPFold::check_integrity() const
 
 
 
-
-
 // [ subfold handling 
+
+inline NPFold* NPFold::add_subfold(char prefix)
+{
+    int ikey = subfold.size(); 
+    NPFold* sub = new NPFold ; 
+    add_subfold(ikey, sub, prefix ); 
+    return sub ; 
+} 
+
+inline void NPFold::add_subfold(int ikey, NPFold* sub, char prefix )
+{
+    int wid = 3 ;
+    std::string skey = U::FormNameWithPrefix(prefix, ikey, wid); 
+    add_subfold(skey.c_str(), sub );  
+}
+
+/**
+NPFold::add_subfold
+--------------------
+
+CAUTION : this simply collects keys and NPFold pointers 
+into vectors, NO COPYING IS DONE.  
+However, clearing the fold will delete arrays within the fold. 
+Because of this beware of stale input pointers after clearing.   
+
+* Regard subfold added to an NPFold to belong to the fold 
+* Do not do silly things like adding the same pointer more than once 
+
+**/
+
+
 inline void NPFold::add_subfold(const char* f, NPFold* fo )
 {
     if(fo == nullptr) return ; 
 
-    bool unique_f = std::find( ff.begin(), ff.end(), f ) == ff.end() ; 
+    bool unique_f  = std::find( ff.begin(), ff.end(), f ) == ff.end() ; 
+    bool unique_fo = std::find( subfold.begin(), subfold.end(), fo ) == subfold.end() ; 
+
+
+    int ALLOW_DUPLICATE_KEY = U::GetEnvInt(_NPFold__add_subfold_ALLOW_DUPLICATE_KEY, 0 ); 
 
     if(!unique_f) std::cerr 
        << "NPFold::add_subfold" 
-       << " ERROR repeated f " << ( f ? f : "-" ) 
+       << " ERROR repeated subfold key f[" << ( f ? f : "-" ) << "]"  
        << " ff.size " << ff.size()
+       << "[" << _NPFold__add_subfold_ALLOW_DUPLICATE_KEY << "] " << ALLOW_DUPLICATE_KEY 
        << "\n" 
        ;   
 
-    assert( unique_f ) ; 
+    if( !unique_f && ALLOW_DUPLICATE_KEY == 0 )
+    {
+        assert( unique_f ) ; 
+        std::raise(SIGINT);   // release builds remove assert 
+    }
+
+    if(!unique_fo) std::cerr 
+       << "NPFold::add_subfold" 
+       << " ERROR repeated subfold pointer with key f[" << ( f ? f : "-" ) << "]"  
+       << " subfold.size " << subfold.size()
+       << "\n" 
+       ;   
+    assert( unique_fo ) ; 
+
+
 
     ff.push_back(f); // subfold keys 
-    subfold.push_back(fo); 
+    subfold.push_back(fo);
+
+    if(fo->parent != nullptr)
+    {
+        std::string fo_treepath = fo->get_treepath(); 
+        std::string fo_parent_treepath = fo->parent->get_treepath(); 
+        std::string this_treepath = get_treepath(); 
+
+        std::cerr 
+            << "NPFold::add_subfold " 
+            << " WARNING changing parent of added subfold fo \n"
+            << " fo.treepath [" << fo_treepath << "]\n"
+            << " fo.parent.treepath [" << fo_parent_treepath << "]\n"
+            << " this.treepath [" << this_treepath << "]\n" 
+            << "\n"
+            ;
+    } 
+    assert( fo->parent == nullptr ); 
+    fo->parent = this ; 
 }
+
+
 inline int NPFold::get_num_subfold() const
 {
     assert( ff.size() == subfold.size() ); 
@@ -712,6 +873,11 @@ inline NPFold* NPFold::get_subfold(unsigned idx) const
 
 
 
+inline const char* NPFold::get_last_subfold_key() const 
+{
+    return ff.size() > 0 ? ff[ff.size()-1].c_str() : nullptr ; 
+}
+
 inline const char* NPFold::get_subfold_key(unsigned idx) const 
 {
     return idx < ff.size() ? ff[idx].c_str() : nullptr ; 
@@ -721,6 +887,64 @@ inline int NPFold::get_subfold_idx(const char* f) const
     size_t idx = std::distance( ff.begin(), std::find( ff.begin(), ff.end(), f )) ; 
     return idx < ff.size() ? idx : UNDEF ; 
 }
+inline int NPFold::get_subfold_idx(const NPFold* fo) const
+{
+    size_t idx = std::distance( subfold.begin(), std::find( subfold.begin(), subfold.end(), fo )) ; 
+    return idx < subfold.size() ? idx : UNDEF ; 
+}
+
+inline const char* NPFold::get_subfold_key_within_parent() const
+{
+    int idx = parent ? parent->get_subfold_idx(this) : -1 ;  
+    return idx == -1 ? nullptr : parent->get_subfold_key(idx) ; 
+} 
+
+inline void NPFold::get_treepath_(std::vector<std::string>& elem) const
+{
+     const NPFold* n = this ;
+     while(n)
+     {
+         const char* sk = n->get_subfold_key_within_parent() ; 
+         elem.push_back(sk ? sk : ""); 
+         n = n->parent ;    
+     }
+} 
+inline std::string NPFold::get_treepath(const char* k) const
+{
+    std::vector<std::string> elem ; 
+    get_treepath_(elem); 
+    std::reverse(elem.begin(), elem.end());
+    std::stringstream ss ; 
+    int num_elem = elem.size(); 
+    for(int i=0 ; i < num_elem ; i++ ) ss << elem[i] << ( i < num_elem - 1 ? "/" : "" ) ; 
+    if(k) ss << "/" << k ; 
+    std::string str = ss.str() ; 
+    return str ; 
+}
+
+/**
+NPFold::Treepath
+-----------------
+
+Disconnected fold has empty string "" treepath, see::
+
+     TEST=subcopy ~/np/tests/NPFold_copy_test.sh
+
+     NPFold::Treepath(zzz)   : {/z/zz}
+     NPFold::Treepath(zzz_c) : {}
+
+ 
+**/
+
+inline std::string NPFold::Treepath(const NPFold* f)
+{
+    std::stringstream ss ; 
+    ss << "{" << ( f ? f->get_treepath() : "-" ) << "}" ; 
+    std::string str = ss.str() ; 
+    return str ; 
+}
+
+
 inline NPFold* NPFold::get_subfold(const char* f) const 
 {
     int idx = get_subfold_idx(f) ; 
@@ -731,6 +955,82 @@ inline bool NPFold::has_subfold(const char* f) const
     int idx = get_subfold_idx(f) ; 
     return idx != UNDEF ;  
 }
+
+
+/**
+NPFold::find_arrays_with_key
+-----------------------------
+
+Collect arrays and treepaths within this fold that have the query key.
+Would normally expect either zero or one entries.  
+
+The query key has ".npy" appended if not already present. 
+
+**/
+
+inline void NPFold::find_arrays_with_key(std::vector<const NP*>& rr, std::vector<std::string>& tt, const char* q_key) const 
+{
+    std::string q = FormKey(q_key); 
+    for(int i=0 ; i < int(kk.size()) ; i++)
+    {
+        const char* k = kk[i].c_str(); 
+        const NP* a = aa[i] ; 
+        bool qk_match = strcmp(q.c_str(), k) == 0 ; 
+
+        if(qk_match)
+        {
+            std::string t = get_treepath(k); 
+            rr.push_back(a); 
+            tt.push_back(t); 
+        }
+    }
+}
+
+/**
+NPFold::find_arrays_with_key_r
+--------------------------------
+
+Recursively collect arrays and treepaths within the entire tree of folders that 
+have the query key.
+
+**/
+
+inline void NPFold::find_arrays_with_key_r(std::vector<const NP*>& rr, std::vector<std::string>& tt, const char* q_key) const 
+{
+    FindArraysWithKey_r(this, rr, tt, q_key, 0); 
+}
+
+inline void NPFold::FindArraysWithKey_r(const NPFold* nd, std::vector<const NP*>& rr, std::vector<std::string>& tt, const char* q_key, int d)
+{
+    nd->find_arrays_with_key(rr, tt, q_key); 
+    for(int i=0 ; i < int(nd->subfold.size()) ; i++ ) FindArraysWithKey_r(nd->subfold[i], rr, tt, q_key, d+1 ); 
+}
+
+inline std::string NPFold::DescArraysAndPaths( std::vector<const NP*>& rr, std::vector<std::string>& tt ) // static
+{
+    assert( rr.size() == tt.size() );
+    int num = rr.size() ; 
+    std::stringstream ss ;
+    ss << "NPFold::DescArraysAndPaths num " << num << "\n" ; 
+    for(int i=0 ; i < num ; i++ )
+    {
+        const NP* r = rr[i] ; 
+        const char* t = tt[i].c_str() ; 
+        ss 
+           << std::setw(10) << r->sstr()
+           << " : "
+           << std::setw(30) << ( t ? t : "-" ) 
+           << " : "
+           << r 
+           << "\n"        
+           ;
+    }  
+    std::string str = ss.str() ;
+    return str ;
+}
+
+
+
 
 
 /**
@@ -756,7 +1056,6 @@ inline const NP* NPFold::find_array(const char* base, const char* name) const
     return fold ? fold->get(name) : nullptr  ; 
 }
  
-
 inline NPFold* NPFold::find_subfold_(const char* qpath) const 
 {
     const NPFold* f = find_subfold(qpath) ; 
@@ -777,7 +1076,7 @@ inline const NPFold* NPFold::find_subfold(const char* qpath) const
 {
     std::vector<const NPFold*> folds ;
     std::vector<std::string>   paths ;
-    Traverse_r( this, "",  folds, paths ); 
+    Traverse_r( this, "",  folds, paths, 0, MXD_NOLIMIT  ); 
     size_t idx = std::distance( paths.begin(), std::find( paths.begin(), paths.end(), qpath ) ) ; 
 
     if(VERBOSE) 
@@ -831,7 +1130,222 @@ inline const void NPFold::find_subfold_with_all_keys(
     }
 } 
 
+/**
+NPFold::get_subfold_with_intkey
+---------------------------------
 
+Examples of intkey with prefix 'f': f000 f001 
+
+**/
+
+inline void NPFold::get_subfold_with_intkey(std::vector<const NPFold*>& subs, char prefix) const
+{
+    int num_sub = subfold.size(); 
+    for(int i=0 ; i < num_sub ; i++) 
+    {
+        const NPFold* sub = subfold[i] ; 
+        const std::string& fk = ff[i] ;  
+        const char* fkk = fk.c_str(); 
+        if( strlen(fkk) > 1 && fkk[0] == prefix && U::IsIntegerString(fkk+1) ) subs.push_back(sub); 
+    }
+}
+inline bool NPFold::all_subfold_with_intkey(char prefix) const
+{
+    std::vector<const NPFold*> subs ; 
+    get_subfold_with_intkey(subs, prefix); 
+    return subfold.size() == subs.size(); 
+}
+
+
+
+
+/**
+NPFold::concat
+---------------
+
+Concatenate common arrays from level 1 subfolds
+into the top level fold. 
+
+Typically usage::
+
+    fold->concat() ; 
+    fold->clear_subfold(); 
+
+Invoking *clear_subfold* after *concat* tidies up 
+resources used for the sub arrays halving the memory
+usage. 
+
+The trivial case of a single subfold is handled by simply 
+adding the subfold array pointers at top level and 
+invoking NPFold::set_skipdelete on the subfold to 
+prevent the active arrays from being deleted by clear_subfold. 
+
+Note that skipdelete is not called at top level, so the resources
+will be released when the top level is cleared.
+
+Future
+~~~~~~~~
+
+This approach is simple but transiently requires twice the end state memory. 
+Other more progressive approaches might avoid being so memory expensive.  
+Example of progressive approach would be to add an NPFold to another
+one by one.  
+
+Actually for the application of combining arrays from multiple launches, 
+there may be little advantage with more involved approaches 
+as probably the number of launches will normally be 1 and sometimes 2 or 3.  
+
+**/
+
+inline void NPFold::concat(std::ostream* out)
+{
+    bool can = can_concat(out); 
+    assert(can);
+    if(!can) return ; 
+
+    int num_sub = subfold.size();
+    const NPFold* sub0 = num_sub > 0 ? subfold[0] : nullptr  ; 
+    const std::vector<std::string>* kk0 = sub0 ? &(sub0->kk) : nullptr ; 
+
+    int num_k = kk0 ? kk0->size() : 0 ; 
+    for(int i=0 ; i < num_k ; i++) 
+    {
+        const char* k = (*kk0)[i].c_str(); 
+        NP* a = concat_(k, out ); 
+        add(k, a); 
+    }
+}
+
+/**
+NPFold::concat_
+----------------
+
+When there is only one subfold the concat is trivially 
+done by adding subfold arrays to this fold. 
+However in that situation the subfold must be 
+marked skipdelete to prevent clear_subfold which 
+is recommended after concat from deleting the 
+active top level array. 
+
+**/
+
+inline NP* NPFold::concat_(const char* k, std::ostream* out)
+{
+    int num_sub = subfold.size();
+    if( num_sub == 0 ) return nullptr ; 
+
+    NP* a = nullptr ; 
+    if( num_sub == 1 )
+    {
+        NPFold* sub0 = subfold[0] ; 
+        const NP* a0 = sub0->get(k); 
+        a = const_cast<NP*>(a0) ; 
+        sub0->set_skipdelete(true); 
+        if(out) *out << "NPFold::concat_ trivial concat set skipdelete on the single subfold \n" ;      
+    }
+    else if( num_sub > 1 )
+    {
+        std::vector<const NP*> aa ;          
+        for(int i=0 ; i < num_sub ; i++)
+        {
+            const NPFold* sub = subfold[i] ; 
+            const NP* asub = sub->get(k);   
+            aa.push_back(asub); 
+        }
+        if(out) *out << "NPFold::concat_ non-trivial concat \n" ;      
+        a = NP::Concatenate(aa);  
+    } 
+    return a ; 
+}
+
+
+
+
+
+/**
+NPFold::can_concat
+-------------------
+
+Require:
+
+1. two level tree of subfold, ie maxdepth is 1 
+2. integer string keys with f prefix (for python identifier convenience) giving the concat order
+3. common array keys in all subfold::
+
+    f000/[a.npy,b.npy,c.npy]
+    f001/[a.npy,b.npy,c.npy]
+    f002/[a.npy,b.npy,c.npy]
+
+4. all common array keys must not be present within the top level folder
+
+
+The trivial case of a single subfold is handled 
+simply by adding the subfold pointers to this
+fold and calling NPFold::set_skipdelete on the 
+single subfold. 
+
+**/
+
+inline bool NPFold::can_concat(std::ostream* out) const
+{
+    int d = maxdepth(); 
+    if(out) *out << "NPFold::can_concat maxdepth " << d << "\n" ;      
+    if(d != 1) return false ; 
+
+    int num_sub = subfold.size(); 
+    if(out) *out << "NPFold::can_concat num_sub " << num_sub << "\n" ;      
+    if(num_sub == 0) return false ; 
+
+    char prefix = INTKEY_PREFIX ; 
+    bool all_intkey = all_subfold_with_intkey(prefix); 
+    if(out) *out << "NPFold::can_concat all_intkey " << ( all_intkey ? "YES" : "NO " )  << "\n" ;      
+    if(!all_intkey) return false ; 
+
+    const NPFold* sub0 = subfold[0] ; 
+    const std::vector<std::string>& kk0 = sub0->kk ; 
+
+    int num_top_kk0 = count_keys(kk0); 
+    if(out) *out << "NPFold::can_concat num_top_kk0 " << num_top_kk0 << "\n" ; 
+    if(num_top_kk0 > 0) return false ; 
+
+    int sub_with_all_kk0 = 1 ; 
+    for(int i=1 ; i < num_sub ; i++) if(subfold[i]->has_all_keys(kk0)) sub_with_all_kk0 += 1 ; 
+    if(out) *out << "NPFold::can_concat sub_with_all_kk0 " << sub_with_all_kk0 << "\n" ;      
+
+    bool can = sub_with_all_kk0 == num_sub ; 
+    if(out) *out << "NPFold::can_concat can " << ( can ? "YES" : "NO " )  << "\n" ;      
+    return can ; 
+}
+
+/*
+NPFold::maxdepth
+-----------------
+
+Maximum depth of the tree of subfold, 0 for a single node tree.  
+
+*/
+
+
+inline int NPFold::maxdepth() const 
+{
+    return MaxDepth_r(this, 0); 
+}
+
+inline int NPFold::MaxDepth_r(const NPFold* nd, int d) // static
+{
+    assert( nd->subfold.size() == nd->ff.size() ); 
+    int num_sub = nd->subfold.size(); 
+    if(num_sub == 0) return d ; 
+
+    int mx = 0 ; 
+    for(int i=0 ; i < num_sub ; i++) 
+    {
+        const NPFold* sub = nd->subfold[i] ; 
+        mx = std::max(mx, MaxDepth_r(sub, d+1)); 
+    }
+    return mx ; 
+
+}
 
 
 
@@ -849,29 +1363,43 @@ like a file system.
 
 **/
 
-inline int NPFold::Traverse_r(const NPFold* nd, std::string path, 
-                 std::vector<const NPFold*>& folds, std::vector<std::string>& paths ) // static
+inline int NPFold::Traverse_r(
+     const NPFold* nd, 
+     std::string path, 
+     std::vector<const NPFold*>& folds, 
+     std::vector<std::string>& paths, 
+     int d, 
+     int mxd ) // static
 {
-    folds.push_back(nd); 
-    paths.push_back(path); 
 
     assert( nd->subfold.size() == nd->ff.size() ); 
     unsigned num_sub = nd->subfold.size(); 
+
+    if(mxd == MXD_NOLIMIT || d <= mxd )
+    {
+        folds.push_back(nd); 
+        paths.push_back(path); 
+    }
 
     int tot_items = nd->num_items() ; 
 
     for(unsigned i=0 ; i < num_sub ; i++) 
     {
         const NPFold* sub = nd->subfold[i] ; 
-        std::string subpath = Concat(path.c_str(), nd->ff[i].c_str(), '/' ) ;  
+        std::string subpath = FormSubPath(path.c_str(), nd->ff[i].c_str(), '/' ) ;  
 
-        int num = Traverse_r( sub, subpath,  folds, paths );  
+        int num = Traverse_r( sub, subpath,  folds, paths, d+1, mxd );  
         tot_items += num ; 
     }
     return tot_items ; 
 }
 
-inline std::string NPFold::Concat(const char* base, const char* sub, char delim ) // static
+
+
+
+
+
+inline std::string NPFold::FormSubPath(const char* base, const char* sub, char delim ) // static
 {
     assert(sub) ; // base can be nullptr : needed for root, but sub must always be defined 
     std::stringstream ss ;
@@ -897,7 +1425,7 @@ inline std::string NPFold::desc_subfold(const char* top)  const
     std::vector<std::string>   paths ;
     assert( folds.size() == paths.size() ); 
 
-    int tot_items = Traverse_r( this, top,  folds, paths ); 
+    int tot_items = Traverse_r( this, top,  folds, paths, 0, MXD_NOLIMIT ); 
 
     std::stringstream ss ; 
     ss << " tot_items " << tot_items << std::endl ; 
@@ -920,16 +1448,24 @@ inline std::string NPFold::desc_subfold(const char* top)  const
     return s ; 
 }
 
+/**
+NPFold::find_subfold_with_prefix
+--------------------------------
+
+**/
+
+
 inline void NPFold::find_subfold_with_prefix(
     std::vector<const NPFold*>& subs, 
     std::vector<std::string>* subpaths, 
-    const char* prefix ) const 
+    const char* prefix, 
+    int maxdepth ) const 
 {
     std::vector<const NPFold*> folds ;
     std::vector<std::string>   paths ;
 
 
-    int tot_items = Traverse_r( this, TOP,  folds, paths ); 
+    int tot_items = Traverse_r( this, TOP,  folds, paths, 0, maxdepth ); 
 
     assert( folds.size() == paths.size() ); 
     int num_paths = paths.size(); 
@@ -941,6 +1477,7 @@ inline void NPFold::find_subfold_with_prefix(
         std::cerr 
             << "NPFold::find_subfold_with_prefix"
             << " prefix " << ( prefix ? prefix : "-" )
+            << " maxdepth " << maxdepth 
             << " TOP " << TOP 
             << " folds.size " << folds.size() 
             << " paths.size " << paths.size() 
@@ -969,6 +1506,25 @@ inline void NPFold::find_subfold_with_prefix(
     }
 }
 
+inline std::string NPFold::DescFoldAndPaths( const std::vector<const NPFold*>& subs, const std::vector<std::string>& subpaths )
+{
+    assert( subs.size() == subpaths.size() ); 
+    std::stringstream ss ;
+    ss << "[NPFold::DescFoldAndPaths\n" ; 
+    for(int i=0 ; i < int(subs.size()) ; i++ )
+    {
+        const NPFold* sub = subs[i]; 
+        const char* p = subpaths[i].c_str(); \
+        ss 
+           << " sub " << ( sub ? "YES" : "NO " ) 
+           << "  p  " << p
+           << "\n"
+           ; 
+    }   
+    ss << "]NPFold::DescFoldAndPaths\n" ; 
+    std::string str = ss.str() ;
+    return str ; 
+}
 
 
 
@@ -992,7 +1548,7 @@ inline int NPFold::total_items() const
     std::vector<const NPFold*> folds ;
     std::vector<std::string>   paths ;
     
-    int tot_items = Traverse_r( this, TOP,  folds, paths ); 
+    int tot_items = Traverse_r( this, TOP,  folds, paths, 0, MXD_NOLIMIT ); 
     return tot_items ; 
 }
 
@@ -1003,6 +1559,18 @@ inline int NPFold::total_items() const
 /**
 NPFold::add
 ------------
+
+CAUTION : NO ARRAY COPYING IS DONE, 
+this simply collects key and pointer into vectors, 
+but clearing will delete those arrays. 
+
+* regard everything added to NPFold to belong to the fold. 
+* input pointers will become stale after clear, dereferencing 
+  them will SIGSEGV (if you are lucky) 
+
+This approach is used as NPFold is intended to work 
+with very large multi-gigabyte arrays : so users 
+need to think carefully regarding memory management.  
 
 When *k* ends with ".txt" the key is changed to ".npy"
 to simplify handling of empty NPX::Holder arrays. 
@@ -1035,7 +1603,11 @@ the pointer loosing connection with that previous allocation
 **/
 inline void NPFold::add_(const char* k, const NP* a) 
 {
-    if(verbose_) std::cerr << "NPFold::add_ [" << k  << "]" <<  std::endl ; 
+    if(verbose_) 
+    {
+        std::string p = get_treepath(k); 
+        std::cerr << "NPFold::add_ [" << p << "]" << a << " " << a->sstr() << "\n" ;
+    }
 
     bool have_key_already = std::find( kk.begin(), kk.end(), k ) != kk.end() ; 
     if(have_key_already) std::cerr 
@@ -1044,6 +1616,15 @@ inline void NPFold::add_(const char* k, const NP* a)
         << descKeys()
         ; 
     assert( !have_key_already ); 
+
+    bool have_a_already = std::find( aa.begin(), aa.end(), a ) != aa.end() ; 
+    if(have_a_already) std::cerr 
+        << "NPFold::add_ FATAL : have_a_already k[" << k << "]"  
+        << std::endl 
+        << descKeys()
+        ; 
+    assert( !have_a_already ); 
+
 
     kk.push_back(k); 
     aa.push_back(a); 
@@ -1107,6 +1688,8 @@ inline std::string NPFold::DescKeys( const std::vector<std::string>& elem, char 
 
 
 
+
+
 /**
 NPFold::clear (clearing this fold and all subfold recursively)
 ----------------------------------------------------------------
@@ -1114,7 +1697,11 @@ NPFold::clear (clearing this fold and all subfold recursively)
 **/
 inline void NPFold::clear()
 {
-    if(verbose_) std::cerr << "NPFold::clear ALL" << std::endl ; 
+    if(verbose_) 
+    {
+        std::string p = get_treepath(); 
+        std::cerr << "NPFold::clear ALL [" << p << "]" << this << "\n" ; 
+    }
     clear_(nullptr);     
 }
 
@@ -1122,6 +1709,10 @@ inline void NPFold::clear()
 /**
 NPFold::clear_
 ----------------
+
+NB: std::vector<NP*>::clear destructs the (NP*) 
+pointers but not the objects (the NP arrays) they point to. 
+
 
 This method is private as it must be used in conjunction with 
 NPFold::clear_except in order to to keep (key, array) pairs
@@ -1132,38 +1723,80 @@ of listed keys.
 3. clears the kk and aa vectors
 4. for each subfold call NPFold::clear on it and clear the subfold and ff vectors
 
+
+HUH: CLEARS ARRAY POINTER VECTOR BUT DOES NOT DELETE 
+ARRAYS WITH KEYS IN THE KEEP LIST SO IT LOOSES 
+ARRAY POINTERS OF KEPT ARRAYS  
+
+THAT CAN ONLY WORK IF THOSE POINTERS WERE GRABBED PREVIOUSLY 
+AS DEMONSTRATED BY clear_except
+
 **/
 
 inline void NPFold::clear_(const std::vector<std::string>* keep)
 {
     check_integrity(); 
+    clear_arrays(keep); 
+    clear_subfold(); 
+}
 
+
+
+
+inline void NPFold::clear_arrays(const std::vector<std::string>* keep)
+{
     for(unsigned i=0 ; i < aa.size() ; i++)
     {
         const NP* a = aa[i]; 
         const std::string& k = kk[i] ; 
         bool listed = keep && std::find( keep->begin(), keep->end(), k ) != keep->end() ; 
-        if(!listed) delete a ; 
+        if(!listed && !skipdelete) 
+        {
+            if(verbose_) 
+            {
+                std::string p = get_treepath(k.c_str()); 
+                std::cerr << "NPFold::clear_arrays.delete[" << p << "]" << a << " " << a->sstr() << "\n"; 
+            }
+            delete a ; 
+        }
     } 
-    aa.clear(); 
+    aa.clear();  
     kk.clear();  
+}
 
-    // HUH: CLEARS ARRAY POINTER VECTOR BUT DOES NOT DELETE 
-    // ARRAYS WITH KEYS IN THE KEEP LIST SO IT LOOSES 
-    // ARRAY POINTERS OF KEPT ARRAYS  
-    //
-    // THAT CAN ONLY WORK IF THOSE POINTERS WERE GRABBED PREVIOUSLY 
-    // AS THEY ARE BY clear_except
 
-    for(unsigned i=0 ; i < subfold.size() ; i++)
+/**
+NPFold::clear_subfold
+----------------------
+
+CAUTION: after doing clear_subfold nullify any pointers to objects that 
+were added to the subfolds and that are deleted by the clear_subfold.
+This avoids SIGSEGV from dereferencing those stale pointers. 
+
+**/
+
+inline void NPFold::clear_subfold()
+{
+    if(verbose_) 
+    {
+        std::string p = get_treepath(); 
+        std::cerr << "NPFold::clear_subfold[" << p << "]" << this << "\n"; 
+    }
+
+    check_integrity(); 
+    int num_sub = subfold.size() ; 
+    [[maybe_unused]] int num_ff = ff.size() ; 
+    assert( num_ff == num_sub ) ; 
+
+    for(int i=0 ; i < num_sub ; i++)
     {
         NPFold* sub = const_cast<NPFold*>(subfold[i]) ; 
         sub->clear();  
     }
-
     subfold.clear();
     ff.clear();       // folder keys 
 }
+
 
 /**
 NPFold::clear_except
@@ -1284,6 +1917,19 @@ inline void NPFold::clear_only(const char* clearlist, bool copy, char delim )
 }
 
 
+
+inline NPFold* NPFold::deepcopy( const char* keylist, char delim ) const 
+{
+    bool shallow_array_copy = false ; 
+    return copy(shallow_array_copy, keylist, delim); 
+}
+inline NPFold* NPFold::shallowcopy( const char* keylist, char delim ) const 
+{
+    bool shallow_array_copy = true ; 
+    return copy(shallow_array_copy, keylist, delim); 
+}
+
+
 /**
 NPFold::copy
 ---------------
@@ -1300,22 +1946,21 @@ shallow:true
 shallow:false 
     arrays are copies and new array pointers used 
 
+NB the shallow refers to the arrays, not the NPFold that
+are lightweight whose pointers are never copies as is 
 
-CURRENTLY subfold are not copied. 
+Also the keylist refer to array keys, not folder keys
 
 **/
 
-inline NPFold* NPFold::copy( const char* keylist, bool shallow, char delim ) const 
+inline NPFold* NPFold::copy(bool shallow_array_copy, const char* keylist, char delim ) const 
 {
-    check_integrity(); 
-
     std::vector<std::string> keys ; 
     if(keylist) SplitKeys(keys, keylist, delim); 
     // SplitKeys adds .npy to keys if not already present 
 
     int count = count_keys(&keys) ; 
-    
-    if( count == 0 && VERBOSE) std::cerr
+    if( keylist && count == 0 && VERBOSE) std::cerr
         << "NPFold::copy"
         << " VERBOSE " << ( VERBOSE ? "YES" : "NO " ) 
         << " NOTE COUNT_KEYS GIVING ZERO "
@@ -1328,55 +1973,87 @@ inline NPFold* NPFold::copy( const char* keylist, bool shallow, char delim ) con
         << std::endl 
         ; 
 
-    //if( count == 0 ) return nullptr ; 
-    // sometimes want fold metadata without any arrays
-
-    NPFold* f = new NPFold ; 
-    CopyMeta(f, this);  // copy metadata to the new fold
-
-    for(unsigned i=0 ; i < aa.size() ; i++)
-    {
-        const NP* a = aa[i]; 
-        const char* k = kk[i].c_str() ; 
-        bool listed = keylist && std::find( keys.begin(), keys.end(), k ) != keys.end() ; 
-        if(listed)
-        { 
-            f->add_( k, shallow ? a : NP::MakeCopy(a) ); 
-        }
-    } 
-    return f ; 
+    return NPFold::Copy(this, shallow_array_copy, keylist ? &keys : nullptr ); 
 }
 
-inline NPFold* NPFold::copy_all(bool shallow) const 
+
+inline NPFold* NPFold::Copy(const NPFold* src, bool shallow_array_copy, std::vector<std::string>* keys ) // static
 {
-    check_integrity(); 
-
-    NPFold* f = new NPFold ; 
-    CopyMeta(f, this);  // copy metadata to the new fold
-
-    for(unsigned i=0 ; i < aa.size() ; i++)
-    {
-        const NP* a = aa[i]; 
-        const char* k = kk[i].c_str() ; 
-        f->add_( k, shallow ? a : NP::MakeCopy(a) ); 
-    } 
-    return f ; 
+    src->check_integrity(); 
+    NPFold* dst = new NPFold ; 
+    CopyMeta(dst, src);
+    CopyArray(  dst, src, shallow_array_copy, keys );
+    CopySubfold(dst, src, shallow_array_copy, keys );
+    dst->check_integrity(); 
+    return dst ; 
 }
 
+/**
+NPFold::CopyMeta
+-----------------
 
+Some members are not copied, namely::
 
+    allowempty
+    skipdelete
+    verbose_
+    parent 
 
+**/
 
-
-
-inline void NPFold::CopyMeta( NPFold* b , const NPFold* a ) // static
+inline void NPFold::CopyMeta( NPFold* dst , const NPFold* src ) // static
 {
-    b->meta = a->meta ; 
-    b->names = a->names ; 
-    b->savedir = a->savedir ? strdup(a->savedir) : nullptr ; 
-    b->loaddir = a->loaddir ? strdup(a->loaddir) : nullptr ; 
-    b->nodata  = a->nodata ; 
+    dst->headline = src->headline ; 
+    dst->meta = src->meta ; 
+    dst->names = src->names ; 
+    dst->savedir = src->savedir ? strdup(src->savedir) : nullptr ; 
+    dst->loaddir = src->loaddir ? strdup(src->loaddir) : nullptr ; 
+    dst->nodata  = src->nodata ; 
+    dst->verbose_ = src->verbose_ ; 
 }
+
+/**
+NPFold::CopyArray
+------------------
+
+keys:nullptr
+   signals copy all arrays without selection
+
+keys:!nullptr
+   only arrays with listed keys are copied 
+
+**/
+
+inline void NPFold::CopyArray( NPFold* dst , const NPFold* src, bool shallow_array_copy, std::vector<std::string>* keys ) // static
+{
+    for(int i=0 ; i < int(src->aa.size()) ; i++)
+    {
+        const NP* a = src->aa[i]; 
+        const char* k = src->kk[i].c_str() ; 
+        bool listed = keys != nullptr && std::find( keys->begin(), keys->end(), k ) != keys->end() ; 
+        bool docopy = keys == nullptr || listed ; 
+        const NP* dst_a = docopy ? ( shallow_array_copy ? a : NP::MakeCopy(a) ) : nullptr  ;  
+        if(dst_a) dst->add_( k, dst_a ); 
+    } 
+
+    if( keys == nullptr ) 
+    {
+        assert( src->aa.size() == dst->aa.size() ) ;  
+    }
+}
+
+inline void NPFold::CopySubfold( NPFold* dst , const NPFold* src, bool shallow_array_copy, std::vector<std::string>* keys ) // static
+{
+    for(int i=0 ; i < int(src->ff.size()) ; i++)
+    {
+        const char* k = src->ff[i].c_str() ; 
+        NPFold* fo = Copy(src->subfold[i], shallow_array_copy, keys); 
+        dst->add_subfold( k, fo ); 
+    } 
+}
+
+
+
 
 
 
@@ -1447,16 +2124,27 @@ inline bool NPFold::has_all_keys(const char* qq_, char delim) const
 {
     std::vector<std::string> qq ; 
     U::Split(qq_, delim, qq ) ;  
-    int num_q = qq.size() ; 
+    return has_all_keys(qq); 
+}
 
+inline bool NPFold::has_all_keys(const std::vector<std::string>& qq) const 
+{
+    int num_q = qq.size() ; 
+    int q_count = count_keys( qq ); 
+    bool has_all = num_q > 0 && q_count == num_q ; 
+    return has_all ; 
+}
+
+inline int NPFold::count_keys(const std::vector<std::string>& qq) const 
+{
+    int num_q = qq.size() ; 
     int q_count = 0 ; 
     for(int i=0 ; i < num_q ; i++) 
     {
        const char* q = qq[i].c_str() ; 
        if(has_key(q)) q_count += 1 ; 
     }
-    bool has_all = num_q > 0 && q_count == num_q ; 
-    return has_all ; 
+    return q_count ; 
 }
 
 
@@ -1556,7 +2244,19 @@ If the key is not found returns an empty string
 **/
 inline std::string NPFold::get_meta_string(const char* key) const
 {
-    return NP::get_meta_string(meta, key);  
+    bool meta_empty = meta.empty(); 
+    if(meta_empty) 
+    {
+        std::string tp = get_treepath(); 
+        std::cerr 
+            << "NPFold::get_meta_string"
+            << " meta_empty " << ( meta_empty ? "YES" : "NO " )
+            << " key " << ( key ? key : "-" )
+            << " treepath " << tp
+            << "\n"
+            ;  
+    }
+    return meta_empty ? "" : NP::get_meta_string(meta, key);  
 }
 
 
@@ -2187,7 +2887,9 @@ inline NP* NPFold::subcount( const char* prefix ) const
     // 1. find subfold with prefix
     std::vector<const NPFold*> subs ; 
     std::vector<std::string> subpaths ; 
-    find_subfold_with_prefix(subs, &subpaths,  prefix );  
+    int maxdepth = 1 ;  // only one level ? 
+
+    find_subfold_with_prefix(subs, &subpaths,  prefix, maxdepth );  
     assert( subs.size() == subpaths.size() ); 
     int num_sub = int(subs.size()) ; 
 
@@ -2256,6 +2958,8 @@ inline NP* NPFold::subcount( const char* prefix ) const
 }
 
 
+
+
 /**
 NPFold::submeta
 ------------------
@@ -2270,7 +2974,9 @@ inline NP* NPFold::submeta(const char* prefix, const char* column_key ) const
 
     std::vector<const NPFold*> subs ; 
     std::vector<std::string> subpaths ; 
-    find_subfold_with_prefix(subs, &subpaths,  prefix );  
+    int maxdepth = 1 ;  // only look one level down
+
+    find_subfold_with_prefix(subs, &subpaths,  prefix, maxdepth );  
     assert( subs.size() == subpaths.size() ); 
 
     // collect metadata (k,v) pairs that are the same for all the subs as well as other keys
@@ -2326,11 +3032,14 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
 { 
     std::vector<const NPFold*> subs ; 
     std::vector<std::string> subpaths ; 
-    find_subfold_with_prefix(subs, &subpaths,  prefix );  
+    int maxdepth = 1 ;  // only one level down
+    find_subfold_with_prefix(subs, &subpaths,  prefix, maxdepth );  
     assert( subs.size() == subpaths.size() ); 
     int num_sub = int(subs.size()) ;
 
+
     bool dump = getenv("NPFold__substamp_DUMP") != nullptr ; 
+
 
     const NPFold* sub0 = num_sub > 0 ? subs[0] : nullptr ; 
 
@@ -2340,11 +3049,13 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
     if(dump) std::cout 
         << "[NPFold::substamp" 
         << " find_subfold_with_prefix " << prefix
+        << " maxdepth " << maxdepth 
         << " num_sub " << num_sub
         << " sub0 " << ( sub0 ? sub0->stats() : "-" )
         << " num_stamp0 " << num_stamp0
         << " skip " << ( skip ? "YES" : "NO ") 
         << std::endl
+        << DescFoldAndPaths(subs, subpaths)
         ;
 
     NPFold* out = nullptr ; 
@@ -2444,7 +3155,8 @@ inline NPFold* NPFold::subprofile(const char* prefix, const char* keyname) const
 {
     std::vector<const NPFold*> subs ; 
     std::vector<std::string> subpaths ; 
-    find_subfold_with_prefix(subs, &subpaths,  prefix );  
+    int maxdepth = 1 ;  // only one level down
+    find_subfold_with_prefix(subs, &subpaths,  prefix, maxdepth );  
     assert( subs.size() == subpaths.size() ); 
     int num_sub = int(subs.size()) ; 
     int num_prof0 = num_sub > 0 ? subs[0]->getMetaNumProfile() : 0 ;  
@@ -2455,6 +3167,7 @@ inline NPFold* NPFold::subprofile(const char* prefix, const char* keyname) const
     if(dump) std::cout 
         << "[NPFold::subprofile"
         << " find_subfold_with_prefix " << prefix
+        << " maxdepth " << maxdepth
         << " num_sub " << num_sub 
         << " num_prof0 " << num_prof0
         << " skip " << ( skip ? "YES" : "NO ") 

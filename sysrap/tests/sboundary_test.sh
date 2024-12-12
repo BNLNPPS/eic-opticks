@@ -5,6 +5,9 @@ sboundary_test.sh
 
 ::
 
+    ~/o/sysrap/tests/sboundary_test.sh
+
+
     N=160 POLSCALE=10 AOI=BREWSTER ./sboundary_test.sh 
     N=160 POLSCALE=10 AOI=45 ./sboundary_test.sh 
 
@@ -14,6 +17,9 @@ EOU
 }
 
 name=sboundary_test
+cd $(dirname $(realpath $BASH_SOURCE))
+export PYTHONPATH=$PWD/../../..
+
 export FOLD=/tmp/$USER/opticks/$name
 mkdir -p $FOLD
 
@@ -42,15 +48,19 @@ export TOPLINE=${TOPLINE:-$topline}
 export GEOM=AOI_${AOI}
 
 
+cuda_prefix=/usr/local/cuda
+CUDA_PREFIX=${CUDA_PREFIX:-$cuda_prefix}
+
+
 defarg=build_run_ana
 arg=${1:-$defarg}
 
 if [ "${arg/build}" != "$arg" ]; then 
    gcc $name.cc \
-          -std=c++11 -lstdc++ \
+          -std=c++11 -lstdc++ -lm \
           -I.. \
           -DMOCK_CURAND \
-          -I/usr/local/cuda/include \
+          -I$CUDA_PREFIX/include \
           -I$OPTICKS_PREFIX/externals/glm/glm \
           -I$OPTICKS_PREFIX/externals/plog/include \
           -o $FOLD/$name 
@@ -63,10 +73,16 @@ if [ "${arg/run}" != "$arg" ]; then
    [ $? -ne 0 ] && echo $BASH_SOURCE run error && exit 2 
 fi 
 
-if [ "${arg/ana}" != "$arg" ]; then 
+if [ "${arg/pdb}" != "$arg" ]; then 
    ${IPYTHON:-ipython} --pdb -i $name.py 
-   [ $? -ne 0 ] && echo $BASH_SOURCE ana error && exit 3 
+   [ $? -ne 0 ] && echo $BASH_SOURCE pdb error && exit 3 
 fi 
+
+if [ "${arg/ana}" != "$arg" ]; then 
+   ${PYTHON:-python} $name.py 
+   [ $? -ne 0 ] && echo $BASH_SOURCE ana error && exit 4 
+fi 
+
 
 if [ "$arg" == "pvcap" -o "$arg" == "pvpub" -o "$arg" == "mpcap" -o "$arg" == "mppub" ]; then
     export CAP_BASE=$FOLD/figs

@@ -44,6 +44,7 @@
 #include "SProf.hh"
 
 
+bool SEvt::NPFOLD_VERBOSE = ssys::getenvbool(SEvt__NPFOLD_VERBOSE) ; 
 bool SEvt::GATHER = ssys::getenvbool(SEvt__GATHER) ; 
 bool SEvt::LIFECYCLE = ssys::getenvbool(SEvt__LIFECYCLE) ; 
 bool SEvt::MINIMAL = ssys::getenvbool(SEvt__MINIMAL) ; 
@@ -152,6 +153,7 @@ The config used depends on:
 1. envvars such as OPTICKS_EVENT_MODE that can change default config values 
 2. static SEventConfig method calls done before SEvt instanciation 
    that change the default config values 
+3. available VRAM as detected by (scontext)SEventConfig::CONTEXT
 
 **/
 
@@ -161,6 +163,7 @@ SEvt::SEvt()
     index(MISSING_INDEX),
     instance(MISSING_INSTANCE),
     stage(SEvt__SEvt),
+    gather_metadata_notopfold(0),
     t_BeginOfEvent(0),
 #ifndef PRODUCTION
     t_setGenstep_0(0),
@@ -189,7 +192,8 @@ SEvt::SEvt()
     random(nullptr),
     random_array(nullptr),
     provider(this),   // overridden with SEvt::setCompProvider for device running from QEvent::init 
-    fold(new NPFold),
+    topfold(new NPFold),
+    fold(nullptr),
     cf(nullptr),
     hostside_running_resize_done(false),
     gather_done(false),
@@ -227,6 +231,8 @@ components gatherered from device buffers.
 
 void SEvt::init()
 {
+    if(NPFOLD_VERBOSE) topfold->set_verbose();  
+
     setStage(SEvt__init); 
 
     LOG_IF(info, LIFECYCLE) << id() ; 
@@ -255,7 +261,8 @@ void SEvt::init()
 
 void SEvt::setFoldVerbose(bool v)
 {
-    fold->set_verbose(v); 
+    topfold->set_verbose(v); 
+    if(fold) fold->set_verbose(v); 
 }
 
 
@@ -263,9 +270,9 @@ const char* SEvt::GetSaveDir(int idx) // static
 { 
     return Exists(idx) ? Get(idx)->getSaveDir() : nullptr ; 
 }
-const char* SEvt::getSaveDir() const { return fold->savedir ; }
-const char* SEvt::getLoadDir() const { return fold->loaddir ; }
-int SEvt::getTotalItems() const { return fold->total_items() ; }
+const char* SEvt::getSaveDir() const { return topfold->savedir ; }
+const char* SEvt::getLoadDir() const { return topfold->loaddir ; }
+int SEvt::getTotalItems() const { return topfold->total_items() ; }
 
 /**
 SEvt::getSearchCFbase
@@ -628,7 +635,7 @@ NP* SEvt::makeG4State() const
 
 void SEvt::setG4State( NP* state) { g4state = state ; }
 NP* SEvt::gatherG4State() const {  return g4state ; } // gather is used prior to persisting, get is used after loading 
-const NP* SEvt::getG4State() const {  return fold->get(SComp::Name(SCOMP_G4STATE)) ; }
+const NP* SEvt::getG4State() const {  return topfold->get(SComp::Name(SCOMP_G4STATE)) ; }
 
 
 /**
@@ -745,7 +752,7 @@ void SEvt::addInputGenstep()
         if(frs)
         {
             LOG(LEVEL) << " non-default frs " << frs << " passed to SEvt::SetReldir " ; 
-            SEvt::SetReldir(frs);  
+            SEventConfig::SetEventReldir(frs);  
         }
   
         NP* gs = SFrameGenstep::MakeCenterExtentGenstep_FromFrame(frame);  
@@ -783,7 +790,7 @@ void SEvt::addInputGenstep()
                 if( SEvent::HasGENSTEP() )   
                 {   
                     // expected with G4CXApp.h U4Recorder running : see G4CXApp::GeneratePrimaries
-                    // this is because the gensteps are needed really really with Geant4 running 
+                    // this is because the gensteps are needed really early with Geant4 running 
                     igs = SEvent::GetGENSTEP() ; 
                 }
                 else
@@ -1052,8 +1059,8 @@ SEvt* SEvt::Create_ECPU(){ return Create(ECPU) ; }
  
 SEvt* SEvt::Create(int ins)  // static
 { 
-    const char* alldir = spath::Resolve("ALL${VERSION:-0}") ; 
-    SEvt::SetReldir(alldir); 
+    //const char* alldir = spath::Resolve("ALL${VERSION:-0}") ; 
+    //SEvt::SetReldir(alldir); 
 
     assert( ins == 0 || ins == 1); 
     SEvt* ev = new SEvt ; 
@@ -1269,7 +1276,7 @@ SEvt* SEvt::LoadRelative(const char* rel, int ins, int idx  )  // static
 {
     LOG(LEVEL) << "[" ; 
 
-    if(rel != nullptr) SetReldir(rel); 
+    if(rel != nullptr) SEventConfig::SetEventReldir(rel); 
 
     SEvt* ev = SEvt::Create(ins) ; 
     if(idx > -1) ev->setIndex(idx); 
@@ -1324,6 +1331,7 @@ bool SEvt::HaveDistinctOutputDirs() // static
     SEvt* i0 = Get(0); 
     SEvt* i1 = Get(1); 
     return i0->index != i1->index ; 
+   // NO LONGER NEEDED ? NOW THAT USE 'A' 'B' prefix ?
 }
 
 
@@ -1519,7 +1527,7 @@ ECPU
 -----
 
 As gensteps are collected before EGPU.beginOfEvent
-cannot clear EGPU at this juncture. 
+the clear_output excludes gs/gensteps as they are inputs. 
 
 Need to think of the lifecycle of both ECPU and EGPU together. 
 This remains true even with runningMode 1 which has no ECPU 
@@ -1542,7 +1550,7 @@ void SEvt::beginOfEvent(int eventID)
 
     LOG_IF(info, LIFECYCLE) << id() ; 
 
-    clear_output(); 
+    clear_output();   // output vectors and fold : excluding gensteps as thats input 
 
     addInputGenstep();  // does genstep setup for simtrace, input photon and torch running
 
@@ -1584,6 +1592,7 @@ void SEvt::endOfEvent(int eventID)
 
     endIndex(eventID);   // eventID is 0-based 
     endMeta(); 
+    gather_metadata();   
 
     save();              // gather and save SEventConfig configured arrays
     clear_output(); 
@@ -1659,12 +1668,11 @@ S4RandomArray* SEvt::GetRandomArray(int idx)
 
 
 // SetReldir can be used with the default SEvt::save() changing the last directory element before the index if present
-
-const char* SEvt::DEFAULT_RELDIR = "ALL${VERSION:-0}" ;   
-const char* SEvt::RELDIR = nullptr ; 
-void        SEvt::SetReldir(const char* reldir_){ RELDIR = reldir_ ? strdup(reldir_) : nullptr ; }
-const char* SEvt::GetReldir(){ return RELDIR ? RELDIR : DEFAULT_RELDIR ; }
-
+// MOVED TO SEventConfig::EventReldir 
+//const char* SEvt::DEFAULT_RELDIR = "ALL${VERSION:-0}" ;   
+//const char* SEvt::RELDIR = nullptr ; 
+//void        SEvt::SetReldir(const char* reldir_){ RELDIR = reldir_ ? strdup(reldir_) : nullptr ; }
+//const char* SEvt::GetReldir(){ return RELDIR ? RELDIR : DEFAULT_RELDIR ; }
 
 int SEvt::GetNumPhotonCollected(int idx){    return Exists(idx) ? Get(idx)->getNumPhotonCollected() : UNDEF ; }
 int SEvt::GetNumPhotonGenstepMax(int idx){   return Exists(idx) ? Get(idx)->getNumPhotonGenstepMax() : UNDEF ; }
@@ -1734,9 +1742,8 @@ SEvt::clear_genstep_vector
 ----------------------------
 
 1. set photon counts to zero 
-2. clears the vectors
+2. clears gs and genstep vectors
 
-Note that most of the vectors are only used with hostside running.
 
 
 **/
@@ -1757,6 +1764,22 @@ void SEvt::clear_genstep_vector()
 }
 
 
+
+/**
+SEvt::clear_output_vector
+---------------------------
+
+
+Notice
+
+1. no hit : thats a sub-selection of the photon 
+2. genstep+gs vectors are not cleared : they are inputs to the optical simulation, not outputs 
+
+Note that most of the vectors are only used with hostside running.
+
+**/
+
+
 void SEvt::clear_output_vector()
 {
     clear_output_vector_count += 1 ; 
@@ -1773,7 +1796,6 @@ void SEvt::clear_output_vector()
     simtrace.clear(); 
     aux.clear(); 
     sup.clear(); 
-    // NOTE no hit : thats a sub-selection of the photon 
     g4state = nullptr ;   // avoiding stale (g4state is special, as only used for 1st event) 
 }
 
@@ -1785,12 +1807,9 @@ void SEvt::clear_output_vector()
 SEvt::clear_output
 --------------------
 
-Clear vectors and the fold.
+* Called from SEvt::beginOfEvent and SEvt::endOfEvent
+* Clear output vectors and the fold excluding the gensteps. 
 
-Note this is called by:
-
-   (EGPU instance) QEvent::setGenstep 
-   (ECPU instance)
 
 **/
 
@@ -1801,12 +1820,26 @@ void SEvt::clear_output()
     LOG_IF(info, LIFECYCLE) << id() << " BEFORE clear_output_vector " ; 
 
     clear_output_vector(); 
-    fold->clear_except("genstep", false, ','); 
+
+    const char* keylist = "genstep" ; 
+    bool copy = false ; 
+    char delim = ',' ; 
+
+    topfold->clear_except(keylist, copy, delim ); 
 
     LOG_IF(info, LIFECYCLE) << id() << " AFTER clear_output_vector " ; 
 
     LOG(LEVEL) << "]" ; 
 }
+
+/**
+SEvt::clear_genstep
+---------------------
+
+* canonical call from SEvt::endOfEvent
+
+**/
+
 
 void SEvt::clear_genstep()
 {
@@ -1814,7 +1847,7 @@ void SEvt::clear_genstep()
     LOG_IF(info, LIFECYCLE) << id() << " BEFORE clear_genstep_vector " ; 
 
     clear_genstep_vector(); 
-    fold->clear_only("genstep", false, ','); 
+    topfold->clear_only("genstep", false, ','); 
 
     LOG_IF(info, LIFECYCLE) << id() << " AFTER clear_genstep_vector " ; 
 }
@@ -2117,7 +2150,7 @@ needed to accommodate the photons from the last genstep collected.
 void SEvt::setNumPhoton(unsigned num_photon)
 {
     //LOG_IF(info, LIFECYCLE) << id() << " num_photon " << num_photon ; 
-    bool num_photon_allowed = num_photon <= (unsigned)(evt->max_photon) ;
+    bool num_photon_allowed = num_photon <= (unsigned)(evt->max_photon) ;   // evt->max_slot ? 
     const int M = 1000000 ; 
 
     LOG_IF(fatal, !num_photon_allowed) << " num_photon/M " << num_photon/M << " evt.max_photon/M " << evt->max_photon/M ;
@@ -2143,6 +2176,9 @@ void SEvt::setNumPhoton(unsigned num_photon)
 
     hostside_running_resize_done = false ;    
 }
+
+
+
 
 /**
 SEvt::setNumSimtrace
@@ -3359,7 +3395,7 @@ std::string SEvt::descDir() const
 
 std::string SEvt::descFold() const 
 {
-    return fold->desc(); 
+    return topfold->desc(); 
 }
 std::string SEvt::Brief() // static
 {
@@ -3468,21 +3504,25 @@ fold to get the stats.
 
 void SEvt::gather_components()   // *GATHER*
 {
+    fold = topfold->add_subfold(); 
+    if(NPFOLD_VERBOSE) fold->set_verbose(); 
+    const char* fkey = topfold->get_last_subfold_key();  // f000 f001 f001 ...
+
+
     int num_genstep = -1 ; 
     int num_photon  = -1 ; 
     int num_hit     = -1 ; 
 
     int num_comp = gather_comp.size() ; 
 
-    LOG(LEVEL) << " num_comp " << num_comp << " from provider " << provider->getTypeName() ; 
-    LOG_IF(info, GATHER) << " num_comp " << num_comp << " from provider " << provider->getTypeName() ; 
-
+    LOG(LEVEL) << " num_comp " << num_comp << " from provider " << provider->getTypeName() << " fkey " << ( fkey ? fkey : "-" )   ; 
+    LOG_IF(info, GATHER) << " num_comp " << num_comp << " from provider " << provider->getTypeName() << " fkey " << ( fkey ? fkey : "-" ) ; 
 
     for(int i=0 ; i < num_comp ; i++)
     {
         unsigned cmp = gather_comp[i] ;   
         const char* k = SComp::Name(cmp);    
-        NP* a = provider->gatherComponent(cmp); 
+        NP* a = provider->gatherComponent(cmp);  // see QEvent::gatherComponent for GPU running 
         bool null_component = a == nullptr ;
 
         LOG(LEVEL) 
@@ -3496,8 +3536,6 @@ void SEvt::gather_components()   // *GATHER*
             << " a " << ( a ? a->brief() : "-" ) 
             << " null_component " << ( null_component ? "YES" : "NO " ) 
             ; 
-
-
 
 
         if(null_component) continue ;  
@@ -3532,18 +3570,25 @@ void SEvt::gather_components()   // *GATHER*
 SEvt::gather_metadata
 ----------------------
 
-HMM: replaces fold.meta with metadata from provider : either this SEvt or QEvent ?
+Lots of timing metadata, so try calling from SEvt::endOfEvent not SEvt::gather
 
-* does this make sense anymore ?  
+HMM: replaces fold.meta with metadata from provider : either this SEvt or QEvent ?
 
 **/
 
 
 void SEvt::gather_metadata()
 {
+    if(topfold == nullptr)
+    {
+        LOG_IF(error, gather_metadata_notopfold < 10) << " gather_metadata_notopfold " << gather_metadata_notopfold ; 
+        gather_metadata_notopfold += 1 ; 
+        return ; 
+    }
+
     std::string provmeta = provider->getMeta(); 
     LOG(LEVEL) << " provmeta ["<< provmeta << "]" ; 
-    fold->meta = provmeta ; 
+    topfold->meta = provmeta ; 
 }
 
 
@@ -3558,32 +3603,39 @@ into NPFold from the SCompProvider which can either be:
 * this SEvt instance for hostside running
 * the qudarap/QEvent instance for deviceside running, eg G4CXSimulateTest
 
+
+For multi-launch running genstep slices are uploaded 
+before each launch and *gather* is called after each launch.
+
 **/
 
 void SEvt::gather() 
 {
     setStage(SEvt__gather); 
-    LOG_IF(info, LIFECYCLE) << id() ; 
-    LOG_IF(fatal, gather_done) << " gather_done ALREADY : SKIPPING " ; 
-    if(gather_done) return ; 
-    gather_done = true ;   // SEvt::setNumPhoton which gets called by adding gensteps resets this to false
+    LOG_IF(info, LIFECYCLE) << id() ;
+ 
+    // LOG_IF(fatal, gather_done) << " gather_done ALREADY : SKIPPING " ; 
+    // if(gather_done) return ; 
+    // gather_done = true ; 
+    //   endOfEvent/clear_genstep/clear_genstep_vector resets this to false   
+
 
     gather_components(); 
-    gather_metadata(); 
+    // gather_metadata();   //  try moving to SEvt::endOfEvent just after endMeta
+
 }
-
-
 
 
 void SEvt::add_array( const char* k, const NP* a )
 {
+    assert(0);  // WHO CALLS THIS
     LOG(LEVEL) << " k " << k << " a " << ( a ? a->sstr() : "-" ) ; 
     fold->add(k, a);  
 }
 
 void SEvt::addEventConfigArray() 
 {
-    fold->add(SEventConfig::NAME, SEventConfig::Serialize() ); 
+    topfold->add(SEventConfig::NAME, SEventConfig::Serialize() ); 
 }
 
 /**
@@ -3649,21 +3701,21 @@ Only when more control of the output is needed is it appropriate to use OPTICKS_
 
 void SEvt::save() 
 {
-    const char* dir = DefaultDir(); 
-    save(dir); 
+    const char* base = DefaultBase(); 
+    save(base); 
 }
 void SEvt::saveExtra( const char* name, const NP* a  ) const 
 {
-    const char* dir = DefaultDir(); 
+    const char* dir = getDir(); 
     saveExtra( dir, name , a );  
 }
 
 
 int SEvt::load()
 {
-    const char* dir = DefaultDir(); 
-    int rc = load(dir); 
-    LOG(LEVEL) << "SEvt::DefaultDir " << dir << " rc " << rc ;
+    const char* base = DefaultBase(); 
+    int rc = load(base); 
+    LOG(LEVEL) << "SEvt::DefaultBase " << base << " rc " << rc ;
     return rc ;  
 }
 
@@ -3691,49 +3743,33 @@ bool SEvt::hasInstance() const
 
 
 
-/**
-SEvt::getOutputDir_OLD
------------------------
 
-Returns the directory that will be used by SEvt::save so long as
-the same base_ argument is used, which may be nullptr to use the default. 
+const char* SEvt::DefaultBase(const char* base_) // static
+{
+    const char* base = base_ ? base_ : spath::DefaultOutputDir() ; // this is "$TMP/GEOM/$GEOM/$ExecutableName" 
+    return base ;  
+}
+
+
+/**
+SEvt::RunDir
+--------------
+
+Directory without event index, used for run level metadata. 
 
 **/
 
-const char* SEvt::getOutputDir_OLD(const char* base_) const 
+const char* SEvt::RunDir( const char* base_ )  // static
 {
-    const char* defd = DefaultDir() ; 
-    const char* base = base_ ? base_ : defd ; 
-    const char* reldir = GetReldir() ;   // eg "ALL" or "ALL0" or "ALL${VERSION:-0}"
-    const char* sidx = hasIndex() ? getIndexString(nullptr) : nullptr ; 
-    const char* path = sidx ? spath::Resolve(base,reldir,sidx ) : spath::Resolve(base, reldir) ; 
-    sdirectory::MakeDirs(path,0); 
-
-    LOG(info)
-        << std::endl  
-        << " base_  " << ( base_ ? base_ : "-" )
-        << std::endl  
-        << " base   " << ( base ? base : "-" )
-        << std::endl  
-        << " reldir " << ( reldir ? reldir : "-" )
-        << std::endl  
-        << " SEvt::DefaultDir " << ( defd ? defd : "-" )
-        << std::endl  
-        << " spath::Resolve(\"$DefaultOutputDir\" )"
-        << spath::Resolve("$DefaultOutputDir" )
-        << std::endl  
-        << " spath::Resolve(\"$TMP\" )"
-        << spath::Resolve("$TMP" )
-        << std::endl  
-        << " path    " << ( path ? path : "-" )  
-        << std::endl  
-        ;
-
-    return path ;  
+    const char* base = DefaultBase(base_); 
+    const char* reldir = SEventConfig::EventReldir() ; 
+    const char* dir = spath::Resolve(base, reldir ); 
+    sdirectory::MakeDirs(dir,0); 
+    return dir ; 
 }
 
 /**
-SEvt::getOutputDir
+SEvt::getDir
 ----------------------------
 
 Reimpl in a way that is faster to understand, 
@@ -3744,12 +3780,22 @@ high level control here in one place.
 HMM: could expand on that approach exposing ALL$VERSION 
 here too instead of hiding in Reldir
 
+Example with::
+
+    TMP               /data/blyth/opticks 
+    GEOM              J_2024nov27 
+    ExecutableName    CSGOptiXSMTest
+    VERSION           1
+    Reldir            ALL1
+    sidx:IndexString  A000
+    OutputDir         /data/blyth/opticks/GEOM/J_2024nov27/CSGOptiXSMTest/ALL1/A000/
+
 **/
 
-const char* SEvt::getOutputDir(const char* base_) const 
+const char* SEvt::getDir(const char* base_) const 
 {
-    const char* base = base_ ? base_ : "$TMP/GEOM/$GEOM/$ExecutableName" ; 
-    const char* reldir = GetReldir() ; 
+    const char* base = DefaultBase(base_); 
+    const char* reldir = SEventConfig::EventReldir() ; 
     const char* sidx = hasIndex() ? getIndexString(nullptr) : nullptr ; 
     const char* path = sidx ? spath::Resolve(base,reldir,sidx ) : spath::Resolve(base, reldir) ; 
     sdirectory::MakeDirs(path,0); 
@@ -3801,36 +3847,10 @@ const char* SEvt::getIndexString(const char* hdr) const
 
 
 
-
-/**
-SEvt::RunDir
---------------
-
-Directory without event index, used for run level metadata. 
-
-**/
-
-const char* SEvt::RunDir( const char* base_ )  // static
-{
-    const char* base = base_ ? base_ : SEvt::DefaultDir() ; 
-    const char* reldir = GetReldir() ; 
-    const char* dir = spath::Resolve(base, reldir ); 
-    sdirectory::MakeDirs(dir,0); 
-    return dir ; 
-}
-
-const char* SEvt::DefaultDir() // static
-{
-    return SEventConfig::OutFold() ; 
-}
-
-
-
-
 std::string SEvt::descSaveDir(const char* dir_) const 
 {
-    const char* dir = getOutputDir(dir_); 
-    const char* reldir = GetReldir() ; 
+    const char* dir = getDir(dir_); 
+    const char* reldir = SEventConfig::EventReldir() ; 
     bool with_index = index != MISSING_INDEX ;  
     std::stringstream ss ; 
     ss << "SEvt::descSaveDir"
@@ -3846,10 +3866,13 @@ std::string SEvt::descSaveDir(const char* dir_) const
     return str ;  
 } 
 
-int SEvt::load(const char* dir_) 
+int SEvt::load(const char* base_) 
 {
-    const char* dir = getOutputDir(dir_); 
-    LOG(LEVEL) << " dir " << dir ; 
+    const char* dir = getDir(base_); 
+    LOG(LEVEL) 
+        << " base_ " << ( base_ ? base_ : "-" )
+        << " dir " << ( dir ? dir : "-" )
+        ; 
     LOG_IF(fatal, dir == nullptr) << " null dir : probably missing environment : run script, not executable directly " ;   
     assert(dir); 
     int rc = loadfold(dir); 
@@ -3858,9 +3881,9 @@ int SEvt::load(const char* dir_)
 
 int SEvt::loadfold( const char* dir )
 {
-    LOG(LEVEL) << "[ fold.load " << dir ; 
-    int rc = fold->load(dir); 
-    LOG(LEVEL) << "] fold.load " << dir ; 
+    LOG(LEVEL) << "[ topfold.load " << dir ; 
+    int rc = topfold->load(dir); 
+    LOG(LEVEL) << "] topfold.load " << dir ; 
     is_loaded = true ; 
     onload(); 
     return rc ; 
@@ -3869,7 +3892,7 @@ int SEvt::loadfold( const char* dir )
 
 void SEvt::onload()
 {
-    const NP* domain = fold->get(SComp::Name(SCOMP_DOMAIN)) ; 
+    const NP* domain = topfold->get(SComp::Name(SCOMP_DOMAIN)) ; 
     if(!domain) return ; 
 
     index = domain->get_meta<int>("index");  
@@ -3910,6 +3933,19 @@ then the directory is suffixed with the index::
 
     /some/directory/A001
 
+
+
+
+Notice the mixed memory handling in the below.
+The save_fold is shallow copied from topfold, indicating 
+it does not own its arrays and should not be deleted.
+All fine so far. But then seqnib and seqnib_table are created
+and added ... so those would leak without the manual deletes
+at the tail.  
+
+How to avoid the need for such care ? NPFold has a skipdelete flag, 
+but that is at fold level./ Perhaps need each array to have skipdelete ?
+
 **/
 
 void SEvt::save(const char* dir_) 
@@ -3921,9 +3957,8 @@ void SEvt::save(const char* dir_)
     LOG(LEVEL) << descComponent() ; 
     LOG(LEVEL) << descFold() ; 
 
-    bool shallow = true ; 
     std::string save_comp = SEventConfig::SaveCompLabel() ; 
-    NPFold* save_fold = fold->copy(save_comp.c_str(), shallow) ; 
+    NPFold* save_fold = topfold->shallowcopy(save_comp.c_str());   
 
     LOG_IF(LEVEL, save_fold == nullptr) << " NOTHING TO SAVE SEventConfig::SaveCompLabel/OPTICKS_SAVE_COMP  " << save_comp ; 
     if(save_fold == nullptr) return ;  
@@ -3944,7 +3979,7 @@ void SEvt::save(const char* dir_)
     int slic = save_fold->_save_local_item_count(); 
     if( slic > 0 )
     {
-        const char* dir = getOutputDir(dir_);   // THIS CREATES DIRECTORY
+        const char* dir = getDir(dir_);   // THIS CREATES DIRECTORY
         LOG_IF(info, MINIMAL) << dir << " [" << save_comp << "]"  ; 
         LOG(LEVEL) << descSaveDir(dir_) ; 
 
@@ -3969,7 +4004,7 @@ void SEvt::save(const char* dir_)
 
 void SEvt::saveExtra(const char* dir_, const char* name, const NP* a ) const
 {
-    const char* dir = getOutputDir(dir_); 
+    const char* dir = getDir(dir_); 
     a->save(dir, name );  
 } 
 
@@ -3982,25 +4017,30 @@ void SEvt::saveFrame(const char* dir) const
 }
 
 
-std::string SEvt::descComponent() const 
+std::string SEvt::descComponent() const
 {
-    const NP* genstep  = fold->get(SComp::Name(SCOMP_GENSTEP)) ; 
-    const NP* seed     = fold->get(SComp::Name(SCOMP_SEED)) ;  
-    const NP* photon   = fold->get(SComp::Name(SCOMP_PHOTON)) ; 
-    const NP* hit      = fold->get(SComp::Name(SCOMP_HIT)) ; 
-    const NP* record   = fold->get(SComp::Name(SCOMP_RECORD)) ; 
-    const NP* rec      = fold->get(SComp::Name(SCOMP_REC)) ;  
-    const NP* aux      = fold->get(SComp::Name(SCOMP_REC)) ;  
-    const NP* sup      = fold->get(SComp::Name(SCOMP_SUP)) ;  
-    const NP* seq      = fold->get(SComp::Name(SCOMP_SEQ)) ; 
-    const NP* domain   = fold->get(SComp::Name(SCOMP_DOMAIN)) ; 
-    const NP* simtrace = fold->get(SComp::Name(SCOMP_SIMTRACE)) ; 
-    const NP* g4state  = fold->get(SComp::Name(SCOMP_G4STATE)) ; 
-    const NP* pho      = fold->get(SComp::Name(SCOMP_PHO)) ; 
-    const NP* gs       = fold->get(SComp::Name(SCOMP_GS)) ; 
+    return DescComponent(topfold); 
+}
+ 
+std::string SEvt::DescComponent(const NPFold* f)  // static
+{
+    const NP* genstep  = f->get(SComp::Name(SCOMP_GENSTEP)) ; 
+    const NP* seed     = f->get(SComp::Name(SCOMP_SEED)) ;  
+    const NP* photon   = f->get(SComp::Name(SCOMP_PHOTON)) ; 
+    const NP* hit      = f->get(SComp::Name(SCOMP_HIT)) ; 
+    const NP* record   = f->get(SComp::Name(SCOMP_RECORD)) ; 
+    const NP* rec      = f->get(SComp::Name(SCOMP_REC)) ;  
+    const NP* aux      = f->get(SComp::Name(SCOMP_REC)) ;  
+    const NP* sup      = f->get(SComp::Name(SCOMP_SUP)) ;  
+    const NP* seq      = f->get(SComp::Name(SCOMP_SEQ)) ; 
+    const NP* domain   = f->get(SComp::Name(SCOMP_DOMAIN)) ; 
+    const NP* simtrace = f->get(SComp::Name(SCOMP_SIMTRACE)) ; 
+    const NP* g4state  = f->get(SComp::Name(SCOMP_G4STATE)) ; 
+    const NP* pho      = f->get(SComp::Name(SCOMP_PHO)) ; 
+    const NP* gs       = f->get(SComp::Name(SCOMP_GS)) ; 
 
     std::stringstream ss ; 
-    ss << "SEvt::descComponent" 
+    ss << "SEvt::DescComponent" 
        << std::endl 
        << std::setw(20) << " SEventConfig::GatherCompLabel " << SEventConfig::GatherCompLabel() << std::endl  
        << std::endl 
@@ -4076,8 +4116,8 @@ std::string SEvt::descComponent() const
        << " "
        << std::endl
        ;
-    std::string s = ss.str(); 
-    return s ; 
+    std::string str = ss.str(); 
+    return str ; 
 }
 std::string SEvt::descComp() const 
 {
@@ -4121,18 +4161,18 @@ std::string SEvt::descVec() const
 
 
 
-const NP* SEvt::getGenstep() const { return fold->get(SComp::GENSTEP_) ;}
-const NP* SEvt::getPhoton() const {  return fold->get(SComp::PHOTON_) ; }
-const NP* SEvt::getHit() const {     return fold->get(SComp::HIT_) ; }
-const NP* SEvt::getAux() const {     return fold->get(SComp::AUX_) ; }
-const NP* SEvt::getSup() const {     return fold->get(SComp::SUP_) ; }
-const NP* SEvt::getPho() const {     return fold->get(SComp::PHO_) ; }
-const NP* SEvt::getGS() const {      return fold->get(SComp::GS_) ; }
+const NP* SEvt::getGenstep() const { return topfold->get(SComp::GENSTEP_) ;}
+const NP* SEvt::getPhoton() const {  return topfold->get(SComp::PHOTON_) ; }
+const NP* SEvt::getHit() const {     return topfold->get(SComp::HIT_) ; }
+const NP* SEvt::getAux() const {     return topfold->get(SComp::AUX_) ; }
+const NP* SEvt::getSup() const {     return topfold->get(SComp::SUP_) ; }
+const NP* SEvt::getPho() const {     return topfold->get(SComp::PHO_) ; }
+const NP* SEvt::getGS() const {      return topfold->get(SComp::GS_) ; }
 
-unsigned SEvt::getNumPhoton() const { return fold->get_num(SComp::PHOTON_) ; }
+unsigned SEvt::getNumPhoton() const { return topfold->get_num(SComp::PHOTON_) ; }
 unsigned SEvt::getNumHit() const    
 { 
-    int num = fold->get_num(SComp::HIT_) ;  // number of items in array 
+    int num = topfold->get_num(SComp::HIT_) ;  // number of items in array 
     return num == NPFold::UNDEF ? 0 : num ;   // avoid returning -1 when no hits
 }
 
@@ -4510,7 +4550,7 @@ std::string SEvt::descFull(unsigned max_print) const
     ss << descFramePhoton(max_print) << std::endl ; 
 
     ss << ( cf ? cf->descBase() : "no-cf" ) << std::endl ; 
-    ss << ( fold ? fold->desc() : "no-fold" ) << std::endl ; 
+    ss << ( topfold ? topfold->desc() : "no-topfold" ) << std::endl ; 
     ss << "] SEvt::descFull "  << std::endl ; 
     std::string s = ss.str(); 
     return s ; 

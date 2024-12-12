@@ -1,18 +1,19 @@
 #pragma once
 /**
-QCurandState.hh : creates states
-=====================================
+QCurandStateMonolithic.hh : allocate + create + download + save
+=================================================================
 
-* loading from file is handled separately by QRng::Load 
+* creates states using curand_init with CUDA launchs configured by SLaunchSequence.h
+* loading/saving from/to file is handled separately by QRng
 
-The curandState originate on the device as a result of 
+The RNG originate on the device as a result of 
 calling curand_init and they need to be downloaded and stored
 into files named informatively with seeds, counts, offsets etc..
 
 A difficulty is that calling curand_init is a very heavy kernel, 
 so currently the below large files are created via multiple launches all 
 writing into the single files shown below.  
-The old cuRANDWrapper and new QCurandState have exactly the same contents. 
+The old cuRANDWrapper and new QCurandStateMonolithic have exactly the same contents. 
 
 +-----------+---------------+----------------+--------------------------------------------------------------------+
 |  num      | bytes (ls)    | filesize(du -h)|  path                                                              |
@@ -30,20 +31,20 @@ The old cuRANDWrapper and new QCurandState have exactly the same contents.
 |     1M    |    44000000   |    42M         | /home/blyth/.opticks/rngcache/RNG/cuRANDWrapper_1000000_0_0.bin    |
 +-----------+---------------+----------------+--------------------------------------------------------------------+
 
-+-----------+---------------+----------------+--------------------------------------------------------------------+
-|  num      | bytes (ls)    | filesize(du -h)|  path                                                              |
-+===========+===============+================+====================================================================+
-|    10M    |   440000000   |   420M         | /home/blyth/.opticks/rngcache/RNG/QCurandState_10000000_0_0.bin    |   
-+-----------+---------------+----------------+--------------------------------------------------------------------+
-|     3M    |   132000000   |   126M         | /home/blyth/.opticks/rngcache/RNG/QCurandState_3000000_0_0.bin     |
-+-----------+---------------+----------------+--------------------------------------------------------------------+
-|     1M    |    44000000   |    42M         | /home/blyth/.opticks/rngcache/RNG/QCurandState_1000000_0_0.bin     | 
-+-----------+---------------+----------------+--------------------------------------------------------------------+
++-----------+---------------+----------------+-------------------------------------------------------------------------------+
+|  num      | bytes (ls)    | filesize(du -h)|  path                                                                         |
++===========+===============+================+===============================================================================+
+|    10M    |   440000000   |   420M         | /home/blyth/.opticks/rngcache/RNG/QCurandStateMonolithiic_10000000_0_0.bin    |   
++-----------+---------------+----------------+-------------------------------------------------------------------------------+
+|     3M    |   132000000   |   126M         | /home/blyth/.opticks/rngcache/RNG/QCurandStateMonolithic_3000000_0_0.bin      |
++-----------+---------------+----------------+-------------------------------------------------------------------------------+
+|     1M    |    44000000   |    42M         | /home/blyth/.opticks/rngcache/RNG/QCurandStateMonolithic_1000000_0_0.bin      | 
++-----------+---------------+----------------+-------------------------------------------------------------------------------+
 
 
-With GPU VRAM of 48G the limit coming from combination of photons and curandStates is about 400M
+With GPU VRAM of 48G the limit coming from combination of photons and RNGs is about 400M
 
-* curandState item size in the files is 44 bytes which get padded to 48 bytes in curandState type
+* curand StateXORWOW item size in the files is 44 bytes which get padded to 48 bytes in curand StateXORWOW type
 * dealing with 16.4GB files for 400M states is uncomfortable, so will need to rearrange into multiple files
 * chunking into files of 10M states each would correspond to 40 files of 10M states each (420M bytes) 
 * with 40-100 files of 10M states each could push to one billion photon launch if had GPU with 100G VRAM 
@@ -62,7 +63,9 @@ HMM: 61M proves to be over optimistic for small VRAM, see ~/opticks/notes/max_ph
 
 
 
-TODO:chunked creation, chunk naming, chunked save/load 
+WIP:chunked creation, chunk naming, chunked save/load 
+
+See SCurandState.h SCurandChunk.h 
 
 **/
 
@@ -70,25 +73,25 @@ TODO:chunked creation, chunk naming, chunked save/load
 #include <cstdint>
 #include "QUDARAP_API_EXPORT.hh"
 #include "plog/Severity.h"
-#include "SCurandState.hh"
+#include "SCurandStateMonolithic.hh"
 
-struct qcurandstate ; 
+struct qcurandwrap ; 
 struct SLaunchSequence ; 
 
-struct QUDARAP_API QCurandState
+struct QUDARAP_API QCurandStateMonolithic
 {
     static const plog::Severity LEVEL ; 
-    static constexpr const char* EKEY = "QCurandState_SPEC" ; 
-    static QCurandState* Create(); 
-    static QCurandState* Create(const char* spec); 
+    static constexpr const char* EKEY = "QCurandStateMonolithic_SPEC" ; 
+    static QCurandStateMonolithic* Create(); 
+    static QCurandStateMonolithic* Create(const char* spec); 
 
-    const SCurandState scs ; 
-    qcurandstate* h_cs ; 
-    qcurandstate* cs ; 
-    qcurandstate* d_cs ; 
+    const SCurandStateMonolithic scs ; 
+    qcurandwrap* h_cs ; 
+    qcurandwrap* cs ; 
+    qcurandwrap* d_cs ; 
     SLaunchSequence* lseq ; 
 
-    QCurandState(const SCurandState& scs); 
+    QCurandStateMonolithic(const SCurandStateMonolithic& scs); 
     void init(); 
     void alloc(); 
     void create(); 

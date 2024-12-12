@@ -3,6 +3,18 @@
 G4CXTest_GEOM.py
 ======================
 
+This script is intended for simple plotting and 
+statistical SEvt comparison. 
+
+The alternate script G4CXTest.py is used for 
+more detailed plotting such as single photon path 
+illustration. 
+
+::
+
+     PICK=AB HSEL="TO BT BT SA" ~/o/G4CXTest_GEOM.sh ana
+
+
 """
 import os, logging, textwrap, numpy as np
 from opticks.ana.fold import Fold
@@ -14,6 +26,7 @@ from opticks.ana.p import *  # including cf boundary___
 
 MODE = int(os.environ.get("MODE","3"))
 SEL = int(os.environ.get("SEL","0"))
+HSEL = os.environ.get("HSEL","")    # History selection 
 PICK = os.environ.get("PICK","A")
 SAB_ = "SAB" in os.environ
 
@@ -33,10 +46,10 @@ else:
 pass
 
 
-def eprint(expr, l, g ):
+def eprint(expr, _locals, _globals ):
     print(expr)
     try:
-       val = eval(expr,l,g)
+       val = eval(expr,_locals,_globals)
     except AttributeError:
        val = "eprint:AttributeError"
     pass
@@ -46,6 +59,7 @@ pass
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
+    print("MODE:%s SEL:%s PICK:%s SAB_:%s " % (MODE, SEL, PICK, SAB_) ) 
 
     if PICK == "A" or PICK == "AB" or SAB_:
         a = SEvt.Load("$AFOLD", symbol="a")
@@ -61,6 +75,55 @@ if __name__ == '__main__':
         b = None
     pass
 
+
+    if not HSEL == "":
+        print("doing HSEL [%s] history selection " % HSEL )
+
+        wa = a.q_startswith_or(HSEL) if not a is None else None
+        wa_shape = "-" if wa is None else repr(wa.shape)
+        print("wa.shape %s " % wa_shape)
+
+        wb = b.q_startswith_or(HSEL) if not b is None else None
+        wb_shape = "-" if wb is None else repr(wb.shape)
+        print("wb.shape %s " % wb_shape)
+
+        ra = a.f.record[wa] if not a is None else None
+        ra_shape = "-" if ra is None else repr(ra.shape)
+        print("ra.shape %s " % ra_shape)
+
+        rb = b.f.record[wb] if not b is None else None
+        rb_shape = "-" if rb is None else repr(rb.shape)
+        print("rb.shape %s " % rb_shape)
+
+        ns = len(HSEL.split(" "))
+        st = slice(0,ns)
+        bnd_ra = ra[:,st,3,0].view(np.uint32) >> 16 if not ra is None else None
+        bnd_rb = rb[:,st,3,0].view(np.uint32) >> 16 if not rb is None else None 
+        assert np.all( bnd_rb == 0 ) # unfortunately no boundary info for B, YET  
+
+        lbnd_ra = ra[:,st.stop-1,3,0].view(np.uint32) >> 16 if not ra is None else None
+        u_lbnd_ra, n_lbnd_ra = np.unique(lbnd_ra, return_counts=True) 
+
+        for i in range(len(u_lbnd_ra)):
+            print(" u_lbnd_ra[%2d] %3d   n_lbnd_ra[%2d] %7d   cf.sim.bndnamedict.get(%3d) : %s " % 
+                     ( i, u_lbnd_ra[i], i, n_lbnd_ra[i], u_lbnd_ra[i], cf.sim.bndnamedict.get(u_lbnd_ra[i], "err-bnd") ))
+            pass
+        pass 
+
+
+        rra = np.sqrt(np.sum(ra[:,st,0,:3]*ra[:,st,0,:3],axis=2)) if not ra is None else None
+        rra_shape = "-" if rra is None else repr(rra.shape)  
+        print("rra.shape %s " % rra_shape )
+
+        rrb = np.sqrt(np.sum(rb[:,st,0,:3]*rb[:,st,0,:3],axis=2)) if not rb is None else None
+        rrb_shape = "-" if rrb is None else repr(rrb.shape)  
+        print("rrb.shape %s " % rrb_shape )
+
+    else:
+        print("set HSEL to make history selection ")
+        pass
+    pass 
+   
     ee = {'A':a, 'B':b} 
 
     if SAB_: 

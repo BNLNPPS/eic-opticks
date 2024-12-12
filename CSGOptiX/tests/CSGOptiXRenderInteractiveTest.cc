@@ -5,6 +5,7 @@ CSGOptiXRenderInteractiveTest.cc : Interactive raytrace rendering of analytic ge
 Analytic CSGOptiX rendering with SGLM/SGLFW interactive control/visualization. 
 Usage with::
 
+   ~/o/cx.sh 
    ~/o/CSGOptiX/cxr_min.sh 
 
 Note this provides only CSGOptiX ray trace rendering, there is no rasterized toggle 
@@ -32,6 +33,8 @@ TODO:
 
 * WIP: moved some common CSGOptiX stuff down to sysrap header-only such as jpg/png writing and image annotation 
 
+* TODO: composite OpenGL event representation pixels together with OptiX ray traced renders
+
 **/
 
 #include "ssys.h"
@@ -55,30 +58,7 @@ int main(int argc, char** argv)
     CSGFoundry* fd = CSGFoundry::Load(); 
 
     SScene* scene = fd->getScene(); 
-
-    if(scene->is_empty())
-    {
-        LOG(fatal) << "CSGFoundry::Load GIVES EMPTY SCENE : TRANSITIONAL KLUDGE : TRY TO LOAD FROM SCENE_FOLD " ; 
-        //scene = SScene::Load("$SCENE_FOLD");   
-        //fd->setOverrideScene(scene); 
-    }
-    else
-    {
-        LOG(info) << "standard CSGFoundry::Load has scene : no need to kludge OverrideScene " ; 
-    }
-
-
-    static const char* _FRAME_HOP = "CSGOptiXRenderInteractiveTest__FRAME_HOP" ;  
-    static const char* _SGLM_DESC = "CSGOptiXRenderInteractiveTest__SGLM_DESC" ;  
-    bool FRAME_HOP = ssys::getenvbool(_FRAME_HOP); 
-    bool SGLM_DESC = ssys::getenvbool(_SGLM_DESC); 
-
-
-    CSGOptiX* cx = CSGOptiX::Create(fd) ;
-
-    SGLM& gm = *(cx->sglm) ; 
-    SGLFW gl(gm); 
-    SGLFW_CUDA interop(gm); 
+    assert(!scene->is_empty()); 
 
     stree* st = fd->getTree(); 
     assert(st);
@@ -87,13 +67,24 @@ int main(int argc, char** argv)
     const char* PFX = "EXTENT:" ;
     float extent = sstr::StartsWith(MOI, PFX) ? sstr::To<float>( MOI + strlen(PFX) ) : 0.f ;  
     // this extent handling is primarily for use with simple single solid test geometries
-    int sleep_break = ssys::getenvint("SLEEP_BREAK",0); 
-
 
     sfr mfr = extent > 0.f ? sfr::MakeFromExtent<float>(extent) :  st->get_frame(MOI);    // HMM: what about when start from CSGMaker geometry ? 
     mfr.set_idx(-2);                 // maybe should start from stree/snode/sn geometry with an streemaker.h ?  
+    // moved stree::get_frame prior to popping up the window, so failures 
+    // from bad MOI dont cause hang 
 
- 
+    static const char* _FRAME_HOP = "CSGOptiXRenderInteractiveTest__FRAME_HOP" ;  
+    static const char* _SGLM_DESC = "CSGOptiXRenderInteractiveTest__SGLM_DESC" ;  
+    bool FRAME_HOP = ssys::getenvbool(_FRAME_HOP); 
+    bool SGLM_DESC = ssys::getenvbool(_SGLM_DESC); 
+
+    CSGOptiX* cx = CSGOptiX::Create(fd) ;
+
+    SGLM& gm = *(cx->sglm) ; 
+    SGLFW gl(gm); 
+    SGLFW_CUDA interop(gm); 
+
+    int sleep_break = ssys::getenvint("SLEEP_BREAK",0); 
 
     std::cout << "before loop  gl.get_wanted_frame_idx " <<  gl.get_wanted_frame_idx() << "\n" ; 
 
@@ -129,9 +120,11 @@ int main(int argc, char** argv)
 
 
         uchar4* d_pixels = interop.output_buffer->map() ; 
+        // d_pixels : device side pointer to output, 
+        // mapping passes "baton" to CUDA/OptiX for filling    
 
         cx->setExternalDevicePixels(d_pixels); 
-        cx->render_launch(); 
+        cx->render_launch();     // ray tracing OptiX launch populating the pixels 
 
         int wanted_snap = gl.get_wanted_snap();
         if( wanted_snap == 1 || wanted_snap == 2 )
@@ -145,7 +138,7 @@ int main(int argc, char** argv)
             gl.set_wanted_snap(0); 
         }
 
-        interop.output_buffer->unmap() ; 
+        interop.output_buffer->unmap() ;   // unmap, pass baton back to OpenGL for display 
         interop.displayOutputBuffer(gl.window);
 
         gl.renderloop_tail();

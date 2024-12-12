@@ -15,6 +15,9 @@
 #include "SEventConfig.hh"
 #include "SCSGOptiX.h"
 
+#include "SGenstep.h"
+#include "sslice.h"
+
 #include "NP.hh"
 #include "QUDA_CHECK.h"
 #include "QU.hh"
@@ -110,7 +113,7 @@ void QSim::UploadComponents( const SSim* ssim  )
 
     unsigned skipahead_event_offset = SEventConfig::EventSkipahead()  ; 
     LOG(LEVEL) << "[ new QRng skipahead_event_offset : " << skipahead_event_offset << " " << SEventConfig::kEventSkipahead ;
-    QRng* rng = new QRng(skipahead_event_offset)  ;  // loads and uploads curandState 
+    QRng* rng = new QRng(skipahead_event_offset)  ;  // loads and uploads RNG 
     LOG(LEVEL) << "] new QRng " << rng->desc()  ;
 
     LOG(LEVEL) << rng->desc(); 
@@ -324,10 +327,14 @@ void QSim::post_launch()
 QSim::simulate
 ---------------
 
-Canonically invoked from G4CXOpticks::simulate
+Two canonical invokations:
+
+1. G4CXOpticks::simulate for full dependency running 
+2. CSGOptiX::simulate for pure CSGOptiX level testing such as by ~/o/cxs_min.sh 
+
 Collected genstep are uploaded and the CSGOptiX kernel is launched to generate and propagate. 
 
-NB the surprising fact that this calls CSGOptiX::simulate (using a protocol), 
+NB the surprising fact that this calls CSGOptiX::simulate_launch (using a protocol), 
 that seems funny dependency-wise but its needed for genstep preparation prior to 
 the launch. 
 
@@ -347,8 +354,11 @@ the launch.
 
 **/
 
+bool QSim::KEEP_SUBFOLD = ssys::getenvbool(QSim__simulate_KEEP_SUBFOLD); 
+
 double QSim::simulate(int eventID, bool reset_)
 {
+    double tot_dt = 0. ; 
     SProf::Add("QSim__simulate_HEAD"); 
 
     LOG_IF(info, SEvt::LIFECYCLE) << "[ eventID " << eventID ;
@@ -356,29 +366,59 @@ double QSim::simulate(int eventID, bool reset_)
 
     sev->beginOfEvent(eventID);  // set SEvt index and tees up frame gensteps for simtrace and input photon simulate running
 
-    int rc = event->setGenstep() ;    // QEvent 
-    LOG_IF(error, rc != 0) << " QEvent::setGenstep ERROR : have event but no gensteps collected : will skip cx.simulate " ; 
+
+    NP* gs_ = sev->getGenstepArray();  
+
+    std::vector<sslice> gs_slice ; 
+    SGenstep::GetGenstepSlices( gs_slice, gs_, SEventConfig::MaxSlot() ); 
+    int num_slice = gs_slice.size(); 
+    LOG(LEVEL) << sslice::Desc(gs_slice); 
+
+    for(int i=0 ; i < num_slice ; i++)
+    {
+        const sslice& sl = gs_slice[i] ; 
+
+        LOG(info) << sl.desc() ; 
+
+        int rc = event->setGenstepUpload_NP(gs_, &sl ) ; 
+        LOG_IF(error, rc != 0) << " QEvent::setGenstep ERROR : have event but no gensteps collected : will skip cx.simulate " ; 
 
 
-    SProf::Add("QSim__simulate_PREL"); 
+        SProf::Add("QSim__simulate_PREL"); 
 
-    sev->t_PreLaunch = sstamp::Now() ; 
-    double dt = rc == 0 && cx != nullptr ? cx->simulate_launch() : -1. ;  //SCSGOptiX protocol
-    sev->t_PostLaunch = sstamp::Now() ; 
-    sev->t_Launch = dt ; 
+        sev->t_PreLaunch = sstamp::Now() ; 
+        double dt = rc == 0 && cx != nullptr ? cx->simulate_launch() : -1. ;  //SCSGOptiX protocol
+        sev->t_PostLaunch = sstamp::Now() ; 
+        sev->t_Launch = dt ; 
 
-    SProf::Add("QSim__simulate_POST"); 
+        tot_dt += dt ; 
 
-    sev->gather(); 
+        SProf::Add("QSim__simulate_POST"); 
 
-    SProf::Add("QSim__simulate_DOWN"); 
+        sev->gather(); 
+        // trying to use sub fold not top fold
+
+        SProf::Add("QSim__simulate_DOWN"); 
+    }
+    sev->topfold->concat(); 
+    if(KEEP_SUBFOLD)
+    { 
+        LOG(LEVEL) << " KEEP_SUBFOLD " ; 
+    }
+    else
+    {
+        LOG(LEVEL) << "[ clear_subfold " ; 
+        sev->topfold->clear_subfold(); 
+        LOG(LEVEL) << "] clear_subfold " ; 
+    }
+
 
     int num_ht = sev->getNumHit() ;   // NB from fold, so requires hits array gathering to be configured to get non-zero 
     int num_ph = event->getNumPhoton() ; 
 
     LOG_IF(info, SEvt::MINIMAL) 
         << " eventID " << eventID 
-        << " dt " << std::setw(11) << std::fixed << std::setprecision(6) << dt 
+        << " tot_dt " << std::setw(11) << std::fixed << std::setprecision(6) << tot_dt 
         << " ph " << std::setw(10) << num_ph 
         << " ph/M " << std::setw(10) << num_ph/M 
         << " ht " << std::setw(10) << num_ht 
@@ -388,8 +428,43 @@ double QSim::simulate(int eventID, bool reset_)
 
     if(reset_) reset(eventID) ; 
     SProf::Add("QSim__simulate_TAIL"); 
-    return dt ; 
+
+    return tot_dt ; 
 }
+
+
+
+/**
+QSim::getPhotonSlotOffset
+---------------------------
+
+The photon slot offset is available 
+from QEvent after setGenstepUpload_NP
+
+The first genstep slice yields an offset of zero.
+So this only yields non-zero offsets for multi-launch
+running,
+
+
+The photon_slot_offset is uploaded to Params on device prior 
+to simulate launches by CSGOptiX::prepareParamSimulate
+
+The offset is used at head of CSGOptiX7.cu:simulate  to offset the
+launch index. 
+
+Hence the sum of the offset and the 
+number of photons in the launch must be less than
+or equal the number of states uploaded. 
+
+**/
+
+
+
+int QSim::getPhotonSlotOffset() const
+{
+    return event->getPhotonSlotOffset() ; 
+}
+
 
 /**
 QSim::reset
@@ -397,12 +472,13 @@ QSim::reset
 
 When *QSim::simulate* is called with argument *reset:true* the
 *QSim::reset* method is called which invokes SEvt::endOfEvent in order
-to clean up the SEvt after saving any Opticks configured arrays.
+to clean up the SEvt. Normally that would be done after saving 
+any Opticks configured arrays.
 
 When *QSim::simulate* is called with argument *reset:false*
 the *QSim::reset* method must be called separately in order to avoid a memory leak. 
 Using *reset:false* is typically done in order to keep arrays alive longer 
-to enable copying the info from the gathered arrays into non-Opticks collections.  
+to enable copying from the gathered arrays into non-Opticks collections.  
 
 **/
 void QSim::reset(int eventID)
@@ -435,8 +511,11 @@ double QSim::simtrace(int eventID)
     sev->t_PreLaunch = sstamp::Now() ; 
     double dt = rc == 0 && cx != nullptr ? cx->simtrace_launch() : -1. ;
     sev->t_PostLaunch = sstamp::Now() ; 
-
     sev->t_Launch = dt ; 
+
+    // see ~/o/notes/issues/cxt_min_simtrace_revival.rst
+    sev->gather(); 
+
     sev->endOfEvent(eventID); 
 
     return dt ; 
@@ -669,7 +748,7 @@ void QSim::rng_sequence( const char* dir, unsigned ni, unsigned nj, unsigned nk,
 
     for(unsigned t=0 ; t < num_tranche ; t++)
     {
-        // *id_offset* controls which rngstates/curandState to use
+        // *id_offset* controls which rngstates/RNG to use
         unsigned id_offset = ni_tranche_size*t ; 
         std::string name = QU::rng_sequence_name<T>(PREFIX, ni_tranche_size, nj, nk, id_offset ) ;  
 

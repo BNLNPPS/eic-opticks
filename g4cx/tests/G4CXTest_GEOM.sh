@@ -1,4 +1,4 @@
-#!/bin/bash -l 
+#!/bin/bash  
 usage(){ cat << EOU
 G4CXTest_GEOM.sh : Standalone optical only bi-simulation with G4CXApp::Main and current GEOM 
 ================================================================================================
@@ -31,6 +31,16 @@ booting from a persisted geometry during testing due to the ~2s initialization t
     ~/opticks/CSGOptiX/cxs_min.sh
 
 
+
+chi2 subcommand
+----------------
+
+Uses::
+
+   $SDIR/../../sysrap/tests/sseq_index_test.sh info_run_ana
+
+
+
 storch::generate is used for both GPU and CPU generation
 ---------------------------------------------------------
 
@@ -56,15 +66,14 @@ EOU
 }
 
 SDIR=$(dirname $(realpath $BASH_SOURCE))
+## not the normal cd to the SDIR, as need to cd to LOGDIR but use scripts from SDIR
 
 bin=G4CXTest
 ana_script=$SDIR/G4CXTest_GEOM.py 
 dna_script=$SDIR/G4CXTest.py 
 
 source $HOME/.opticks/GEOM/GEOM.sh   # set GEOM and associated envvars for finding geometry
-
-[ -n "$CVD" ] && export CUDA_VISIBLE_DEVICES=$CVD
-
+export ${GEOM}_GDMLPathFromGEOM=$HOME/.opticks/GEOM/$GEOM/origin.gdml
 
 
 version=98
@@ -240,6 +249,10 @@ if [ "$OPTICKS_RUNNING_MODE" == "SRM_TORCH" ]; then
 elif [ "$OPTICKS_RUNNING_MODE" == "SRM_INPUT_PHOTON" ]; then 
     echo -n 
 
+    ## UNTESTED
+    export OPTICKS_INPUT_PHOTON=RainXZ_Z230_10k_f8.npy
+    export OPTICKS_INPUT_PHOTON_FRAME=NNVT:0:1000
+
 elif [ "$OPTICKS_RUNNING_MODE" == "SRM_INPUT_GENSTEP" ]; then 
     echo -n 
 
@@ -269,11 +282,38 @@ logging()
 [ -n "$LOG" ] && logging
 [ -n "$LIFECYCLE" ] && export SEvt__LIFECYCLE=1
 
+allarg="info_env_run_dbg_report_plot_grab_gevt_chi2_ana_dna_mpcap_mppub_pvcap_pvpub"
 defarg="info_env_run_report_ana"
 #defarg="info_dbg_ana"
+[ -n "$BP" ] && defarg="info_dbg" 
+
 arg=${1:-$defarg}
 
-vars="BASH_SOURCE SDIR GEOM ${GEOM}_CFBaseFromGEOM ${GEOM}_GDMLPath VERSION TMP BASE LOGDIR AFOLD BFOLD CVD CUDA_VISIBLE_DEVICES ana_script" 
+
+gdb__() 
+{ 
+    if [ -z "$BP" ]; then
+        H="";
+        B="";
+        T="-ex r";
+    else
+        H="-ex \"set breakpoint pending on\"";
+        B="";
+        for bp in $BP;
+        do
+            B="$B -ex \"break $bp\" ";
+        done;
+        T="-ex \"info break\" -ex r";
+    fi;
+    local runline="gdb $H $B $T --args $* ";
+    echo $runline;
+    date;
+    eval $runline;
+    date
+}
+
+
+vars="BASH_SOURCE allarg defarg arg SDIR GEOM ${GEOM}_CFBaseFromGEOM ${GEOM}_GDMLPathFromGEOM bin VERSION TMP BASE PWD LOGDIR AFOLD BFOLD CUDA_VISIBLE_DEVICES ana_script dna_script TEST" 
 
 
 if [ "${arg/info}" != "$arg" ]; then 
@@ -287,11 +327,13 @@ fi
 if [ "${arg/run}" != "$arg" ]; then
     rm -f $bin.log
     $bin
+    pwd
+    ls -alst $bin.log
     [ $? -ne 0 ] && echo $BASH_SOURCE run error && exit 1 
 fi 
 
 if [ "${arg/dbg}" != "$arg" ]; then
-    dbg__ $bin
+    gdb__ $bin
     [ $? -ne 0 ] && echo $BASH_SOURCE dbg error && exit 2 
 fi 
 
@@ -306,18 +348,18 @@ if [ "${arg/plot}" != "$arg" ]; then
 fi 
 
 if [ "${arg/grab}" != "$arg" ]; then
-    source $SDIR/../../bin/rsync.sh $LOGDIR   ## COULD BE VERY LARGE : BETTER TO GRAB SINGLE EVT  
+    echo $FUNCNAME - grab - WARNING - debug events can be VERY LARGE - use gevt to rsync single event  
+    source $SDIR/../../bin/rsync.sh $LOGDIR   
     [ $? -ne 0 ] && echo $BASH_SOURCE grab error && exit 3 
 fi
 
 if [ "${arg/gevt}" != "$arg" ]; then
-    source $OPTICKS_HOME/bin/rsync.sh $AFOLD
-    source $OPTICKS_HOME/bin/rsync.sh $BFOLD
+    source $SDIR/../../bin/rsync.sh $AFOLD
+    source $SDIR/../../bin/rsync.sh $BFOLD
 fi 
 
 if [ "${arg/chi2}" != "$arg" ]; then
-    #sseq_index_test
-    $OPTICKS_HOME/sysrap/tests/sseq_index_test.sh info_run_ana
+    $SDIR/../../sysrap/tests/sseq_index_test.sh info_run_ana
     [ $? -ne 0 ] && echo $BASH_SOURCE sseq_index_test chi2 ERROR && exit 3 
 fi 
 
