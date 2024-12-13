@@ -10,6 +10,7 @@
 #include "G4Track.hh"
 #include "G4OpticalPhoton.hh"
 #include "G4Event.hh"
+#include "G4RunManager.hh"
 
 #include "SEvt.hh"
 #include "scuda.h"
@@ -221,8 +222,10 @@ static quad6 MakeGenstep_G4Cerenkov_modified(
 
     gs->pos.x = x0.x() ; 
     gs->pos.y = x0.y() ; 
-    gs->pos.z = x0.z() ; 
-    gs->time = t0 ; 
+    gs->pos.z = x0.z() ;
+
+    G4int eventId = G4RunManager::GetRunManager()->GetCurrentEvent()->GetEventID();
+    gs->time = t0 + eventId*1000*ns; 
 
     gs->DeltaPosition.x = deltaPosition.x() ; 
     gs->DeltaPosition.y = deltaPosition.y() ; 
