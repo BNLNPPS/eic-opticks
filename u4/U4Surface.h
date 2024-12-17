@@ -275,7 +275,7 @@ inline const std::vector<G4LogicalSkinSurface*>* U4Surface::PrepareSkinSurfaceVe
     }   
 
 #else
-    VKS* vec = tab;
+    const VKS* vec = tab;
 #endif
     return vec ; 
 }
