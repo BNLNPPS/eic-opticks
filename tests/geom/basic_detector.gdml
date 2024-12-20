@@ -123,15 +123,15 @@
   </materials>
 
   <solids>
-    <box lunit="mm" name="G4_WATER_solid0x560299392fb0" x="100" y="100" z="100"/>
-    <box lunit="mm" name="G4_AIR_solid0x560299392d00" x="200" y="200" z="200"/>
+    <box lunit="mm" name="G4_WATER_solid0x560299392fb0" x="10" y="10" z="10"/>
+    <box lunit="mm" name="G4_AIR_solid0x560299392d00" x="1200" y="1200" z="1200"/>
     <opticalsurface finish="0" model="0" name="medium_container_bs0x560299397a10" type="1" value="1">
       <property name="RINDEX" ref="RINDEX0x5602993a1df0"/>
       <property name="REFLECTIVITY" ref="REFLECTIVITY0x5602993a4e30"/>
       <property name="GROUPVEL" ref="GROUPVEL0x56029939be20"/>
     </opticalsurface>
-    <box lunit="mm" name="G4_Pb_solid0x560299392a50" x="220" y="220" z="220"/>
-    <box lunit="mm" name="VACUUM_solid0x56029938bd10" x="240" y="240" z="240"/>
+    <box lunit="mm" name="G4_Pb_solid0x560299392a50" x="1300" y="1300" z="1300"/>
+    <box lunit="mm" name="VACUUM_solid0x56029938bd10" x="1400" y="1400" z="1400"/>
   </solids>
 
   <structure>
