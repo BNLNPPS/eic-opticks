@@ -125,7 +125,7 @@
   <solids>
     <box lunit="mm" name="G4_WATER_solid0x560299392fb0" x="10" y="10" z="10"/>
     <box lunit="mm" name="G4_AIR_solid0x560299392d00" x="1200" y="1200" z="1200"/>
-    <opticalsurface finish="polished" model="glisur" name="medium_container_bs0x560299397a10" type="dielectric_metal" value="1">
+    <opticalsurface finish="ground" model="glisur" name="medium_container_bs0x560299397a10" type="dielectric_metal" value="1">
       <property name="RINDEX" ref="RINDEX0x5602993a1df0"/>
       <property name="REFLECTIVITY" ref="REFLECTIVITY0x5602993a4e30"/>
       <property name="GROUPVEL" ref="GROUPVEL0x56029939be20"/>
