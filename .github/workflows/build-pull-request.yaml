@@ -34,9 +34,6 @@ jobs:
 
       - name: Test
         shell: bash
-        env:
-          GEOM: fakegeom
-          OPTICKS_EVENT_MODE: DebugLite
         run: |
           opticks-full-prepare
           ctest --test-dir $OPTICKS_PREFIX/build/okconf
