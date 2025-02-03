@@ -1,0 +1,40 @@
+name: Build Pull Request
+
+on:
+  pull_request:
+    branches:
+      - '**'
+
+concurrency:
+   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+   cancel-in-progress: true
+
+jobs:
+
+  build-n-test:
+    runs-on: [gpu]
+
+    container:
+      image: ghcr.io/bnlnpps/esi-shell
+      volumes:
+        - /usr/local/optix:/usr/local/optix
+      options: -i -t
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build
+        shell: bash
+        run: |
+          echo OPTICKS_PREFIX=$OPTICKS_PREFIX
+          cmake -S . -B $OPTICKS_PREFIX/build -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DCMAKE_BUILD_TYPE=Debug \
+          cmake --build $OPTICKS_PREFIX/build --parallel --target install
+
+      - name: Test
+        shell: bash
+        env:
+          GEOM: fakegeom
+          OPTICKS_EVENT_MODE: DebugLite
+        run: |
+          tests/test_opticks.sh
