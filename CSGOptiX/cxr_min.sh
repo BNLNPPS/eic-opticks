@@ -3,6 +3,15 @@ usage(){ cat << EOU
 cxr_min.sh : minimal executable and script for shakedown
 ============================================================
 
+This uses one of two executables:
+
+CSGOptiXRenderInteractiveTest
+   interactive ray trace executable using OpenGL/CUDA interop
+
+CSGOptiXRMTest
+   single image ray trace executable with no OpenGL dependency is
+   used when SNAP envvar is defined 
+
 See also:
 
 cxr_grab.sh 
@@ -76,13 +85,21 @@ bin=CSGOptiXRenderInteractiveTest
 source ~/.opticks/GEOM/GEOM.sh   # sets GEOM envvar, use GEOM bash function to setup/edit 
 source ~/.opticks/GEOM/MOI.sh    # sets MOI envvar, use MOI bash function to setup/edit  
 
-
-export CSGFoundry__Load_DUMP=1   # report the directory loaded 
-
-
+export SGLFW__DEPTH=1   # dump _depth.jpg together with screenshots 
 
 # TRANSITIONAL KLUDGE
 export SCENE_FOLD=/tmp/SScene_test
+
+
+
+logging(){ 
+   type $FUNCNAME
+   export CSGFoundry__Load_DUMP=1   # report the directory loaded 
+   export CSGOptiX__prepareParamRender_DEBUG=1
+   export SGLM__updateProjection_DEBUG=1
+}
+[ -n "$LOG" ] && logging 
+
 
 
 #eye=1000,1000,1000
@@ -234,8 +251,8 @@ Resolve_CFBaseFromGEOM()
    : HMM : FOR SOME TESTS WANT TO LOAD GDML BUT FOR OTHERS CSGFoundry 
    : to handle that added gdml resolution to eg g4cx/tests/GXTestRunner.sh 
 
-   local A_CFBaseFromGEOM=$TMP/G4CXOpticks_setGeometry_Test/$GEOM
-   local B_CFBaseFromGEOM=$HOME/.opticks/GEOM/$GEOM
+   local A_CFBaseFromGEOM=$HOME/.opticks/GEOM/$GEOM
+   local B_CFBaseFromGEOM=$TMP/G4CXOpticks_setGeometry_Test/$GEOM
    local C_CFBaseFromGEOM=/cvmfs/opticks.ihep.ac.cn/.opticks/GEOM/$GEOM
 
    local TestPath=CSGFoundry/prim.npy
@@ -252,7 +269,7 @@ Resolve_CFBaseFromGEOM()
         echo $BASH_SOURCE : FOUND C_CFBaseFromGEOM $C_CFBaseFromGEOM containing $TestPath
     elif [ -f "$GDMLPathFromGEOM" ]; then 
         export ${GEOM}_GDMLPathFromGEOM=$GDMLPathFromGEOM
-        echo $BASH_SOURCE : FOUND GDMLPathFromFromGEOM $GDMLPathFromFromGEOM 
+        echo $BASH_SOURCE : FOUND GDMLPathFromGEOM $GDMLPathFromGEOM 
     else
         echo $BASH_SOURCE : NOT-FOUND A_CFBaseFromGEOM $A_CFBaseFromGEOM containing $TestPath
         echo $BASH_SOURCE : NOT-FOUND B_CFBaseFromGEOM $B_CFBaseFromGEOM containing $TestPath

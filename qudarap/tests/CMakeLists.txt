@@ -8,9 +8,13 @@ set(INSTALLED_SCRIPTS
 )
 install(PROGRAMS ${INSTALLED_SCRIPTS} DESTINATION bin)
 
+
+
+
 set(TEST_SOURCES
 
    QTexRotateTest.cc
+
    QRngTest.cc
    QScintTest.cc
    QCerenkovIntegralTest.cc
@@ -31,8 +35,12 @@ set(TEST_SOURCES
    QMultiFilmTest.cc
 
 
+   QCurandStateMonolithicTest.cc
    QCurandStateTest.cc
+
+   qrng_test.cc
 )
+
 
 
 ## THESE NEED REJIG : THEY FAIL FOR LACK OF DEPENDENCIES 
@@ -66,14 +74,14 @@ foreach(SRC ${TEST_SOURCES})
 endforeach()
 
 
-
+#[=[
+#]=]
 foreach(SRC ${KNOWN_FAIL_TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} QUDARap )
     install(TARGETS ${TGT} DESTINATION lib)
 endforeach()
-
 
 
 

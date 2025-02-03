@@ -16,7 +16,6 @@
 #include "scuda.h"
 #include "squad.h"
 #include "sphoton.h"
-#include "sscint.h"
 #include "OpticksGenstep.h"
 
 #include "SPath.hh"

@@ -20,7 +20,7 @@
 opticks-(){         source $(opticks-source) && opticks-env $* ; }
 
 GEOM_TEMPLATE(){ cat << EOT
-#!/bin/bash -l 
+#!/bin/bash
 notes(){ cat << EON
 ~/.opticks/GEOM/GEOM.sh
 =========================
@@ -36,6 +36,43 @@ EON
 #geom=V1J008
 geom=V1J009
 export GEOM=\$geom
+#
+EOT
+}
+
+CTX_TEMPLATE(){ cat << EOT
+#!/bin/bash
+notes(){ cat << EON
+~/.opticks/CTX/CTX.sh
+=========================
+
+* CTX.sh IS NOT UNDER SOURCE CONTROL BECAUSE IT IS OFTEN USER+GEOMETRY SPECIFIC
+
+EON
+}
+
+ctx=Debug_Philox
+export CTX=\$ctx
+#
+EOT
+}
+
+
+TEST_TEMPLATE(){ cat << EOT
+#!/bin/bash
+notes(){ cat << EON
+~/.opticks/TEST/TEST.sh
+=========================
+
+* TEST.sh IS NOT UNDER SOURCE CONTROL BECAUSE IT IS OFTEN USER+GEOMETRY SPECIFIC
+
+EON
+}
+
+#test=GUN0
+test=GUN1
+#test=GUN2
+export TEST=\$test
 #
 EOT
 }
@@ -201,6 +238,69 @@ MOI(){
 
 
 
+
+CTX(){ 
+  : opticks/opticks.bash
+
+  local script=$HOME/.opticks/CTX/CTX.sh 
+ 
+  if [ ! -f "$script" ]; then
+     echo $BASH_SOURCE $FUNCNAME : GENERATE $script 
+     mkdir -p $(dirname $script)
+     CTX_TEMPLATE > $script
+  fi 
+
+  source $script 
+
+  local defarg="vi"
+  local arg=${1:-$defarg} 
+  local vars="FUNCNAME defarg arg args script CTX" 
+
+  if [ "$arg" == "vi" ]; then 
+     cmd="vi $script"  
+  elif [ "$arg" == "info" ]; then  
+     for var in $vars ; do printf "%30s : %s \n" "$var" "${!var}" ; done 
+     cmd="echo -n"
+  else
+     cmd="echo expecting arg to be one of $args not $arg" 
+  fi 
+  echo $cmd
+  eval $cmd
+}
+
+
+
+TEST(){ 
+  : opticks/opticks.bash
+
+  local script=$HOME/.opticks/TEST/TEST.sh 
+ 
+  if [ ! -f "$script" ]; then
+     echo $BASH_SOURCE $FUNCNAME : GENERATE $script 
+     mkdir -p $(dirname $script)
+     TEST_TEMPLATE > $script
+  fi 
+
+  source $script 
+
+  local defarg="vi"
+  local arg=${1:-$defarg} 
+  local vars="FUNCNAME defarg arg args script TEST" 
+
+  if [ "$arg" == "vi" ]; then 
+     cmd="vi $script"  
+  elif [ "$arg" == "info" ]; then  
+     for var in $vars ; do printf "%30s : %s \n" "$var" "${!var}" ; done 
+     cmd="echo -n"
+  else
+     cmd="echo expecting arg to be one of $args not $arg" 
+  fi 
+  echo $cmd
+  eval $cmd
+
+}
+
+
 GEOM(){ 
   : opticks/opticks.bash GEOM vi/grab/scp
 
@@ -273,12 +373,18 @@ GEOM(){
 o(){ opticks- ; cd $(opticks-home) ; git status  ; : opticks.bash ;  } 
 oo(){ opticks- ; cd $(opticks-home) ; om- ; om-- ; : opticks.bash ;  }
 os(){ opticks- ; cd $(opticks-home) ; ls -alst *.sh ; : opticks.bash ;  }
-on(){ cd $(opticks-home)/notes/issues ; ls -lt | head -10 ; echo https://bitbucket.org/simoncblyth/opticks/src/master/notes/issues/$(ls -t | head -1) ;  }
-onn(){ cd $(opticks-home)/notes/issues ; ls -lt | head -100 ;  }
-on1(){   : opticks.bash ; opticks-;opticks-notes-cd ; ls -lt | head -30 ; vi $(ls -1t | head -1) ;  }
-on2(){   : opticks.bash ; opticks-;opticks-notes-cd ; ls -lt | head -30 ; vi $(ls -1t | head -2 | tail -1) ;  }
-on100(){ : opticks.bash ; opticks-;opticks-notes-cd ; ls -lt | head -100  ;  }
 
+on(){ cd $(opticks-home)/notes  ; ls -lt | head -10 ; echo https://bitbucket.org/simoncblyth/opticks/src/master/notes/$(ls -t | head -1) ;  }
+onn(){ cd $(opticks-home)/notes ; ls -lt | head -100 ;  }
+on1(){   : opticks.bash ; opticks-;opticks-notes-cd ; ls -lt *.rst | head -30 ; vi $(ls -1t *.rst | head -1) ;  }
+on2(){   : opticks.bash ; opticks-;opticks-notes-cd ; ls -lt *.rst | head -30 ; vi $(ls -1t *.rst | head -2 | tail -1) ;  }
+on100(){ : opticks.bash ; opticks-;opticks-notes-cd ; ls -lt *.rst | head -100  ;  }
+
+oi(){  cd $(opticks-home)/notes/issues ; ls -lt | head -10 ; echo https://bitbucket.org/simoncblyth/opticks/src/master/notes/issues/$(ls -t | head -1) ;  }
+oii(){ cd $(opticks-home)/notes/issues ; ls -lt | head -100 ;  }
+oi1(){   : opticks.bash ; opticks-;opticks-issues-cd ; ls -lt *.rst | head -30 ; vi $(ls -1t *.rst | head -1) ;  }
+oi2(){   : opticks.bash ; opticks-;opticks-issues-cd ; ls -lt *.rst | head -30 ; vi $(ls -1t *.rst | head -2 | tail -1) ;  }
+oi100(){ : opticks.bash ; opticks-;opticks-issues-cd ; ls -lt *.rst | head -100  ;  }
 
 cu(){  local cu ; date ; for cu in *.cu ; do echo touch $cu && touch $cu ; done ; ls -l *.cu ;  } 
 
@@ -3055,7 +3161,8 @@ opticks-docs-make()
 
 
 
-opticks-notes-cd(){ cd $(opticks-home)/notes/issues/$1 ; }
+opticks-issues-cd(){  cd $(opticks-home)/notes/issues/$1 ; }
+opticks-notes-cd(){ cd $(opticks-home)/notes/$1 ; }
 opticks-refs-cd(){  cd $HOME/opticks_refs ; }
 opticks-refs-ls(){  opticks-refs-cd ; ls -lt *.pdf | head -30 ; }
 or(){ 

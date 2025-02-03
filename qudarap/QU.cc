@@ -17,21 +17,23 @@
 #include "sphoton.h"
 #include "sevent.h"
 #include "salloc.h"
-
+#include "SEventConfig.hh"
 
 #include "QUDA_CHECK.h"
 #include "QU.hh"
-#include "curand_kernel.h"
 
+#include "curand_kernel.h"
+#include "qrng.h"
 #include "qsim.h"
+
 #include "qbase.h"
 #include "qprop.h"
 #include "qpmt.h"
-#include "qrng.h"
 #include "qdebug.h"
 #include "qscint.h"
 #include "qcerenkov.h"
-#include "qcurandstate.h"
+#include "qcurandwrap.h"
+#include "scurandref.h"
 #include "qmultifilm.h"
 
 
@@ -39,6 +41,14 @@ const plog::Severity QU::LEVEL = SLOG::EnvLevel("QU", "DEBUG") ;
 bool QU::MEMCHECK = ssys::getenvbool(_MEMCHECK); 
 
 salloc* QU::alloc = nullptr ;   // used to monitor allocations, instanciated in CSGOptiX::Create
+
+
+void QU::alloc_add(const char* label, uint64_t size, uint64_t num_items, uint64_t sizeof_item, uint64_t spare) // static
+{
+   if(!alloc) alloc = SEventConfig::ALLOC ; 
+   if(alloc ) alloc->add(label, size, num_items, sizeof_item , spare); 
+}
+
 
 template <typename T> 
 char QU::typecode()
@@ -125,8 +135,8 @@ T* QU::UploadArray(const T* array, unsigned num_items, const char* label ) // st
        << " label " << ( label ? label : "-" )
        ;
 
-
-    if(alloc) alloc->add( label, size, num_items, sizeof(T), 0 ) ; 
+    
+    alloc_add( label, size, num_items, sizeof(T), 0 ) ; 
 
     T* d_array = nullptr ; 
     QUDA_CHECK( cudaMalloc(reinterpret_cast<void**>( &d_array ), size )); 
@@ -143,21 +153,24 @@ template int*           QU::UploadArray<int>(const int* array, unsigned num_item
 template quad4*         QU::UploadArray<quad4>(const quad4* array, unsigned num_items, const char* label) ;
 template sphoton*       QU::UploadArray<sphoton>(const sphoton* array, unsigned num_items, const char* label) ;
 template quad2*         QU::UploadArray<quad2>(const quad2* array, unsigned num_items, const char* label) ;
-template curandState*   QU::UploadArray<curandState>(const curandState* array, unsigned num_items, const char* label) ;
-template qcurandstate*  QU::UploadArray<qcurandstate>(const qcurandstate* array, unsigned num_items, const char* label) ;
+template XORWOW*        QU::UploadArray<XORWOW>(const XORWOW* array, unsigned num_items, const char* label) ;
+template Philox*        QU::UploadArray<Philox>(const Philox* array, unsigned num_items, const char* label) ;
+template qcurandwrap<XORWOW>*   QU::UploadArray<qcurandwrap<XORWOW>>(const qcurandwrap<XORWOW>* array, unsigned num_items, const char* label) ;
+template scurandref<XORWOW>*    QU::UploadArray<scurandref<XORWOW>>(const scurandref<XORWOW>* array, unsigned num_items, const char* label) ;
 template qsim*          QU::UploadArray<qsim>(const qsim* array, unsigned num_items, const char* label) ;
 template qprop<float>*  QU::UploadArray<qprop<float>>(const qprop<float>* array, unsigned num_items, const char* label) ;
 template qprop<double>* QU::UploadArray<qprop<double>>(const qprop<double>* array, unsigned num_items, const char* label) ;
 template qpmt<float>*   QU::UploadArray<qpmt<float>>(const qpmt<float>* array, unsigned num_items, const char* label) ;
 template qpmt<double>*  QU::UploadArray<qpmt<double>>(const qpmt<double>* array, unsigned num_items, const char* label) ;
 template qmultifilm*    QU::UploadArray<qmultifilm>(const qmultifilm* array, unsigned num_items, const char* label) ;
-template qrng*          QU::UploadArray<qrng>(const qrng* array, unsigned num_items, const char* label) ;
+template qrng<RNG>*     QU::UploadArray<qrng<RNG>>(const qrng<RNG>* array, unsigned num_items, const char* label) ;
 template qbnd*          QU::UploadArray<qbnd>(const qbnd* array, unsigned num_items, const char* label) ;
 template sevent*        QU::UploadArray<sevent>(const sevent* array, unsigned num_items, const char* label) ;
 template qdebug*        QU::UploadArray<qdebug>(const qdebug* array, unsigned num_items, const char* label) ;
 template qscint*        QU::UploadArray<qscint>(const qscint* array, unsigned num_items, const char* label) ;
 template qcerenkov*     QU::UploadArray<qcerenkov>(const qcerenkov* array, unsigned num_items, const char* label) ;
 template qbase*         QU::UploadArray<qbase>(const qbase* array, unsigned num_items, const char* label) ;
+
 
 
 /**
@@ -182,7 +195,8 @@ template  unsigned*      QU::DownloadArray<unsigned>(const unsigned* d_array, un
 template  int*           QU::DownloadArray<int>(const int* d_array, unsigned num_items) ;
 template  quad4*         QU::DownloadArray<quad4>(const quad4* d_array, unsigned num_items) ;
 template  quad2*         QU::DownloadArray<quad2>(const quad2* d_array, unsigned num_items) ;
-template  curandState*   QU::DownloadArray<curandState>(const curandState* d_array, unsigned num_items) ;
+template  XORWOW*        QU::DownloadArray<XORWOW>(const XORWOW* d_array, unsigned num_items) ;
+template  Philox*        QU::DownloadArray<Philox>(const Philox* d_array, unsigned num_items) ;
 template  qprop<float>*  QU::DownloadArray<qprop<float>>(const qprop<float>* d_array, unsigned num_items) ;
 template  qprop<double>* QU::DownloadArray<qprop<double>>(const qprop<double>* d_array, unsigned num_items) ;
 
@@ -225,8 +239,20 @@ template QUDARAP_API void  QU::device_free_and_alloc<uchar4>(uchar4** dd, unsign
 template QUDARAP_API void  QU::device_free_and_alloc<float4>(float4** dd, unsigned num_items) ;
 template QUDARAP_API void  QU::device_free_and_alloc<quad4>(quad4** dd, unsigned num_items) ;
 
+const char* QU::_cudaMalloc_OOM_NOTES = R"( ;
+QU::_cudaMalloc_OOM_NOTES
+==========================
 
+When running with debug arrays, such as the record array, enabled
+it is necessary to set max_slot to something reasonable, otherwise with the 
+default max_slot of zero, it gets set to a high value (eg M197 with 24GB) 
+appropriate for production running with the available VRAM. 
 
+One million is typically reasonable for debugging:: 
+
+   export OPTICKS_MAX_SLOT=M1
+
+)" ;
 
 void QU::_cudaMalloc( void** p2p, size_t size, const char* label )
 {
@@ -245,8 +271,13 @@ void QU::_cudaMalloc( void** p2p, size_t size, const char* label )
             sdirectory::MakeDirs(out,0); 
             LOG(error) << "save salloc record to " << out ; 
             alloc->save(out) ; 
-        }
 
+            ss << _cudaMalloc_OOM_NOTES  ; 
+        }
+        else
+        {
+            ss << "QU::_cudaMalloc NO ALLOC monitor enabled\n" ;   
+        }
         throw QUDA_Exception( ss.str().c_str() );             
     }                                                        
 }
@@ -270,7 +301,7 @@ T* QU::device_alloc( unsigned num_items, const char* label )
         ; 
 
 
-    if(alloc) alloc->add( label, size, num_items, sizeof(T), 0 ) ; 
+    alloc_add( label, size, num_items, sizeof(T), 0 ) ; 
 
     T* d ;  
     _cudaMalloc( reinterpret_cast<void**>( &d ), size, label ); 
@@ -291,6 +322,8 @@ template QUDARAP_API quad6*     QU::device_alloc<quad6>(unsigned num_items, cons
 template QUDARAP_API sevent*    QU::device_alloc<sevent>(unsigned num_items, const char* label) ;
 template QUDARAP_API qdebug*    QU::device_alloc<qdebug>(unsigned num_items, const char* label) ;
 template QUDARAP_API sstate*    QU::device_alloc<sstate>(unsigned num_items, const char* label) ;
+template QUDARAP_API XORWOW*    QU::device_alloc<XORWOW>(unsigned num_items, const char* label) ;
+template QUDARAP_API Philox*    QU::device_alloc<Philox>(unsigned num_items, const char* label) ;
 
 #ifndef PRODUCTION
 template QUDARAP_API srec*      QU::device_alloc<srec>(unsigned num_items, const char* label) ;
@@ -318,7 +351,7 @@ T* QU::device_alloc_zero(unsigned num_items, const char* label)
         ; 
 
 
-    if(alloc) alloc->add( label, size, num_items, sizeof(T), 0 ) ; 
+    alloc_add( label, size, num_items, sizeof(T), 0 ) ; 
 
     T* d ;  
     _cudaMalloc( reinterpret_cast<void**>( &d ), size, label ); 
@@ -331,7 +364,8 @@ T* QU::device_alloc_zero(unsigned num_items, const char* label)
 
 template QUDARAP_API sphoton*   QU::device_alloc_zero<sphoton>(unsigned num_items, const char* label) ;
 template QUDARAP_API quad2*     QU::device_alloc_zero<quad2>(  unsigned num_items, const char* label) ;
-template QUDARAP_API curandState* QU::device_alloc_zero<curandState>(  unsigned num_items, const char* label) ;
+template QUDARAP_API XORWOW*    QU::device_alloc_zero<XORWOW>(  unsigned num_items, const char* label) ;
+template QUDARAP_API Philox*    QU::device_alloc_zero<Philox>(  unsigned num_items, const char* label) ;
 
 #ifndef PRODUCTION
 template QUDARAP_API srec*      QU::device_alloc_zero<srec>(   unsigned num_items, const char* label) ;
@@ -380,6 +414,8 @@ template QUDARAP_API void   QU::device_free<quad2>(quad2*) ;
 template QUDARAP_API void   QU::device_free<quad4>(quad4*) ;
 template QUDARAP_API void   QU::device_free<sphoton>(sphoton*) ;
 template QUDARAP_API void   QU::device_free<uchar4>(uchar4*) ;
+template QUDARAP_API void   QU::device_free<XORWOW>(XORWOW*) ;
+template QUDARAP_API void   QU::device_free<Philox>(Philox*) ;
 
 
 template<typename T>
@@ -409,7 +445,8 @@ template int QU::copy_device_to_host<quad4>( quad4* h, quad4* d,  unsigned num_i
 template int QU::copy_device_to_host<sphoton>( sphoton* h, sphoton* d,  unsigned num_items);
 template int QU::copy_device_to_host<quad6>( quad6* h, quad6* d,  unsigned num_items);
 template int QU::copy_device_to_host<sstate>( sstate* h, sstate* d,  unsigned num_items);
-template int QU::copy_device_to_host<curandState>( curandState* h, curandState* d,  unsigned num_items);
+template int QU::copy_device_to_host<XORWOW>( XORWOW* h, XORWOW* d,  unsigned num_items);
+template int QU::copy_device_to_host<Philox>( Philox* h, Philox* d,  unsigned num_items);
 #ifndef PRODUCTION
 template int QU::copy_device_to_host<srec>( srec* h, srec* d,  unsigned num_items);
 template int QU::copy_device_to_host<sseq>( sseq* h, sseq* d,  unsigned num_items);
@@ -437,6 +474,15 @@ presumably because the CUDA context is lost as a result of the timeout making
 all the device pointers invalid. The copyback is the usual thing to fail because 
 it is the normally the first thing to use the stale pointers after the kernel launch. 
 
+
+Debug tip 0 
+~~~~~~~~~~~~~
+
+Simply add "return 0" to call with issue, and 
+progressivley move that forwards to find where
+the issue is. 
+
+
 Debug tip 1 : check kernel inputs 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -459,7 +505,7 @@ template<typename T>
 void QU::copy_device_to_host_and_free( T* h, T* d,  unsigned num_items, const char* label)
 {
     size_t size = num_items*sizeof(T) ; 
-    LOG(info) 
+    LOG(LEVEL) 
         << "copy " << num_items 
         << " sizeof(T) " << sizeof(T) 
         << " label " << ( label ? label : "-" )
@@ -505,6 +551,8 @@ template void QU::copy_host_to_device<quad4>(    quad4* d,    const quad4* h, un
 template void QU::copy_host_to_device<sphoton>(  sphoton* d,  const sphoton* h, unsigned num_items);
 template void QU::copy_host_to_device<quad6>(    quad6* d,    const quad6* h, unsigned num_items);
 template void QU::copy_host_to_device<quad2>(    quad2* d,    const quad2* h, unsigned num_items);
+template void QU::copy_host_to_device<XORWOW>(   XORWOW* d,   const XORWOW* h,   unsigned num_items);
+template void QU::copy_host_to_device<Philox>(   Philox* d,   const Philox* h,   unsigned num_items);
 
 /**
 QU::NumItems

@@ -87,7 +87,6 @@ Hid fts.h usage behind WITH_FTS as getting compilation error on Linux::
 #include <sstream>
 #include <iomanip>
 
-#include "NP.hh"
 #include "NPX.h"
 
 struct NPFold 
@@ -110,16 +109,21 @@ struct NPFold
 
     // nodata:true used for lightweight access to metadata from many arrays
     bool                      nodata ; 
-
-    bool                      allowempty ; 
-    bool                      skipdelete ;   // set to true on subfold during trivial concat
     bool                      verbose_ ; 
 
+    // [TRANSIENT FIELDS : NOT COPIED BY CopyMeta
+    bool                      allowempty ; 
+    bool                      skipdelete ;   // set to true on subfold during trivial concat
     NPFold*                   parent ;      // set by add_subfold
+    // ]TRANSIENT FIELDS
 
     static constexpr const char INTKEY_PREFIX = 'f' ; 
     static constexpr const int UNDEF = -1 ; 
     static constexpr const bool VERBOSE = false ; 
+    static constexpr const bool ALLOWEMPTY = false ; 
+    static constexpr const bool SKIPDELETE = false ; 
+    static constexpr NPFold*    PARENT = nullptr ; 
+
     static constexpr const char* DOT_NPY = ".npy" ;  // formerly EXT
     static constexpr const char* DOT_TXT = ".txt" ; 
     static constexpr const char* DOT_PNG = ".png" ; 
@@ -197,8 +201,10 @@ public:
     int          get_subfold_idx(const NPFold* fo) const ; 
 
     const char*  get_subfold_key_within_parent() const ; 
+
     void         get_treepath_(std::vector<std::string>& elem) const ; 
     std::string  get_treepath(const char* k=nullptr) const ; 
+    static std::string Treepath(const NPFold* f); 
 
     NPFold*      get_subfold(const char* f) const ; 
     bool         has_subfold(const char* f) const ; 
@@ -347,9 +353,14 @@ public:
 #endif
 
     int  load_dir(const char* base) ; 
+    static constexpr const char* load_dir_DUMP = "NPFold__load_dir_DUMP" ; 
+
     int  load_index(const char* base) ; 
+    static constexpr const char* load_index_DUMP = "NPFold__load_index_DUMP" ; 
 
     int load(const char* base ) ; 
+    static constexpr const char* load_DUMP = "NPFold__load_DUMP" ; 
+
     int load(const char* base, const char* rel0, const char* rel1=nullptr ) ; 
 
 
@@ -382,15 +393,21 @@ public:
 
     // SUMMARIZE FOLD ARRAY COUNTS
     NP* subcount( const char* prefix ) const ; 
+    static constexpr const char* subcount_DUMP = "NPFold__subcount_DUMP" ; 
+
     NP* submeta(const char* prefix, const char* column=nullptr ) const ; 
 
     // TIMESTAMP/PROFILE COMPARISON USING SUBFOLD METADATA
 
     NPFold* substamp(  const char* prefix, const char* keyname) const ; 
+    static constexpr const char* substamp_DUMP = "NPFold__substamp_DUMP" ; 
+
     NPFold* subprofile(const char* prefix, const char* keyname) const ; 
+    static constexpr const char* subprofile_DUMP = "NPFold__subprofile_DUMP" ; 
 
     template<typename ... Args>
     NPFold* subfold_summary(const char* method, Args ... args_  ) const  ; 
+    static constexpr const char* subfold_summary_DUMP = "NPFold__subfold_summary_DUMP" ; 
 
     template<typename F, typename T>
     NP* compare_subarrays(const char* key, const char* asym="a", const char* bsym="b", std::ostream* out=nullptr  ); 
@@ -672,8 +689,6 @@ inline std::string NPFold::DescCompare(const NPFold* a, const NPFold* b )
 
 
 
-
-
 // CTOR
 
 inline NPFold::NPFold()
@@ -688,10 +703,10 @@ inline NPFold::NPFold()
     savedir(nullptr),
     loaddir(nullptr),
     nodata(false),
-    allowempty(false),
-    skipdelete(false),
     verbose_(VERBOSE),
-    parent(nullptr)
+    allowempty(ALLOWEMPTY),
+    skipdelete(SKIPDELETE),
+    parent(PARENT)
 {
     if(verbose_) std::cerr << "NPFold::NPFold" << std::endl ; 
 }
@@ -851,7 +866,7 @@ inline void NPFold::add_subfold(const char* f, NPFold* fo )
             << "\n"
             ;
     } 
-    //assert( fo->parent == nullptr ); 
+    assert( fo->parent == nullptr ); 
     fo->parent = this ; 
 }
 
@@ -913,6 +928,28 @@ inline std::string NPFold::get_treepath(const char* k) const
     int num_elem = elem.size(); 
     for(int i=0 ; i < num_elem ; i++ ) ss << elem[i] << ( i < num_elem - 1 ? "/" : "" ) ; 
     if(k) ss << "/" << k ; 
+    std::string str = ss.str() ; 
+    return str ; 
+}
+
+/**
+NPFold::Treepath
+-----------------
+
+Disconnected fold has empty string "" treepath, see::
+
+     TEST=subcopy ~/np/tests/NPFold_copy_test.sh
+
+     NPFold::Treepath(zzz)   : {/z/zz}
+     NPFold::Treepath(zzz_c) : {}
+
+ 
+**/
+
+inline std::string NPFold::Treepath(const NPFold* f)
+{
+    std::stringstream ss ; 
+    ss << "{" << ( f ? f->get_treepath() : "-" ) << "}" ; 
     std::string str = ss.str() ; 
     return str ; 
 }
@@ -1348,7 +1385,7 @@ inline int NPFold::Traverse_r(
     assert( nd->subfold.size() == nd->ff.size() ); 
     unsigned num_sub = nd->subfold.size(); 
 
-    if(mxd == 0 || d <= mxd )
+    if(mxd == MXD_NOLIMIT || d <= mxd )
     {
         folds.push_back(nd); 
         paths.push_back(path); 
@@ -1946,7 +1983,7 @@ inline NPFold* NPFold::copy(bool shallow_array_copy, const char* keylist, char d
         << std::endl 
         ; 
 
-    return NPFold::Copy(this, shallow_array_copy, &keys ); 
+    return NPFold::Copy(this, shallow_array_copy, keylist ? &keys : nullptr ); 
 }
 
 
@@ -1961,14 +1998,41 @@ inline NPFold* NPFold::Copy(const NPFold* src, bool shallow_array_copy, std::vec
     return dst ; 
 }
 
+/**
+NPFold::CopyMeta
+-----------------
+
+Some members are not copied, namely::
+
+    allowempty
+    skipdelete
+    verbose_
+    parent 
+
+**/
+
 inline void NPFold::CopyMeta( NPFold* dst , const NPFold* src ) // static
 {
+    dst->headline = src->headline ; 
     dst->meta = src->meta ; 
     dst->names = src->names ; 
     dst->savedir = src->savedir ? strdup(src->savedir) : nullptr ; 
     dst->loaddir = src->loaddir ? strdup(src->loaddir) : nullptr ; 
     dst->nodata  = src->nodata ; 
+    dst->verbose_ = src->verbose_ ; 
 }
+
+/**
+NPFold::CopyArray
+------------------
+
+keys:nullptr
+   signals copy all arrays without selection
+
+keys:!nullptr
+   only arrays with listed keys are copied 
+
+**/
 
 inline void NPFold::CopyArray( NPFold* dst , const NPFold* src, bool shallow_array_copy, std::vector<std::string>* keys ) // static
 {
@@ -1976,12 +2040,16 @@ inline void NPFold::CopyArray( NPFold* dst , const NPFold* src, bool shallow_arr
     {
         const NP* a = src->aa[i]; 
         const char* k = src->kk[i].c_str() ; 
-        bool listed = keys && std::find( keys->begin(), keys->end(), k ) != keys->end() ; 
-        if(keys == nullptr || listed)
-        { 
-            dst->add_( k, shallow_array_copy ? a : NP::MakeCopy(a) ); 
-        }
+        bool listed = keys != nullptr && std::find( keys->begin(), keys->end(), k ) != keys->end() ; 
+        bool docopy = keys == nullptr || listed ; 
+        const NP* dst_a = docopy ? ( shallow_array_copy ? a : NP::MakeCopy(a) ) : nullptr  ;  
+        if(dst_a) dst->add_( k, dst_a ); 
     } 
+
+    if( keys == nullptr ) 
+    {
+        assert( src->aa.size() == dst->aa.size() ) ;  
+    }
 }
 
 inline void NPFold::CopySubfold( NPFold* dst , const NPFold* src, bool shallow_array_copy, std::vector<std::string>* keys ) // static
@@ -2485,9 +2553,9 @@ inline int NPFold::load_dir(const char* _base)
 {
     const char* base = nodata ? _base + 1 : _base ;
 
-    static const char* DUMP = "NPFold__load_dir_DUMP" ; 
-    bool dump = getenv(DUMP) != nullptr  ; 
-    if(dump) std::cout << DUMP << " : [" << ( base ? base : "-" )  << "]" << std::endl ;  
+    int _DUMP = U::GetEnvInt(load_dir_DUMP , 0); 
+
+    if(_DUMP > 0) std::cout << "[" << load_dir_DUMP << " : [" << ( base ? base : "-" )  << "]\n" ;  
   
     std::vector<std::string> names ;
     const char* ext = nullptr ; 
@@ -2504,7 +2572,7 @@ inline int NPFold::load_dir(const char* _base)
 
         if( type == U::FILE_PATH && U::EndsWith(name, "_meta.txt"))
         {
-            if(VERBOSE) std::cerr << "NPFold::load_dir SKIP metadata sidecar " << name << std::endl ;
+            if(_DUMP > 0) std::cerr << "-NPFold::load_dir SKIP metadata sidecar " << name << std::endl ;
         }
         else if( type == U::FILE_PATH ) 
         {
@@ -2512,13 +2580,16 @@ inline int NPFold::load_dir(const char* _base)
         }
         else if( type == U::DIR_PATH && U::StartsWith(name, "_"))
         {
-            if(VERBOSE) std::cerr << "NPFold::load_dir SKIP directory starting with _" << name << std::endl ;
+            if(_DUMP > 0) std::cerr << "-NPFold::load_dir SKIP directory starting with _" << name << std::endl ;
         }
         else if( type == U::DIR_PATH ) 
         {
             load_subfold(_base, name);  // instanciates NPFold and add_subfold
         }
     }
+
+    if(_DUMP > 0) std::cout << "]" << load_dir_DUMP << " : [" << ( base ? base : "-" )  << "]\n" ;  
+
     return 0 ; 
 }
 
@@ -2526,10 +2597,8 @@ inline int NPFold::load_dir(const char* _base)
 inline int NPFold::load_index(const char* _base) 
 {
     const char* base = nodata ? _base + 1 : _base ;  
-
-    static const char* DUMP = "NPFold__load_index_DUMP" ; 
-    bool dump = getenv(DUMP) != nullptr  ; 
-    if(dump) std::cout << DUMP << " : [" << ( base ? base : "-" )  << "]" << std::endl ;  
+    int _DUMP = U::GetEnvInt(load_index_DUMP,0); 
+    if(_DUMP>0) std::cout << "[" << load_index_DUMP << " : [" << ( base ? base : "-" )  << "]\n" ;  
 
 
     std::vector<std::string> keys ; 
@@ -2546,6 +2615,7 @@ inline int NPFold::load_index(const char* _base)
             load_subfold(_base, key);  // instanciates NPFold and add_subfold
         }
     }
+    if(_DUMP>0) std::cout << "]" << load_index_DUMP << " : [" << ( base ? base : "-" )  << "]\n" ;  
     return 0 ; 
 }
 
@@ -2563,13 +2633,12 @@ inline int NPFold::load(const char* _base)
     nodata = NP::IsNoData(_base) ;  // _path starting with NP::NODATA_PREFIX eg '@' 
     const char* base = nodata ? _base + 1 : _base ;  
 
-    static const char* DUMP = "NPFold__load_DUMP" ; 
-    bool dump = getenv(DUMP) != nullptr  ; 
-    if(dump) std::cout << DUMP << " : [" << ( base ? base : "-" )  << "]" << std::endl ;  
+    int _DUMP = U::GetEnvInt(load_DUMP, 0); 
+    if(_DUMP>0) std::cout << "[" << load_DUMP << " : [" << ( base ? base : "-" )  << "]\n" ;  
 
 
     bool exists = NP::Exists(base); 
-    if(!exists && dump) std::cout << "NPFold::load non-existing base[" << ( base ? base : "-" ) << "]" << std::endl ;  
+    if(!exists && _DUMP>0) std::cout << "NPFold::load non-existing base[" << ( base ? base : "-" ) << "]" << std::endl ;  
     if(!exists) return 1 ; 
 
     loaddir = strdup(base); 
@@ -2582,6 +2651,7 @@ inline int NPFold::load(const char* _base)
     bool has_index = NP::Exists(base, INDEX) ; 
     int rc = has_index ? load_index(_base) : load_dir(_base) ; 
 
+    if(_DUMP>0) std::cout << "]" << load_DUMP << " : [" << ( base ? base : "-" ) << " rc " << rc << "]\n" ;  
     return rc ; 
 }
 inline int NPFold::load(const char* base_, const char* rel0, const char* rel1) 
@@ -2628,7 +2698,7 @@ inline void NPFold::getMetaKVS(
     std::vector<int64_t>* stamps, 
     bool only_with_stamp ) const 
 {
-    NP::GetMetaKVS(meta, keys, vals, stamps, only_with_stamp ); 
+    U::GetMetaKVS(meta, keys, vals, stamps, only_with_stamp ); 
 }
 
 inline int NPFold::getMetaNumStamp() const 
@@ -2818,7 +2888,14 @@ inline std::string NPFold::Desc_MIMSD(const std::map<int, std::map<std::string, 
 NPFold::subcount
 ------------------
 
-1. find subfold with prefix
+Collects arrays item counts from multiple subfold
+into single array for easy analysis/plotting etc.
+Typical use is for comparing genstep, hit, photon etc 
+counts between multiple events during test scans.  
+
+
+1. find subfold of this fold with the prefix argument, 
+   eg with prefix "//A" finds A000 A001 A002 ...
 2. get unique list of array keys from all subfold 
 3. create 2d array with array counts for each sub 
 
@@ -2829,7 +2906,7 @@ inline NP* NPFold::subcount( const char* prefix ) const
     // 1. find subfold with prefix
     std::vector<const NPFold*> subs ; 
     std::vector<std::string> subpaths ; 
-    int maxdepth = 1 ;  // only one level ? 
+    int maxdepth = 1 ;  // only one level 
 
     find_subfold_with_prefix(subs, &subpaths,  prefix, maxdepth );  
     assert( subs.size() == subpaths.size() ); 
@@ -2867,10 +2944,11 @@ inline NP* NPFold::subcount( const char* prefix ) const
         a->labels->push_back(_uk); 
     } 
 
-    bool dump = getenv("NPFold__subcount_DUMP") != nullptr  ; 
-    if(dump) std::cout << "[NPFold.hh:subcount" << std::endl ; 
-    if(dump) std::cout <<  " num_ukey " << num_ukey << std::endl ;
-    if(dump) for(int i=0 ; i < num_ukey ; i++ ) std::cout << a->names[i] << std::endl ; 
+    int _DUMP = U::GetEnvInt(subcount_DUMP,0); 
+
+    if(_DUMP>0) std::cout << "[" << subcount_DUMP << "\n" ; 
+    if(_DUMP>0) std::cout <<  " num_ukey " << num_ukey << std::endl ;
+    if(_DUMP>0) for(int i=0 ; i < num_ukey ; i++ ) std::cout << a->names[i] << std::endl ; 
 
     for(int i=0 ; i < ni ; i++) 
     {
@@ -2887,7 +2965,7 @@ inline NP* NPFold::subcount( const char* prefix ) const
             int count = idx < num_key ? counts[idx] : -1  ; 
             aa[i*nj+j] = count ;  
 
-            if(dump) std::cout 
+            if(_DUMP>0) std::cout 
                 << std::setw(20) << uk 
                 << " idx " << idx 
                 << " count " << count 
@@ -2895,7 +2973,7 @@ inline NP* NPFold::subcount( const char* prefix ) const
                 ; 
         }
     }
-    if(dump) std::cout << "]NPFold.hh:subcount" << std::endl ; 
+    if(_DUMP>0) std::cout << "]" << subcount_DUMP << "\n" ; 
     return a ; 
 }
 
@@ -2962,11 +3040,19 @@ inline NP* NPFold::submeta(const char* prefix, const char* column_key ) const
 NPFold::substamp
 --------------------
 
+Primary use of substamp is for comparisons of timestamp difference from begin of event 
+between multiple events eg A000 A001
+
 1. finds vector of subfold of this fold with the path prefix, eg "//A" "//B" 
 2. access metadata stamps for all the subfold, those with the same stamp keys
-   as the first are collected into a summary stamps array 
+   as the first are collected into a summary stamps array
+
+   * collects metadata times from multiple folders for different events into 
+     single arrays for easy comparison, eg when scanning with a sequence of 
+     events with increasing numbers of photons
+ 
 3. labels array of the common stamp keys 
-4. these arrays are returns in an NPFold
+4. these arrays are returned in an NPFold
 
 **/
 
@@ -2980,7 +3066,8 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
     int num_sub = int(subs.size()) ;
 
 
-    bool dump = getenv("NPFold__substamp_DUMP") != nullptr ; 
+    int _DUMP = U::GetEnvInt(substamp_DUMP, 0 ); 
+
 
 
     const NPFold* sub0 = num_sub > 0 ? subs[0] : nullptr ; 
@@ -2988,8 +3075,8 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
     int num_stamp0 = sub0 ? sub0->getMetaNumStamp() : 0 ;  
     bool skip = num_sub == 0 || num_stamp0 == 0 ; 
 
-    if(dump) std::cout 
-        << "[NPFold::substamp" 
+    if(_DUMP) std::cout 
+        << "[" << substamp_DUMP 
         << " find_subfold_with_prefix " << prefix
         << " maxdepth " << maxdepth 
         << " num_sub " << num_sub
@@ -3048,7 +3135,7 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
 
             if(i == 0) comkeys = keys ; 
             bool same_keys = i == 0 ? true : keys == comkeys ; 
-            if(dump) std::cout << sub->loaddir << " stamps.size " << stamps.size() << " " << ( same_keys ? "Y" : "N" ) << std::endl; 
+            if(_DUMP>0) std::cout << sub->loaddir << " stamps.size " << stamps.size() << " " << ( same_keys ? "Y" : "N" ) << std::endl; 
             assert(same_keys); 
 
             for(int j=0 ; j < nj ; j++) tt[i*nj+j] = stamps[j] ; 
@@ -3069,9 +3156,9 @@ inline NPFold* NPFold::substamp(const char* prefix, const char* keyname) const
         out->add(U::FormName("delta_",keyname,nullptr), dt );
         out->add("subcount", count ); 
     }
-    if(dump) std::cout 
-        << "]NPFold::substamp" 
-        << std::endl
+    if(_DUMP>0) std::cout 
+        << "]" << substamp_DUMP 
+        << "\n"
         ;
     return out ; 
 }
@@ -3104,10 +3191,11 @@ inline NPFold* NPFold::subprofile(const char* prefix, const char* keyname) const
     int num_prof0 = num_sub > 0 ? subs[0]->getMetaNumProfile() : 0 ;  
     bool skip = num_sub == 0 || num_prof0 == 0 ; 
 
-    bool dump = getenv("NPFold__subprofile_DUMP") != nullptr ; 
+    int _DUMP = U::GetEnvInt(subprofile_DUMP, 0 ); 
 
-    if(dump) std::cout 
-        << "[NPFold::subprofile"
+
+    if(_DUMP>0) std::cout 
+        << "[" << subprofile_DUMP
         << " find_subfold_with_prefix " << prefix
         << " maxdepth " << maxdepth
         << " num_sub " << num_sub 
@@ -3144,7 +3232,7 @@ inline NPFold* NPFold::subprofile(const char* prefix, const char* keyname) const
             const NPFold* sub = subs[i] ; 
             const char* subpath = subpaths[i].c_str() ; 
 
-            if(dump) std::cout 
+            if(_DUMP>0) std::cout 
                 << subpath 
                 << std::endl
                 << sub->descMetaKV()
@@ -3160,7 +3248,7 @@ inline NPFold* NPFold::subprofile(const char* prefix, const char* keyname) const
 
             if(i == 0) comkeys = keys ; 
             bool same_keys = i == 0 ? true : keys == comkeys ; 
-            if(dump) std::cout 
+            if(_DUMP>0) std::cout 
                  << "sub.loaddir " << sub->loaddir 
                  << " keys.size " << keys.size() 
                  << " " << ( same_keys ? "Y" : "N" )
@@ -3183,8 +3271,8 @@ inline NPFold* NPFold::subprofile(const char* prefix, const char* keyname) const
         out = new NPFold ; 
         out->add(keyname, t );
     }
-    std::cout 
-        << "]NPFold::subprofile" 
+    if(_DUMP>0) std::cout 
+        << "]" << subprofile_DUMP
         << std::endl
         ;
     return out ; 
@@ -3212,6 +3300,9 @@ each group of subfold specified by the argument paths.
 template<typename ... Args>
 inline NPFold* NPFold::subfold_summary(const char* method, Args ... args_  ) const 
 {
+    int _DUMP = U::GetEnvInt( subfold_summary_DUMP, 0 ); 
+
+
     std::vector<std::string> args = {args_...};
 
     std::vector<std::string> uargs ; 
@@ -3224,6 +3315,19 @@ inline NPFold* NPFold::subfold_summary(const char* method, Args ... args_  ) con
         uargs.push_back( arg ); 
     }
     int num_uargs = uargs.size() ; 
+    if(_DUMP > 0) 
+    {
+        std::cerr 
+           << "@[" << subfold_summary_DUMP
+           << " method [" << ( method ? method : "-" ) << "]" 
+           << " args.size " << args.size() 
+           << " uargs.size " << uargs.size() 
+           << " uargs("
+           ;
+           
+        for(int i=0 ; i < num_uargs ; i++) std::cerr << uargs[i] << " " ; 
+        std::cerr << ")\n" ;     
+    }
 
 
     std::stringstream hh ; 
@@ -3269,8 +3373,9 @@ inline NPFold* NPFold::subfold_summary(const char* method, Args ... args_  ) con
 
         if(sub == nullptr && arr == nullptr) 
         {
-            std::cerr 
-                << "NPFold::subfold_summary"
+            if( _DUMP > 0 ) std::cerr 
+                << "@-NPFold::subfold_summary"
+                << " method [" << ( method ? method : "-" ) << "]"  
                 << " k [" << k << "]"
                 << " v [" << v << "]"
                 << " sub " << ( sub ? "YES" : "NO " ) 
@@ -3287,6 +3392,12 @@ inline NPFold* NPFold::subfold_summary(const char* method, Args ... args_  ) con
     hh << ")" ;  
 
     if(spec_ff) spec_ff->headline = hh.str(); 
+    if(_DUMP > 0) std::cerr 
+        << "@[" << subfold_summary_DUMP
+        << " method [" << ( method ? method : "-" ) << "]" 
+        << "\n" 
+        ;
+ 
     return spec_ff ;  
 }
 
@@ -3298,6 +3409,13 @@ template NPFold* NPFold::subfold_summary( const char*, const char*, const char*,
 /**
 NPFold::compare_subarrays
 ----------------------------
+
+1. access *key* array from two subfold (*asym* and *bsym*) 
+   eg A000 and B000 which could be Opticks and Geant4 events 
+
+2. look for "subcount" summary arrays in the two folders, 
+   "subcount" sumaries contain array counts from multiple folders 
+
 
 **/
 
@@ -3329,29 +3447,29 @@ NP* NPFold::compare_subarrays(const char* key, const char* asym, const char* bsy
        << " a_subcount " << ( a_subcount ? "YES" : "NO " )
        << " b_subcount " << ( b_subcount ? "YES" : "NO " )
        << " boa " << ( boa ? "YES" : "NO " )
-       << std::endl 
-       << "-NPFold::compare_subarray.a_subcount" 
-       << std::endl 
-       << ( a_subcount ? a_subcount->descTable<int>(8) : "-" )
-       << std::endl 
-       << "-NPFold::compare_subarray.b_subcount" 
-       << std::endl 
-       << ( b_subcount ? b_subcount->descTable<int>(8) : "-" )
-       << std::endl 
-       << "-NPFold::compare_subarray." << asym 
-       << std::endl
-       << ( a ? a->descTable<T>(8) : "-" )
-       << std::endl
-       << "-NPFold::compare_subarray." << bsym 
-       << std::endl
-       << ( b ? b->descTable<T>(8) : "-" )
-       << std::endl
-       << "-NPFold::compare_subarray.boa "
-       << std::endl 
-       << ( boa ? boa->descTable<F>(12) : "-" ) 
-       << std::endl
+       << "\n" 
+       << "-[NPFold::compare_subarray.a_subcount" << "\n" 
+       << ( a_subcount ? a_subcount->descTable<int>(8) : "-\n" )
+       << "-]NPFold::compare_subarray.a_subcount" 
+       << "\n" 
+       << "-[NPFold::compare_subarray.b_subcount" << "\n"
+       << ( b_subcount ? b_subcount->descTable<int>(8) : "-\n" ) 
+       << "-]NPFold::compare_subarray.b_subcount" 
+       << "\n"
+       << "-[NPFold::compare_subarray." << asym << "\n"
+       << ( a ? a->descTable<T>(8) : "-\n" )
+       << "-]NPFold::compare_subarray." << asym 
+       << "\n"
+       << "-[NPFold::compare_subarray." << bsym << "\n"
+       << ( b ? b->descTable<T>(8) : "-\n" )
+       << "-]NPFold::compare_subarray." << bsym 
+       << "\n"
+       << "-[NPFold::compare_subarray.boa " << "\n"
+       << ( boa ? boa->descTable<F>(12) : "-\n" ) 
+       << "-]NPFold::compare_subarray.boa " 
+       << "\n"
        << "]NPFold::compare_subarray"
-       << std::endl
+       << "\n"
        ;
     return boa ; 
 }  

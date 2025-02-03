@@ -16,6 +16,8 @@ struct QUDARAP_API QU
 
     static salloc* alloc ; 
 
+    static void alloc_add(const char* label, uint64_t size, uint64_t num_items, uint64_t sizeof_item, uint64_t spare); 
+
     template <typename T>
     static char typecode() ; 
 
@@ -35,7 +37,7 @@ struct QUDARAP_API QU
     static void Download(std::vector<T>& vec, const T* d_array, unsigned num_items) ;    
 
 
-
+    static const char* _cudaMalloc_OOM_NOTES ; 
     static void _cudaMalloc( void** p2p, size_t size, const char* label ); 
 
 

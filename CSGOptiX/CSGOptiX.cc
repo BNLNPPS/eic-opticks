@@ -47,7 +47,6 @@ HMM: looking like getting qudarap/qsim.h to work with OptiX < 7 is more effort t
 #include "ssys.h"
 #include "spath.h"
 #include "smeta.h"
-#include "scontext.h"   // GPU metadata
 #include "SProf.hh"
 
 #include "SGLM.h"
@@ -74,6 +73,7 @@ HMM: looking like getting qudarap/qsim.h to work with OptiX < 7 is more effort t
 #include "CSGView.h"
 
 // qudarap
+#include "qrng.h"
 #include "QU.hh"
 #include "QSim.hh"
 #include "qsim.h"
@@ -298,7 +298,7 @@ CSGOptiX::InitMeta
 
 void CSGOptiX::InitMeta(const SSim* ssim  )
 {
-    std::string gm = GetGPUMeta() ;            // (QSim) scontext sdevice::brief
+    std::string gm = SEventConfig::GetGPUMeta() ;     // (QSim) scontext sdevice::brief
     SEvt::SetRunMetaString("GPUMeta", gm.c_str() );  // set CUDA_VISIBLE_DEVICES to control 
 
     std::string switches = QSim::Switches() ;
@@ -346,8 +346,6 @@ CSGOptiX* CSGOptiX::Create(CSGFoundry* fd )
     SProf::Add("CSGOptiX__Create_HEAD"); 
     LOG(LEVEL) << "[ fd.descBase " << ( fd ? fd->descBase() : "-" ) ; 
 
-    SetSCTX(); 
-    QU::alloc = new salloc ;   // HMM: maybe this belongs better in QSim ? 
 
     InitEvt(fd); 
     InitSim( const_cast<SSim*>(fd->sim) ); // QSim instanciation after uploading SSim arrays
@@ -383,39 +381,13 @@ Params* CSGOptiX::InitParams( int raygenmode, const SGLM* sglm  ) // static
 }
 
 
-scontext* CSGOptiX::SCTX = nullptr ; 
 
 
-/**
-CSGOptiX::SetSCTX
----------------------
-
-Instanciates CSGOptiX::SCTX(scontext) holding GPU metadata. 
-Canonically invoked from head of CSGOptiX::Create.
-
-NOTE: Have sometimes observed few second hangs checking for GPU 
-
-**/
-
-void CSGOptiX::SetSCTX()
-{ 
-    LOG(LEVEL) << "[ new scontext" ;  
-    SCTX = new scontext ; 
-    LOG(LEVEL) << "] new scontext" ; 
-    LOG(LEVEL) << SCTX->desc() ;    
-}
-
-std::string CSGOptiX::GetGPUMeta(){ return SCTX ? SCTX->brief() : "ERR-NO-CSGOptiX-SCTX" ; }
 
 CSGOptiX::~CSGOptiX()
 {
     destroy(); 
 }
-
-/**
-
-
-**/
 
 
 CSGOptiX::CSGOptiX(const CSGFoundry* foundry_) 
@@ -432,6 +404,7 @@ CSGOptiX::CSGOptiX(const CSGFoundry* foundry_)
     geoptxpath(nullptr),
 #endif
     tmin_model(ssys::getenvfloat("TMIN",0.1)),    // CAUTION: tmin very different in rendering and simulation 
+    kernel_count(0),
     raygenmode(SEventConfig::RGMode()),
     params(InitParams(raygenmode,sglm)),
 #if OPTIX_VERSION < 70000
@@ -446,7 +419,7 @@ CSGOptiX::CSGOptiX(const CSGFoundry* foundry_)
     framebuf(nullptr), 
 #endif
     meta(new SMeta),
-    launch_dt(0.),
+    kernel_dt(0.),
     sctx(nullptr),
     sim(QSim::Get()),  
     event(sim == nullptr  ? nullptr : sim->event)
@@ -763,8 +736,10 @@ CSGOptiX::simtrace_launch via the SCSGOptiX.h protocol
 
 double CSGOptiX::simtrace(int eventID)
 {
+    LOG(LEVEL) << "[" ; 
     assert(sim); 
     double dt = sim->simtrace(eventID) ;  // (QSim)
+    LOG(LEVEL) << "] " << dt  ; 
     return dt ; 
 }
 
@@ -875,78 +850,84 @@ void CSGOptiX::setFrame(const sfr& lfr )
 
 void CSGOptiX::prepareParamRender()
 {
-    glm::vec3 eye ;
-    glm::vec3 U ; 
-    glm::vec3 V ; 
-    glm::vec3 W ; 
+    int prepareParamRender_DEBUG = ssys::getenvint(_prepareParamRender_DEBUG, 0) ;
 
-    float tmin ; 
-    float tmax ; 
-    unsigned vizmask ; 
-    unsigned cameratype ; 
-    float extent ; 
-    float length ; 
-    int traceyflip ; 
-   
+    float extent = sglm->fr.ce.w ; 
+    const glm::vec3& eye = sglm->e ; 
+    const glm::vec3& U = sglm->u ; 
+    const glm::vec3& V = sglm->v ; 
+    const glm::vec3& W = sglm->w ; 
+    const glm::vec3& WNORM = sglm->wnorm ; 
+    const glm::vec4& ZPROJ = sglm->zproj ; 
 
-    extent = sglm->fr.ce.w ; 
-    eye = sglm->e ; 
-    U = sglm->u ; 
-    V = sglm->v ; 
-    W = sglm->w ; 
-    tmin = sglm->get_near_abs() ; 
-    tmax = sglm->get_far_abs() ; 
-    vizmask = sglm->vizmask ; 
-    cameratype = sglm->cam ; 
-    traceyflip = sglm->traceyflip ; 
-    length = 0.f ; 
+    float tmin = sglm->get_near_abs() ; 
+    float tmax = sglm->get_far_abs() ; 
+    unsigned vizmask = sglm->vizmask ; 
+    unsigned cameratype = sglm->cam ; 
+    int traceyflip = sglm->traceyflip ; 
+    int rendertype = sglm->rendertype ; 
+    float length = 0.f ; 
 
-    if(!flight) 
-    {
-        LOG(level)
-            << std::endl 
-            << std::setw(20) << " extent "     << extent << std::endl 
-            << std::setw(20) << " sglm.fr.ce.w "  << sglm->fr.ce.w << std::endl 
-            << std::setw(20) << " sglm.getGazeLength "  << sglm->getGazeLength()  << std::endl 
-            << std::setw(20) << " comp.length"   << length 
-            << std::endl 
-            << std::setw(20) << " tmin "       << tmin  << std::endl 
-            << std::setw(20) << " tmax "       << tmax  << std::endl 
-            << std::setw(20) << " vizmask "    << vizmask  << std::endl 
-            << std::endl 
-            << std::setw(20) << " sglm.near "  << sglm->near  << std::endl 
-            << std::setw(20) << " sglm.get_near_abs "  << sglm->get_near_abs()  << std::endl 
-            << std::endl 
-            << std::setw(20) << " sglm.far "   << sglm->far  << std::endl 
-            << std::setw(20) << " sglm.get_far_abs "   << sglm->get_far_abs()  << std::endl 
-            << std::endl 
-            << std::setw(25) << " sglm.get_nearfar_basis "  << sglm->get_nearfar_basis()  
-            << std::setw(25) << " sglm.get_nearfar_mode "  << sglm->get_nearfar_mode()  
-            << std::endl 
-            << std::setw(25) << " sglm.get_focal_basis "  << sglm->get_focal_basis()  
-            << std::setw(25) << " sglm.get_focal_mode "  << sglm->get_focal_mode()  
-            << std::endl 
-            << std::setw(20) << " eye ("       << eye.x << " " << eye.y << " " << eye.z << " ) " << std::endl 
-            << std::setw(20) << " U ("         << U.x << " " << U.y << " " << U.z << " ) " << std::endl
-            << std::setw(20) << " V ("         << V.x << " " << V.y << " " << V.z << " ) " << std::endl
-            << std::setw(20) << " W ("         << W.x << " " << W.y << " " << W.z << " ) " << std::endl
-            << std::endl 
-            << std::setw(20) << " cameratype " << cameratype << " "           << SCAM::Name(cameratype) << std::endl 
-            << std::setw(20) << " traceyflip " << traceyflip << std::endl 
-            << std::setw(20) << " sglm.cam " << sglm->cam << " " << SCAM::Name(sglm->cam) << std::endl 
-            ;
+    LOG_IF(info, prepareParamRender_DEBUG > 0 && kernel_count == 0)
+        << _prepareParamRender_DEBUG << ":" << prepareParamRender_DEBUG
+        << std::endl 
+        << std::setw(20) << " kernel_count " << kernel_count << std::endl 
+        << std::setw(20) << " extent "     << extent << std::endl 
+        << std::setw(20) << " sglm.fr.ce.w "  << sglm->fr.ce.w << std::endl 
+        << std::setw(20) << " sglm.getGazeLength "  << sglm->getGazeLength()  << std::endl 
+        << std::setw(20) << " comp.length"   << length 
+        << std::endl 
+        << std::setw(20) << " tmin "       << tmin  << std::endl 
+        << std::setw(20) << " tmax "       << tmax  << std::endl 
+        << std::setw(20) << " vizmask "    << vizmask  << std::endl 
+        << std::endl 
+        << std::setw(20) << " sglm.near "  << sglm->near  << std::endl 
+        << std::setw(20) << " sglm.get_near_abs "  << sglm->get_near_abs()  << std::endl 
+        << std::endl 
+        << std::setw(20) << " sglm.far "   << sglm->far  << std::endl 
+        << std::setw(20) << " sglm.get_far_abs "   << sglm->get_far_abs()  << std::endl 
+        << std::endl 
+        << std::setw(25) << " sglm.get_nearfar_basis "  << sglm->get_nearfar_basis()  
+        << std::setw(25) << " sglm.get_nearfar_mode "  << sglm->get_nearfar_mode()  
+        << std::endl 
+        << std::setw(25) << " sglm.get_focal_basis "  << sglm->get_focal_basis()  
+        << std::setw(25) << " sglm.get_focal_mode "  << sglm->get_focal_mode()  
+        << std::endl 
+        << std::setw(20) << " eye ("       << eye.x << " " << eye.y << " " << eye.z << " ) " << std::endl 
+        << std::setw(20) << " U ("         << U.x << " " << U.y << " " << U.z << " ) " << std::endl
+        << std::setw(20) << " V ("         << V.x << " " << V.y << " " << V.z << " ) " << std::endl
+        << std::setw(20) << " W ("         << W.x << " " << W.y << " " << W.z << " ) " << std::endl
+        << std::setw(20) << " WNORM ("     << WNORM.x << " " << WNORM.y << " " << WNORM.z << " ) " << std::endl
+        << std::endl 
+        << std::setw(20) << " cameratype " << cameratype << " "           << SCAM::Name(cameratype) << std::endl 
+        << std::setw(20) << " traceyflip " << traceyflip << std::endl 
+        << std::setw(20) << " sglm.cam " << sglm->cam << " " << SCAM::Name(sglm->cam) << std::endl 
+        << std::setw(20) << " ZPROJ ("     << ZPROJ.x << " " << ZPROJ.y << " " << ZPROJ.z << " " << ZPROJ.w << " ) " << std::endl
+        << std::endl 
+        << "SGLM::DescEyeBasis (sglm->e,w,v,w)\n" 
+        << SGLM::DescEyeBasis( sglm->e, sglm->u, sglm->v, sglm->w ) 
+        << std::endl 
+        << std::endl 
+        <<  "sglm.descEyeBasis\n" 
+        << sglm->descEyeBasis() 
+        << std::endl 
+        << "Composition basis  SGLM::DescEyeBasis( eye, U, V, W ) \n" 
+        << SGLM::DescEyeBasis( eye, U, V, W ) 
+        << std::endl 
+        << "sglm.descELU \n" 
+        << sglm->descELU() 
+        << std::endl  
+        << std::endl 
+        << "sglm.descLog " 
+        << std::endl 
+        << sglm->descLog() 
+        << std::endl 
+        ; 
 
-        LOG(level) << std::endl << "SGLM::DescEyeBasis (sglm->e,w,v,w) " << std::endl << SGLM::DescEyeBasis( sglm->e, sglm->u, sglm->v, sglm->w ) << std::endl ;
-        LOG(level) << std::endl <<  "sglm.descEyeBasis " << std::endl << sglm->descEyeBasis() << std::endl ; 
-        LOG(level) << std::endl << "Composition basis " << std::endl << SGLM::DescEyeBasis( eye, U, V, W ) << std::endl ;
-        LOG(level) << std::endl  << "sglm.descELU " << std::endl << sglm->descELU() << std::endl ; 
-        LOG(level) << std::endl << "sglm.descLog " << std::endl << sglm->descLog() << std::endl ; 
-
-    }
 
 
-    params->setView(eye, U, V, W);
-    params->setCamera(tmin, tmax, cameratype, traceyflip ); 
+    params->setView(eye, U, V, W, WNORM );
+    params->setCamera(tmin, tmax, cameratype, traceyflip, rendertype, ZPROJ ); 
     params->setVizmask(vizmask); 
 
     LOG(level) << std::endl << params->desc() ; 
@@ -972,7 +953,10 @@ Per-event simulate setup invoked just prior to optix launch
 void CSGOptiX::prepareParamSimulate()  
 {
     LOG(LEVEL); 
+    params->setPhotonSlotOffset(sim->getPhotonSlotOffset()); 
 }
+
+
 
 /**
 CSGOptiX::prepareParam and upload
@@ -1051,7 +1035,8 @@ double CSGOptiX::launch()
 
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> TP ;
     typedef std::chrono::duration<double> DT ;
-    TP t0 = std::chrono::high_resolution_clock::now();
+    TP _t0 = std::chrono::high_resolution_clock::now();
+    int64_t t0 = sstamp::Now(); 
 
     LOG(LEVEL) 
          << " raygenmode " << raygenmode
@@ -1077,21 +1062,28 @@ double CSGOptiX::launch()
         CUDA_SYNC_CHECK();    
         // see CSG/CUDA_CHECK.h the CUDA_SYNC_CHECK does cudaDeviceSyncronize
         // THIS LIKELY HAS LARGE PERFORMANCE IMPLICATIONS : BUT NOT EASY TO AVOID (MULTI-BUFFERING ETC..)  
+        kernel_count += 1 ;   
     }
 #endif
 
-    TP t1 = std::chrono::high_resolution_clock::now();
-    DT _dt = t1 - t0;
 
-    launch_dt = _dt.count() ; 
-    launch_times.push_back(launch_dt);  
+    TP _t1 = std::chrono::high_resolution_clock::now();
+    DT _dt = _t1 - _t0;
+
+    int64_t t1 = sstamp::Now(); 
+    int64_t dt = t1 - t0 ; 
+
+    kernel_dt = _dt.count() ;   // formerly mis-named launch_dt
+    kernel_times.push_back(kernel_dt);  
+
+    kernel_times_.push_back(dt); 
 
     LOG(LEVEL) 
           << " (params.width, params.height, params.depth) ( " 
           << params->width << "," << params->height << "," << params->depth << ")"  
-          << std::fixed << std::setw(7) << std::setprecision(4) << launch_dt  
+          << std::fixed << std::setw(7) << std::setprecision(4) << kernel_dt  
           ; 
-    return launch_dt ; 
+    return kernel_dt ; 
 }
 
 
@@ -1215,7 +1207,7 @@ double CSGOptiX::render( const char* stem_ )
 {
     render_launch();   
     render_save(stem_);   
-    return launch_dt ; 
+    return kernel_dt ; 
 }
 
 
@@ -1259,11 +1251,11 @@ void CSGOptiX::render_save_(const char* stem_, bool inverted)
 
 
     const char* topline = ssys::getenvvar("TOPLINE", sproc::ExecutableName() ); 
-    std::string _extra = GetGPUMeta();  // scontext::brief giving GPU name 
+    std::string _extra = SEventConfig::GetGPUMeta();  // scontext::brief giving GPU name 
     const char* extra = strdup(_extra.c_str()) ;  
 
     const char* botline_ = ssys::getenvvar("BOTLINE", nullptr ); 
-    std::string bottom_line = CSGOptiX::Annotation(launch_dt, botline_, extra ); 
+    std::string bottom_line = CSGOptiX::Annotation(kernel_dt, botline_, extra ); 
     const char* botline = bottom_line.c_str() ; 
 
 
@@ -1271,12 +1263,12 @@ void CSGOptiX::render_save_(const char* stem_, bool inverted)
           << " stem " << stem 
           << " outpath " << outpath 
           << " outdir " << ( outdir ? outdir : "-" )
-          << " launch_dt " << launch_dt 
+          << " kernel_dt " << kernel_dt 
           << " topline [" <<  topline << "]"
           << " botline [" <<  botline << "]"
           ; 
 
-    LOG(info) << outpath  << " : " << AnnotationTime(launch_dt, extra)  ; 
+    LOG(info) << outpath  << " : " << AnnotationTime(kernel_dt, extra)  ; 
 
     unsigned line_height = 24 ; 
     snap(outpath, botline, topline, line_height, inverted  );   
@@ -1289,6 +1281,16 @@ void CSGOptiX::render_save_(const char* stem_, bool inverted)
 /**
 CSGOptiX::snap : Download frame pixels and write to file as jpg.
 ------------------------------------------------------------------
+
+WIP: contrast this with SGLFW::snap_local and consider if more consolidation is possible
+
+
+SGLFW::snap_local
+    Uses OpenGL glReadPixels to download pixels and write them to file
+
+CSGOptiX::snap
+    OptiX/CUDA level download ray traced pixels and write to file
+
 **/
 
 void CSGOptiX::snap(const char* path_, const char* bottom_line, const char* top_line, unsigned line_height, bool inverted )
@@ -1363,10 +1365,10 @@ void CSGOptiX::saveMeta(const char* jpg_path) const
         js["cfmeta"] = foundry->meta ; 
     }
 
-    std::string extra = GetGPUMeta(); 
+    std::string extra = SEventConfig::GetGPUMeta(); 
     js["scontext"] = extra.empty() ? "-" : strdup(extra.c_str()) ; 
 
-    const std::vector<double>& t = launch_times ;
+    const std::vector<double>& t = kernel_times ;
     if( t.size() > 0 )
     {
         double mn, mx, av ;
@@ -1398,7 +1400,7 @@ CSGOptiX::_OPTIX_VERSION
 -------------------------
 
 This depends on the the optix.h header only which provides the OPTIX_VERSION macro
-so it could be done at the lowest level, no need for it to be 
+SEventConfig::so it could be done at the lowest level, no need for it to be 
 up at this "elevation"
 
 TODO: relocate to OKConf or SysRap, BUT this must wait until switch to full proj 7 

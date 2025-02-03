@@ -12,8 +12,12 @@
 #include "SSim.hh"
 #include "scuda.h"
 #include "squad.h"
+#include "SEvent.hh"
 #include "SEventConfig.hh"
 #include "SCSGOptiX.h"
+
+#include "SGenstep.h"
+#include "sslice.h"
 
 #include "NP.hh"
 #include "QUDA_CHECK.h"
@@ -110,7 +114,7 @@ void QSim::UploadComponents( const SSim* ssim  )
 
     unsigned skipahead_event_offset = SEventConfig::EventSkipahead()  ; 
     LOG(LEVEL) << "[ new QRng skipahead_event_offset : " << skipahead_event_offset << " " << SEventConfig::kEventSkipahead ;
-    QRng* rng = new QRng(skipahead_event_offset)  ;  // loads and uploads curandState 
+    QRng* rng = new QRng(skipahead_event_offset)  ;  // loads and uploads RNG 
     LOG(LEVEL) << "] new QRng " << rng->desc()  ;
 
     LOG(LEVEL) << rng->desc(); 
@@ -278,7 +282,7 @@ void QSim::init()
     sim = new qsim ; 
     sim->base = base ? base->d_base : nullptr ; 
     sim->evt = event ? event->getDevicePtr() : nullptr ; 
-    sim->rngstate = rng ? rng->qr->rng_states : nullptr ; 
+    //sim->rng_state = rng ? rng->qr->uploaded_states : nullptr ; 
     sim->rng = rng ? rng->d_qr : nullptr ; 
 
     sim->bnd = bnd ? bnd->d_qb : nullptr ; 
@@ -324,10 +328,14 @@ void QSim::post_launch()
 QSim::simulate
 ---------------
 
-Canonically invoked from G4CXOpticks::simulate
+Two canonical invokations:
+
+1. G4CXOpticks::simulate for full dependency running 
+2. CSGOptiX::simulate for pure CSGOptiX level testing such as by ~/o/cxs_min.sh 
+
 Collected genstep are uploaded and the CSGOptiX kernel is launched to generate and propagate. 
 
-NB the surprising fact that this calls CSGOptiX::simulate (using a protocol), 
+NB the surprising fact that this calls CSGOptiX::simulate_launch (using a protocol), 
 that seems funny dependency-wise but its needed for genstep preparation prior to 
 the launch. 
 
@@ -337,8 +345,7 @@ the launch.
 
        EGPU.SEvt::beginOfEvent
 
-       QEvent::setGenstep
-          QEvent::setGenstepUpload(quad6*)
+       QEvent::setGenstepUpload(quad6*)
 
        SCSGOptiX::simulate_launch 
 
@@ -347,49 +354,158 @@ the launch.
 
 **/
 
+bool QSim::KEEP_SUBFOLD = ssys::getenvbool(QSim__simulate_KEEP_SUBFOLD); 
+
 double QSim::simulate(int eventID, bool reset_)
 {
-    SProf::Add("QSim__simulate_HEAD"); 
+    double tot_dt = 0. ; 
+
+    int64_t tot_idt = 0 ; 
+    int64_t tot_gdt = 0 ; 
+
+    uint64_t tot_ph = 0 ; 
+
+    int64_t t_HEAD = SProf::Add("QSim__simulate_HEAD"); 
 
     LOG_IF(info, SEvt::LIFECYCLE) << "[ eventID " << eventID ;
     if( event == nullptr ) return -1. ; 
 
     sev->beginOfEvent(eventID);  // set SEvt index and tees up frame gensteps for simtrace and input photon simulate running
 
-    int rc = event->setGenstep() ;    // QEvent 
-    LOG_IF(error, rc != 0) << " QEvent::setGenstep ERROR : have event but no gensteps collected : will skip cx.simulate " ; 
+    NP* igs = sev->makeGenstepArrayFromVector();  
+
+    bool igs_null = igs == nullptr ; 
+    LOG_IF(fatal, igs_null ) << " igs_null " << ( igs_null ? "YES" : "NO " ) ; 
+    assert( !igs_null ); 
 
 
-    SProf::Add("QSim__simulate_PREL"); 
+    std::vector<sslice> igs_slice ; 
+    SGenstep::GetGenstepSlices( igs_slice, igs, SEventConfig::MaxSlot() ); 
+    int num_slice = igs_slice.size(); 
+    LOG(LEVEL) << sslice::Desc(igs_slice); 
 
-    sev->t_PreLaunch = sstamp::Now() ; 
-    double dt = rc == 0 && cx != nullptr ? cx->simulate_launch() : -1. ;  //SCSGOptiX protocol
-    sev->t_PostLaunch = sstamp::Now() ; 
-    sev->t_Launch = dt ; 
+    int64_t t_LBEG = SProf::Add("QSim__simulate_LBEG"); 
 
-    SProf::Add("QSim__simulate_POST"); 
+    for(int i=0 ; i < num_slice ; i++)
+    {
+        SProf::Add("QSim__simulate_PRUP");
+ 
+        const sslice& sl = igs_slice[i] ; 
 
-    sev->gather(); 
+        LOG(info) << sl.desc() ; 
 
-    SProf::Add("QSim__simulate_DOWN"); 
+        int rc = event->setGenstepUpload_NP(igs, &sl ) ; 
+        LOG_IF(error, rc != 0) << " QEvent::setGenstep ERROR : have event but no gensteps collected : will skip cx.simulate " ; 
 
-    int num_ht = sev->getNumHit() ;   // NB from fold, so requires hits array gathering to be configured to get non-zero 
-    int num_ph = event->getNumPhoton() ; 
+
+        SProf::Add("QSim__simulate_PREL"); 
+
+        sev->t_PreLaunch = sstamp::Now() ; 
+        double dt = rc == 0 && cx != nullptr ? cx->simulate_launch() : -1. ;  //SCSGOptiX protocol
+        sev->t_PostLaunch = sstamp::Now() ; 
+        sev->t_Launch = dt ; 
+
+        tot_idt += ( sev->t_PostLaunch - sev->t_PreLaunch ) ; 
+        tot_dt += dt ; 
+        tot_ph += sl.ph_count ; 
+
+
+        int64_t t_POST = SProf::Add("QSim__simulate_POST"); 
+
+        sev->gather(); 
+
+        int64_t t_DOWN = SProf::Add("QSim__simulate_DOWN"); 
+
+        tot_gdt += ( t_DOWN - t_POST ) ; 
+    }
+
+    int64_t t_LEND = SProf::Add("QSim__simulate_LEND"); 
+
+    sev->topfold->concat(); 
+    if(!KEEP_SUBFOLD) sev->topfold->clear_subfold(); 
+
+    int64_t t_PCAT = SProf::Add("QSim__simulate_PCAT"); 
+
+    int tot_ht = sev->getNumHit() ;  // NB from fold, so requires hits array gathering to be configured to get non-zero 
 
     LOG_IF(info, SEvt::MINIMAL) 
         << " eventID " << eventID 
-        << " dt " << std::setw(11) << std::fixed << std::setprecision(6) << dt 
-        << " ph " << std::setw(10) << num_ph 
-        << " ph/M " << std::setw(10) << num_ph/M 
-        << " ht " << std::setw(10) << num_ht 
-        << " ht/M " << std::setw(10) << num_ht/M 
+        << " tot_dt " << std::setw(11) << std::fixed << std::setprecision(6) << tot_dt 
+        << " tot_ph " << std::setw(10) << tot_ph 
+        << " tot_ph/M " << std::setw(10) << std::fixed << std::setprecision(6) << float(tot_ph)/float(M) 
+        << " tot_ht " << std::setw(10) << tot_ht 
+        << " tot_ht/M " << std::setw(10) << std::fixed << std::setprecision(6) << float(tot_ht)/float(M)
+        << " tot_ht/tot_ph " << std::setw(10) << std::fixed << std::setprecision(6) << float(tot_ht)/float(tot_ph)
         << " reset_ " << ( reset_ ? "YES" : "NO " ) 
+        ;
+
+    int64_t t_BRES  = SProf::Add("QSim__simulate_BRES"); 
+    if(reset_) reset(eventID) ; 
+    int64_t t_TAIL  = SProf::Add("QSim__simulate_TAIL"); 
+
+    LOG_IF(info, SEvt::MINTIME) << "\n"
+        << SEvt::SEvt__MINTIME
+        << "\n"
+        << " (TAIL - HEAD)/M " << std::setw(10) << std::fixed << std::setprecision(6) << float( t_TAIL - t_HEAD )/M
+        << " (head to tail of QSim::simulate method) "
+        << "\n"
+        << " (LEND - LBEG)/M " << std::setw(10) << std::fixed << std::setprecision(6) << float( t_LEND - t_LBEG )/M 
+        << " (multilaunch loop begin to end) " 
+        << "\n"
+        << " (PCAT - LEND)/M " << std::setw(10) << std::fixed << std::setprecision(6) << float( t_PCAT - t_LEND )/M
+        << " (topfold concat and clear subfold) "
+        << "\n"
+        << " (TAIL - BRES)/M " << std::setw(10) << std::fixed << std::setprecision(6) << float( t_TAIL - t_BRES )/M
+        << " (QSim::reset which saves hits) "
+        << "\n"
+        << " tot_idt/M       " << std::setw(10) << std::fixed << std::setprecision(6) << float(tot_idt)/M
+        << " (sum of kernel execution int64_t stamp differences in microseconds)" 
+        << "\n"
+        << " tot_dt          " << std::setw(10) << std::fixed << std::setprecision(6) << tot_dt 
+        << " int(tot_dt*M)   " << std::setw(10) << int64_t(tot_dt*M) 
+        << " (sum of kernel execution double chrono stamp differences in seconds, and scaled to ms) "  
+        << "\n"
+        << " tot_gdt/M       " << std::setw(10) << std::fixed << std::setprecision(6) << float(tot_gdt)/M
+        << " (sum of SEvt::gather int64_t stamp differences in microseconds)" 
+        << "\n"
         ; 
 
-    if(reset_) reset(eventID) ; 
-    SProf::Add("QSim__simulate_TAIL"); 
-    return dt ; 
+    return tot_dt ; 
 }
+
+
+
+/**
+QSim::getPhotonSlotOffset
+---------------------------
+
+The photon slot offset is available 
+from QEvent after setGenstepUpload_NP
+
+The first genstep slice yields an offset of zero.
+So this only yields non-zero offsets for multi-launch
+running,
+
+
+The photon_slot_offset is uploaded to Params on device prior 
+to simulate launches by CSGOptiX::prepareParamSimulate
+
+The offset is used at head of CSGOptiX7.cu:simulate  to offset the
+launch index. 
+
+Hence the sum of the offset and the 
+number of photons in the launch must be less than
+or equal the number of states uploaded. 
+
+**/
+
+
+
+int QSim::getPhotonSlotOffset() const
+{
+    return event->getPhotonSlotOffset() ; 
+}
+
 
 /**
 QSim::reset
@@ -397,12 +513,13 @@ QSim::reset
 
 When *QSim::simulate* is called with argument *reset:true* the
 *QSim::reset* method is called which invokes SEvt::endOfEvent in order
-to clean up the SEvt after saving any Opticks configured arrays.
+to clean up the SEvt. Normally that would be done after saving 
+any Opticks configured arrays.
 
 When *QSim::simulate* is called with argument *reset:false*
 the *QSim::reset* method must be called separately in order to avoid a memory leak. 
 Using *reset:false* is typically done in order to keep arrays alive longer 
-to enable copying the info from the gathered arrays into non-Opticks collections.  
+to enable copying from the gathered arrays into non-Opticks collections.  
 
 **/
 void QSim::reset(int eventID)
@@ -429,14 +546,19 @@ double QSim::simtrace(int eventID)
 {
     sev->beginOfEvent(eventID); 
 
-    int rc = event->setGenstep();  
+    NP* igs = sev->makeGenstepArrayFromVector();  
+    int rc = event->setGenstepUpload_NP(igs) ; 
+
     LOG_IF(error, rc != 0) << " QEvent::setGenstep ERROR : no gensteps collected : will skip cx.simtrace " ; 
 
     sev->t_PreLaunch = sstamp::Now() ; 
     double dt = rc == 0 && cx != nullptr ? cx->simtrace_launch() : -1. ;
     sev->t_PostLaunch = sstamp::Now() ; 
-
     sev->t_Launch = dt ; 
+
+    // see ~/o/notes/issues/cxt_min_simtrace_revival.rst
+    sev->gather(); 
+
     sev->endOfEvent(eventID); 
 
     return dt ; 
@@ -480,7 +602,7 @@ std::string QSim::descFull() const
        << " QEvent.hh:event 0x" << std::hex << std::uint64_t(event)    << std::dec    
        << " qsim.h:sim 0x"      << std::hex << std::uint64_t(sim)      << std::dec 
        << " qsim.h:d_sim 0x"    << std::hex << std::uint64_t(d_sim)    << std::dec 
-       << " sim->rngstate 0x"   << std::hex << std::uint64_t(sim->rngstate) << std::dec  // tending to SEGV on some systems
+       //<< " sim->rng_state 0x"   << std::hex << std::uint64_t(sim->rng_state) << std::dec  // tending to SEGV on some systems
        << " sim->base 0x"       << std::hex << std::uint64_t(sim->base)  << std::dec
        << " sim->bnd 0x"        << std::hex << std::uint64_t(sim->bnd)   << std::dec
        << " sim->scint 0x"      << std::hex << std::uint64_t(sim->scint) << std::dec
@@ -579,7 +701,7 @@ Upping to 1M would be 100x 20M = 2000M  2GB
 
 
 template <typename T>
-extern void QSim_rng_sequence(  dim3 numBlocks, dim3 threadsPerBlock, qsim* d_sim, T* seq, unsigned ni, unsigned nj, unsigned id_offset, bool skipahead ); 
+extern void QSim_rng_sequence(  dim3 numBlocks, dim3 threadsPerBlock, qsim* d_sim, T* seq, unsigned ni, unsigned nj, unsigned id_offset ); 
 
 
 /**
@@ -593,7 +715,7 @@ ni_tranche : item tranche size
 
 nv : number randoms to generate for each item
 
-id_offset : acts on the rngstates array 
+id_offset : acts on the rng_state array 
 
 skipahead : used curand skipahead offsets depending on sim->evt->index and OPTICKS_EVENT_SKIPAHEAD
 
@@ -601,7 +723,7 @@ skipahead : used curand skipahead offsets depending on sim->evt->index and OPTIC
 **/
 
 template <typename T>
-void QSim::rng_sequence( T* seq, unsigned ni_tranche, unsigned nv, unsigned id_offset, bool skipahead )
+void QSim::rng_sequence( T* seq, unsigned ni_tranche, unsigned nv, unsigned id_offset )
 {
     configureLaunch(ni_tranche, 1 ); 
 
@@ -611,7 +733,7 @@ void QSim::rng_sequence( T* seq, unsigned ni_tranche, unsigned nv, unsigned id_o
 
     T* d_seq = QU::device_alloc<T>(num_rng, label ); 
 
-    QSim_rng_sequence<T>( numBlocks, threadsPerBlock, d_sim, d_seq, ni_tranche, nv, id_offset, skipahead );  
+    QSim_rng_sequence<T>( numBlocks, threadsPerBlock, d_sim, d_seq, ni_tranche, nv, id_offset );  
 
     QU::copy_device_to_host_and_free<T>( seq, d_seq, num_rng, label ); 
 }
@@ -638,7 +760,7 @@ Default *dir* is $TMP/QSimTest/rng_sequence leading to npy paths like::
 **/
 
 template <typename T>
-void QSim::rng_sequence( const char* dir, unsigned ni, unsigned nj, unsigned nk, unsigned ni_tranche_size, bool skipahead  )
+void QSim::rng_sequence( const char* dir, unsigned ni, unsigned nj, unsigned nk, unsigned ni_tranche_size )
 {
     assert( ni >= ni_tranche_size && ni % ni_tranche_size == 0 );   // total size *ni* must be integral multiple of *ni_tranche_size*
     unsigned num_tranche = ni/ni_tranche_size ; 
@@ -647,11 +769,9 @@ void QSim::rng_sequence( const char* dir, unsigned ni, unsigned nj, unsigned nk,
     unsigned size = ni_tranche_size*nv ;   // number of randoms to be generated in each launch 
     std::string reldir = QU::rng_sequence_reldir<T>(PREFIX, ni, nj, nk, ni_tranche_size  ) ;  
 
-    std::cout 
-        << "QSim::rng_sequence" 
+    LOG(info)
         << " ni " << ni
         << " ni_tranche_size " << ni_tranche_size
-        << " skipahead " << ( skipahead ? "YES" : "NO ")
         << " num_tranche " << num_tranche 
         << " reldir " << reldir.c_str()
         << " nj " << nj
@@ -659,17 +779,28 @@ void QSim::rng_sequence( const char* dir, unsigned ni, unsigned nj, unsigned nk,
         << " nv(nj*nk) " << nv 
         << " size(ni_tranche_size*nv) " << size 
         << " typecode " << QU::typecode<T>() 
-        << std::endl 
         ; 
 
 
     // NB seq array memory gets reused for each launch and saved to different paths
     NP* seq = NP::Make<T>(ni_tranche_size, nj, nk) ; 
-    T* values = seq->values<T>(); 
+    T* seq_values = seq->values<T>(); 
+    NP::INT seq_nv = seq->num_values(); 
+
+
+    LOG(info)
+        << " seq " << ( seq ? seq->sstr() : "-" )
+        << " seq_values " << seq_values
+        << " seq_nv " << seq_nv
+        << " seq_values[0] " << seq_values[0]
+        << " seq_values[seq_nv-1] " << seq_values[seq_nv-1]
+        ;
+     
+
 
     for(unsigned t=0 ; t < num_tranche ; t++)
     {
-        // *id_offset* controls which rngstates/curandState to use
+        // *id_offset* controls which rng_state/RNG to use
         unsigned id_offset = ni_tranche_size*t ; 
         std::string name = QU::rng_sequence_name<T>(PREFIX, ni_tranche_size, nj, nk, id_offset ) ;  
 
@@ -680,7 +811,7 @@ void QSim::rng_sequence( const char* dir, unsigned ni, unsigned nj, unsigned nk,
             << std::endl 
             ; 
 
-        rng_sequence( values, ni_tranche_size, nv, id_offset, skipahead );  
+        rng_sequence( seq_values, ni_tranche_size, nv, id_offset );  
          
         const char* path = spath::Resolve(dir, reldir.c_str(), name.c_str() ); 
         seq->save(path); 
@@ -689,21 +820,8 @@ void QSim::rng_sequence( const char* dir, unsigned ni, unsigned nj, unsigned nk,
 
 
 
-template void QSim::rng_sequence<float>(  const char* dir, unsigned ni, unsigned nj, unsigned nk, unsigned ni_tranche_size, bool skipahead  ); 
-template void QSim::rng_sequence<double>( const char* dir, unsigned ni, unsigned nj, unsigned nk, unsigned ni_tranche_size, bool skipahead  ); 
-
-
-
-
-
-
-
-
-
-
-
-
-
+template void QSim::rng_sequence<float>(  const char* dir, unsigned ni, unsigned nj, unsigned nk, unsigned ni_tranche_size ); 
+template void QSim::rng_sequence<double>( const char* dir, unsigned ni, unsigned nj, unsigned nk, unsigned ni_tranche_size ); 
 
 
 
@@ -742,8 +860,7 @@ NP* QSim::scint_wavelength(unsigned num_wavelength, unsigned& hd_factor )
 
     NP* w = NP::Make<float>(num_wavelength) ; 
 
-    const char* label = "QSim::scint_wavelength" ; 
-    QU::copy_device_to_host_and_free<float>( (float*)w->bytes(), d_wavelength, num_wavelength, label ); 
+    QU::copy_device_to_host_and_free<float>( (float*)w->bytes(), d_wavelength, num_wavelength, "QSim::scint_wavelength" ); 
 
     LOG(LEVEL) << "]" ; 
 
@@ -819,10 +936,6 @@ extern void QSim_generate_photon(dim3 numBlocks, dim3 threadsPerBlock, qsim* sim
 QSim::generate_photon
 -----------------------
 
-HMM : getting assert for QSimWithEventTest from the below 
-QEvent::setGenstep because the genstep has already been set and uploaded 
-and the genstep vector cleared. 
-
 **/
 
 
@@ -830,19 +943,14 @@ void QSim::generate_photon()
 {
     LOG(LEVEL) << "[" ; 
 
-     // event->setGenstep();   // ??see above?? 
-
     unsigned num_photon = event->getNumPhoton() ;  
     LOG(info) << " num_photon " << num_photon ; 
 
-    if( num_photon == 0 )
-    {
-        LOG(fatal) 
-           << " num_photon zero : MUST QEvent::setGenstep before QSim::generate_photon "  
-           ; 
-        return ; 
-    }
+    LOG_IF(fatal, num_photon == 0 )
+        << " num_photon zero : MUST QEvent::setGenstep before QSim::generate_photon "  
+        ; 
 
+    assert( num_photon > 0 ); 
     assert( d_sim ); 
 
     configureLaunch( num_photon, 1 ); 
@@ -1023,18 +1131,30 @@ void QSim::photon_launch_mutate(sphoton* photon, unsigned num_photon, unsigned t
     const char* label_0 = "QSim::photon_launch_mutate/d_photon" ; 
     sphoton* d_photon = QU::UploadArray<sphoton>(photon, num_photon, label_0 );  
 
-    unsigned threads_per_block = 512 ;  
-    configureLaunch1D( num_photon, threads_per_block ); 
 
-    QSim_photon_launch(numBlocks, threadsPerBlock, d_sim, d_photon, num_photon, d_dbg, type );  
+    unsigned DEBUG_NUM_PHOTON = ssys::getenvunsigned(_QSim__photon_launch_mutate_DEBUG_NUM_PHOTON, 0 ); 
+    bool DEBUG_NUM_PHOTON_valid = DEBUG_NUM_PHOTON > 0 && DEBUG_NUM_PHOTON <= num_photon ; 
+
+    unsigned u_num_photon = DEBUG_NUM_PHOTON_valid ? DEBUG_NUM_PHOTON  : num_photon ; 
+
+    LOG_IF( error, DEBUG_NUM_PHOTON_valid ) 
+        << _QSim__photon_launch_mutate_DEBUG_NUM_PHOTON 
+        << " DEBUG_NUM_PHOTON " << DEBUG_NUM_PHOTON
+        << " num_photon " << num_photon 
+        << " u_num_photon " << u_num_photon 
+        ; 
+
+    unsigned threads_per_block = 512 ;  
+    configureLaunch1D( u_num_photon, threads_per_block ); 
+
+    QSim_photon_launch(numBlocks, threadsPerBlock, d_sim, d_photon, u_num_photon, d_dbg, type );  
 
     const char* label_1 = "QSim::photon_launch_mutate" ; 
-    QU::copy_device_to_host_and_free<sphoton>( photon, d_photon, num_photon, label_1 ); 
+    QU::copy_device_to_host_and_free<sphoton>( photon, d_photon, u_num_photon, label_1 ); 
 }
  
  
 
-extern void QSim_mock_propagate_launch(dim3 numBlocks, dim3 threadsPerBlock, qsim* sim, quad2* prd );  
 
 
 /**
@@ -1071,10 +1191,15 @@ quad2* QSim::UploadFakePRD(const NP* ip, const NP* prd) // static
 
 
 
+extern void QSim_fake_propagate_launch(dim3 numBlocks, dim3 threadsPerBlock, qsim* sim, quad2* prd );  
+
 /**
 
 QSim::fake_propagate (formerly mock_propagate)
 -----------------------------------------------
+
+This is only invoked from QSimTest::fake_propagate
+
 
 Was renamed from "mock" to "fake" as is within Opticks "mock" is 
 used to mean without using CUDA. 
@@ -1096,12 +1221,14 @@ void QSim::fake_propagate( const NP* prd, unsigned type )
 
     quad2* d_prd = UploadFakePRD(ip, prd) ; 
 
-    int rc = event->setGenstep();   
+    NP* igs = sev->makeGenstepArrayFromVector(); 
+    
+    int rc = event->setGenstepUpload_NP(igs);   
     assert( rc == 0 ); 
     if(rc!=0) std::raise(SIGINT); 
 
     sev->add_array("prd0", prd );  
-    // NB QEvent::setGenstep calls SEvt/clear so this addition 
+    // NB SEvt::beginOfEvent calls SEvt/clear so this addition 
     // must be after that to succeed in being added to SEvt saved arrays
 
     int num_photon = event->getNumPhoton(); 
@@ -1121,7 +1248,7 @@ void QSim::fake_propagate( const NP* prd, unsigned type )
     unsigned threads_per_block = 512 ;  
     configureLaunch1D( num_photon, threads_per_block ); 
 
-    QSim_mock_propagate_launch(numBlocks, threadsPerBlock, d_sim, d_prd );  
+    QSim_fake_propagate_launch(numBlocks, threadsPerBlock, d_sim, d_prd );  
 
     cudaDeviceSynchronize();
 
@@ -1558,6 +1685,24 @@ std::string QSim::Desc(char delim)  // static
        << "DEBUG_TAG"
 #else
        << "NOT-DEBUG_TAG"
+#endif
+       << delim
+#ifdef RNG_XORWOW
+       << "RNG_XORWOW"
+#else
+       << "NOT-RNG_XORWOW"
+#endif
+       << delim
+#ifdef RNG_PHILOX
+       << "RNG_PHILOX"
+#else
+       << "NOT-RNG_PHILOX"
+#endif
+       << delim
+#ifdef RNG_PHILITEOX
+       << "RNG_PHILITEOX"
+#else
+       << "NOT-RNG_PHILITEOX"
 #endif
        << delim
        ;

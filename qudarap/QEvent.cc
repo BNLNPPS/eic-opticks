@@ -9,6 +9,7 @@
 #include "scuda.h"
 #include "squad.h"
 #include "sphoton.h"
+#include "sslice.h"
 
 #ifndef PRODUCTION
 #include "srec.h"
@@ -26,7 +27,7 @@
 #include "SU.hh"
 
 #include "SComp.h"
-#include "SGenstep.hh"
+#include "SGenstep.h"
 #include "SEvent.hh"
 #include "SEvt.hh"
 #include "SEventConfig.hh"
@@ -99,6 +100,7 @@ QEvent::QEvent()
     evt(sev ? sev->evt : nullptr),
     d_evt(QU::device_alloc<sevent>(1,"QEvent::QEvent/sevent")),
     gs(nullptr),
+    gss(nullptr),
     input_photon(nullptr),
     upload_count(0)
 {
@@ -165,45 +167,94 @@ std::string QEvent::desc_alloc() const
 
 
 
-
-
 /**
-QEvent::setGenstep
--------------------
+QEvent::setGenstepUpload_NP
+------------------------------
 
 Canonically invoked from QSim::simulate and QSim::simtrace just prior to cx->launch 
 
-Differences from _OLD version
-
-1. no gatherGenstep, no intermediated NP array, instead 
-   get genstep data direct from inside the vecs with no copying 
-
-2. no SEvt::clear as that is too much dealing with 
-   other lifecycle concerns that do not belong in
-   a "setGenstep" method
-
-
 **/
-
-int QEvent::setGenstep()  // onto device
+int QEvent::setGenstepUpload_NP(const NP* gs_ )
 {
     LOG_IF(info, SEvt::LIFECYCLE) << "[" ; 
-
-
-    NP* gs_ = sev->getGenstepArray();  
-    int rc = setGenstepUpload_NP(gs_) ; 
-
+    int rc = setGenstepUpload_NP(gs_, nullptr ); 
     LOG_IF(info, SEvt::LIFECYCLE) << "]" ; 
+    return rc ; 
+} 
+
+int QEvent::setGenstepUpload_NP(const NP* gs_, const sslice* gss_ ) 
+{
+    LOG_IF( fatal, gs_ == nullptr ) << " gs_ null " ; 
+    assert( gs_ ); 
+
+    gs = gs_ ; 
+    gss = gss_ ? new sslice(*gss_) : nullptr ; 
+
+    SGenstep::Check(gs); 
+
+    LOG(LEVEL) 
+        << " gs " << ( gs ? gs->sstr() : "-" )
+        << SGenstep::Desc(gs, 10)
+        ;
+
+    int num_gs = gs ? gs->shape[0] : 0 ;
+
+    int gs_start = gss ? gss->gs_start : 0 ; 
+    int gs_stop  = gss ? gss->gs_stop  : num_gs ; 
+
+    assert( gs_start >= 0 && gs_start <  num_gs ); 
+    assert( gs_stop  >= 1 && gs_stop  <= num_gs ); 
+
+    const char* data = gs ? gs->bytes() : nullptr ;
+    const quad6* qq = (const quad6*)data ; 
+
+    assert( gs_start < num_gs ); 
+    assert( gs_stop <= num_gs );     
+
+    int rc = setGenstepUpload(qq, gs_start, gs_stop ); 
+
+    if(gss == nullptr) return rc ; 
+
+
+    bool gss_consistent = gss->ph_count == evt->num_photon ; 
+    LOG_IF(fatal, !gss_consistent )
+        << " gss.desc " << gss->desc() << "\n"
+        << " gss->ph_count " << gss->ph_count << "\n"
+        << " evt->num_photon " << evt->num_photon << "\n"
+        << " gss_consistent " << ( gss_consistent ? "YES" : "NO " ) << "\n"
+        ;
+
+    int last_rng_state_idx = gss->ph_offset + gss->ph_count ; 
+    bool in_range = last_rng_state_idx <= evt->max_curand ; 
+
+    LOG_IF(fatal, !in_range)
+        << " gss.desc " << gss->desc() << "\n"
+        << " gss->ph_offset " << gss->ph_offset << "\n"
+        << " gss->ph_count " << gss->ph_count << "\n"
+        << " gss->ph_offset + gss->ph_count " << last_rng_state_idx << "(last_rng_state_idx) must be <= max_curand for valid rng_state access\n" 
+        << " evt->max_curand " << evt->max_curand << "\n"
+        << " evt->num_curand " << evt->num_curand << "\n"
+        << " evt->max_slot " << evt->max_slot << "\n"
+        ; 
+
+    assert( gss_consistent ); 
+    assert( in_range );  
 
     return rc ; 
 }
 
+int QEvent::getPhotonSlotOffset() const
+{
+    return gss ? gss->ph_offset : 0 ; 
+}
 
 
 
 /**
-QEvent::setGenstepUpload_NP
-------------------------------
+QEvent::setGenstepUpload
+---------------------------
+
+Switch to quad6* arg to allow direct from vector upload, 
 
 Recall that even with input photon running, still have gensteps.  
 If the number of gensteps is zero there are no photons and no launch. 
@@ -232,42 +283,21 @@ If the number of gensteps is zero there are no photons and no launch.
 
 **/
 
-
-int QEvent::setGenstepUpload_NP(const NP* gs_) 
+int QEvent::setGenstepUpload(const quad6* qq0, int num_gs )
 {
-    gs = gs_ ; 
-    SGenstep::Check(gs); 
-    LOG(LEVEL) 
-        << " gs " << ( gs ? gs->sstr() : "-" )
-        << SGenstep::Desc(gs, 10)
-        ;
-
-    int num_genstep = gs_ ? gs_->shape[0] : 0 ;
-    const char* data = gs_ ? gs_->bytes() : nullptr ;
-    const quad6* qq = (const quad6*)data ; 
-    int rc = setGenstepUpload(qq, num_genstep); 
-    return rc ; 
-}
-
-/**
-QEvent::setGenstepUpload
----------------------------
-
-Switch to quad6* arg to allow direct from vector upload, 
-avoiding the intermediate array.
-
-HMM: but then (NP)gs stays null so nothing to gather 
-
-**/
-
-
-int QEvent::setGenstepUpload(const quad6* qq, int num_genstep ) 
+    return setGenstepUpload(qq0, 0, num_gs ); 
+} 
+int QEvent::setGenstepUpload(const quad6* qq0, int gs_start, int gs_stop ) 
 {
+    const quad6* qq = qq0 + gs_start ; 
+
+
     LOG_IF(info, SEvt::LIFECYCLE) << "[" ; 
 #ifndef PRODUCTION 
     sev->t_setGenstep_3 = sstamp::Now(); 
 #endif
 
+    int num_genstep = gs_stop - gs_start ; 
     bool zero_genstep = num_genstep == 0 ; 
 
     evt->num_genstep = num_genstep ; 
@@ -276,6 +306,8 @@ int QEvent::setGenstepUpload(const quad6* qq, int num_genstep )
     LOG_IF(info, LIFECYCLE) << " not_allocated " << ( not_allocated ? "YES" : "NO" ) ;  
 
     LOG(LEVEL) 
+        << " gs_start " << gs_start
+        << " gs_stop " << gs_stop
         << " evt.num_genstep " << evt->num_genstep 
         << " not_allocated " << ( not_allocated ? "YES" : "NO" ) 
         << " zero_genstep " << ( zero_genstep ? "YES" : "NO " )
@@ -302,7 +334,7 @@ int QEvent::setGenstepUpload(const quad6* qq, int num_genstep )
     sev->t_setGenstep_5 = sstamp::Now(); 
 #endif
 
-    QU::device_memset<int>(   evt->seed,    0, evt->max_photon );
+    QU::device_memset<int>(   evt->seed,    0, evt->max_photon );    // need evt->max_slot ? 
 
 #ifndef PRODUCTION 
     sev->t_setGenstep_6 = sstamp::Now(); 
@@ -331,7 +363,7 @@ int QEvent::setGenstepUpload(const quad6* qq, int num_genstep )
     }
     else if(OpticksGenstep_::IsInputPhoton(gencode0)) // OpticksGenstep_INPUT_PHOTON  (NOT: _TORCH)
     {
-        setInputPhoton(); 
+        setInputPhotonAndUpload(); 
     }
     else
     {
@@ -350,6 +382,11 @@ int QEvent::setGenstepUpload(const quad6* qq, int num_genstep )
 
     return rc ; 
 }
+
+
+
+
+
 
 /**
 QEvent::device_alloc_genstep_and_seed
@@ -371,8 +408,8 @@ void QEvent::device_alloc_genstep_and_seed()
 
 
 /**
-QEvent::setInputPhoton
-------------------------
+QEvent::setInputPhotonAndUpload
+------------------------------------
 
 This is a private method invoked only from QEvent::setGenstepUpload
 
@@ -413,7 +450,7 @@ This is a private method invoked only from QEvent::setGenstepUpload
 
 **/
 
-void QEvent::setInputPhoton()
+void QEvent::setInputPhotonAndUpload()
 {
     LOG_IF(info, LIFECYCLE) ; 
     LOG(LEVEL); 
@@ -423,10 +460,6 @@ void QEvent::setInputPhoton()
     int numph = input_photon->shape[0] ; 
     setNumPhoton( numph ); 
     QU::copy_host_to_device<sphoton>( evt->photon, (sphoton*)input_photon->bytes(), numph ); 
-
-    // HMM: there is a getter ... 
-    //delete input_photon ; 
-    //input_photon = nullptr ;  
 }
 
 void QEvent::checkInputPhoton() const 
@@ -452,22 +485,6 @@ void QEvent::checkInputPhoton() const
     assert(expected_numph); 
 }
 
-
-
-
-/**
-QEvent::setGenstep
--------------------
-
-Was being used by  QEventTest::setGenstep_quad6
-
-int QEvent::setGenstep(quad6* qgs, unsigned num_gs )  // TODO: what uses this ? eliminate ?
-{
-    NP* gs_ = NP::Make<float>( num_gs, 6, 4 ); 
-    gs_->read2( (float*)qgs );   
-    return setGenstepUpload( gs_ ); 
-}
-**/
 
 
 
@@ -551,13 +568,22 @@ NP* QEvent::getInputPhoton() const
 /**
 QEvent::gatherPhoton(NP* p) :  mutating API
 -------------------------------------------
+
+* QU::copy_device_to_host using (sevent)evt->photon/num_photon
+
+  * sevent.h needs changing for each sub-launch 
+
+
 **/
 
 void QEvent::gatherPhoton(NP* p) const 
 {
+
     bool expected_shape =  p->has_shape(evt->num_photon, 4, 4) ; 
     LOG(expected_shape ? LEVEL : fatal) << "[ evt.num_photon " << evt->num_photon << " p.sstr " << p->sstr() << " evt.photon " << evt->photon ; 
+    LOG(info) << "[ evt.num_photon " << evt->num_photon << " p.sstr " << p->sstr() << " evt.photon " << evt->photon ; 
     assert(expected_shape ); 
+
     int rc = QU::copy_device_to_host<sphoton>( (sphoton*)p->bytes(), evt->photon, evt->num_photon ); 
 
     LOG_IF(fatal, rc != 0) 
@@ -753,7 +779,7 @@ unsigned QEvent::getNumHit() const
 QEvent::gatherHit
 ------------------
 
-1. count *evt.num_hit* passing the photon *selector* 
+1. on device count *evt.num_hit* passing the photon *selector* 
 2. allocate *evt.hit* GPU buffer
 3. copy_if from *evt.photon* to *evt.hit* using the photon *selector*
 4. host allocate the NP hits array
@@ -814,7 +840,7 @@ NP* QEvent::gatherHit_() const
 
     SU::copy_if_device_to_device_presized_sphoton( evt->hit, evt->photon, evt->num_photon,  *selector );
 
-    NP* hit = NP::Make<float>( evt->num_hit, 4, 4 );   // TODO: use SEvt::makeHit ?
+    NP* hit = NP::Make<float>( evt->num_hit, 4, 4 ); 
 
     QU::copy_device_to_host<sphoton>( (sphoton*)hit->bytes(), evt->hit, evt->num_hit );
 
@@ -876,7 +902,8 @@ NP* QEvent::gatherComponent_(unsigned cmp) const
     NP* a = nullptr ; 
     switch(cmp)
     {   
-        case SCOMP_GENSTEP:   a = getGenstep()     ; break ;   
+        //case SCOMP_GENSTEP:   a = getGenstep()     ; break ;   
+        case SCOMP_GENSTEP:   a = gatherGenstepFromDevice() ; break ;   
         case SCOMP_INPHOTON:  a = getInputPhoton() ; break ;   
 
         case SCOMP_PHOTON:    a = gatherPhoton()   ; break ;   
@@ -925,6 +952,8 @@ void QEvent::setNumPhoton(unsigned num_photon )
     if( evt->photon == nullptr ) device_alloc_photon();  
     uploadEvt(); 
 }
+
+
 void QEvent::setNumSimtrace(unsigned num_simtrace)
 {
     sev->setNumSimtrace(num_simtrace); 
@@ -952,6 +981,7 @@ void QEvent::device_alloc_photon()
     SetAllocMeta( QU::alloc, evt );   // do this first as memory errors likely to happen in following lines
 
     LOG(LEVEL) 
+        << " evt.max_slot   " << evt->max_slot
         << " evt.max_photon " << evt->max_photon 
         << " evt.num_photon " << evt->num_photon 
 #ifndef PRODUCTION
@@ -964,15 +994,15 @@ void QEvent::device_alloc_photon()
 #endif
         ;
 
-    evt->photon  = evt->max_photon > 0 ? QU::device_alloc_zero<sphoton>( evt->max_photon, "QEvent::device_alloc_photon/max_photon*sizeof(sphoton)" ) : nullptr ; 
+    evt->photon  = evt->max_slot > 0 ? QU::device_alloc_zero<sphoton>( evt->max_slot, "QEvent::device_alloc_photon/max_slot*sizeof(sphoton)" ) : nullptr ; 
 
 #ifndef PRODUCTION
-    evt->record  = evt->max_record > 0 ? QU::device_alloc_zero<sphoton>( evt->max_photon * evt->max_record, "max_photon*max_record*sizeof(sphoton)" ) : nullptr ; 
-    evt->rec     = evt->max_rec    > 0 ? QU::device_alloc_zero<srec>(    evt->max_photon * evt->max_rec   , "max_photon*max_rec*sizeof(srec)"    ) : nullptr ; 
-    evt->prd     = evt->max_prd    > 0 ? QU::device_alloc_zero<quad2>(   evt->max_photon * evt->max_prd   , "max_photon*max_prd*sizeof(quad2)"    ) : nullptr ; 
-    evt->seq     = evt->max_seq   == 1 ? QU::device_alloc_zero<sseq>(    evt->max_photon                  , "max_photon*sizeof(sseq)"    ) : nullptr ; 
-    evt->tag     = evt->max_tag   == 1 ? QU::device_alloc_zero<stag>(    evt->max_photon                  , "max_photon*sizeof(stag)"    ) : nullptr ; 
-    evt->flat    = evt->max_flat  == 1 ? QU::device_alloc_zero<sflat>(   evt->max_photon                  , "max_photon*sizeof(sflat)"   ) : nullptr ; 
+    evt->record  = evt->max_record > 0 ? QU::device_alloc_zero<sphoton>( evt->max_slot * evt->max_record, "max_slot*max_record*sizeof(sphoton)" ) : nullptr ; 
+    evt->rec     = evt->max_rec    > 0 ? QU::device_alloc_zero<srec>(    evt->max_slot * evt->max_rec   , "max_slot*max_rec*sizeof(srec)"    ) : nullptr ; 
+    evt->prd     = evt->max_prd    > 0 ? QU::device_alloc_zero<quad2>(   evt->max_slot * evt->max_prd   , "max_slot*max_prd*sizeof(quad2)"    ) : nullptr ; 
+    evt->seq     = evt->max_seq   == 1 ? QU::device_alloc_zero<sseq>(    evt->max_slot                  , "max_slot*sizeof(sseq)"    ) : nullptr ; 
+    evt->tag     = evt->max_tag   == 1 ? QU::device_alloc_zero<stag>(    evt->max_slot                  , "max_slot*sizeof(stag)"    ) : nullptr ; 
+    evt->flat    = evt->max_flat  == 1 ? QU::device_alloc_zero<sflat>(   evt->max_slot                  , "max_slot*sizeof(sflat)"   ) : nullptr ; 
 #endif
 
     LOG(LEVEL) << desc() ; 
@@ -994,7 +1024,7 @@ void QEvent::SetAllocMeta(salloc* alloc, const sevent* evt)  // static
 void QEvent::device_alloc_simtrace()
 {
     LOG_IF(info, LIFECYCLE) ; 
-    evt->simtrace = QU::device_alloc<quad4>( evt->max_simtrace, "QEvent::device_alloc_simtrace/max_simtrace" ) ; 
+    evt->simtrace = QU::device_alloc<quad4>( evt->max_slot, "QEvent::device_alloc_simtrace/max_slot" ) ; 
     LOG(LEVEL) 
         << " evt.num_simtrace " << evt->num_simtrace 
         << " evt.max_simtrace " << evt->max_simtrace

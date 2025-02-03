@@ -28,8 +28,6 @@ defarg=run_ana
 
 if [ "$(uname)" == "Darwin" ]; then
    defarg="run_ana"
-   #defarg="ana"
-   #export PLOT=1
 fi 
 
 if [ -n "$BP" ]; then 
@@ -42,14 +40,17 @@ source $HOME/.opticks/GEOM/GEOM.sh
 msg="=== $BASH_SOURCE :"
 
 
+#export QSim__photon_launch_mutate_DEBUG_NUM_PHOTON=1
+
+
 #test=rng_sequence
-test=rng_sequence_with_skipahead
+
 #test=boundary_lookup_all
 #test=boundary_lookup_water
 #test=boundary_lookup_ls
 
 #test=wavelength_scintillation
-#test=wavelength_cerenkov
+#test=wavelength_cerenkov         ### non-active moved to QSim_dbg.cu 
 
 #test=scint_generate
 #test=cerenkov_generate
@@ -79,13 +80,14 @@ test=rng_sequence_with_skipahead
 #test=propagate_at_surface
 #test=randgaussq_shoot
 
-#test=fake_propagate
+test=fake_propagate
 #test=gentorch
 
 #test=smear_normal_sigma_alpha
 
 export TEST=${TEST:-$test}
-export FOLD=/tmp/$name/$TEST
+export BASE=/tmp/$name
+export FOLD=$BASE/$TEST
 mkdir -p $FOLD
 
 M1=1000000
@@ -99,7 +101,7 @@ nrm=0,0,1
 #nrm=0,0,-1
 
 case $TEST in
-    rng_sequence|rng_sequence_with_skipahead) num=$M1 ;; 
+    rng_sequence) num=$M1 ;; 
     random_direction_marsaglia) num=$M1 ;; 
     lambertian_direction) num=$M1 ;; 
     randgaussq_shoot) num=$M1 ;; 
@@ -118,8 +120,9 @@ esac
 
 
 case $TEST in
-           rng_sequence)   script=rng_sequence.py   ;;
-           rng_sequence_with_skipahead)   script=rng_sequence_with_skipahead.py   ;;
+          X_rng_sequence)   script=rng_sequence.py   ;;
+          rng_sequence)   script=QSimTest.py   ;;
+           X_rng_sequence_with_skipahead)   script=rng_sequence_with_skipahead.py   ;;
 random_direction_marsaglia) script=random_direction_marsaglia.py ;; 
    boundary_lookup_all)    script=boundary_lookup_all.py ;;
    boundary_lookup_water)  script=boundary_lookup_line.py ;;
@@ -152,13 +155,13 @@ export NRM=${NRM:-$nrm}
 loglevels()
 {
     #export SEvent=INFO
-    #export SEvt=INFO
+    export SEvt=INFO
     #export QBnd=INFO
     #export QSim=INFO
     #export QEvent=INFO
     export QNonExisting=INFO 
 }
-loglevels
+[ -n "$LOG" ] && loglevels
 
 
 export SPRD_BND=$(cat << EOV
@@ -231,7 +234,21 @@ relative_stem(){   ## THIS IS USING OBSOLETE GEOCACHE PATHS
 }
 
 
+if [ "${arg/pdb}" != "$arg" ]; then 
+   echo $BASH_SOURCE pdb script $script
+   ${IPYTHON:-ipython} --pdb -i $script
+   [ $? -ne 0 ] && echo $msg pdb error && exit 2
+fi
+
 if [ "${arg/ana}" != "$arg" ]; then 
+   echo $BASH_SOURCE ana script $script
+   ${PYTHON:-python} $script
+   [ $? -ne 0 ] && echo $msg ana error && exit 3
+fi
+
+
+
+if [ "${arg/OLDana}" != "$arg" ]; then 
 
     # PYVISTA_KILL_DISPLAY envvar is observed to speedup exiting from ipython after pyvista plotting 
     # see https://github.com/pyvista/pyvista/blob/main/pyvista/plotting/plotting.py

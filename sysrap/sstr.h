@@ -70,6 +70,10 @@ struct sstr
     template<typename ... Args>
     static std::string Format_( const char* fmt, Args ... args ); 
 
+    template<typename ... Args>
+    static const char* Format( const char* fmt, Args ... args ); 
+
+
     static std::string FormatIndexDefault_( int idx, const char* hdr=nullptr  );  // "A000" "A001" "A002" ... 
     static std::string FormatIndex_( int idx, char prefix, int wid, const char* hdr ); 
     static const char* FormatIndex(  int idx, char prefix, int wid, const char* hdr ); 
@@ -456,6 +460,8 @@ inline void sstr::PrefixSuffixParse(std::vector<std::string>& elem, const char* 
 }
 
 
+
+
 inline void sstr::Split( const char* str, char delim,   std::vector<std::string>& elem )
 {
     std::stringstream ss; 
@@ -560,6 +566,22 @@ inline std::string sstr::Format_( const char* fmt, Args ... args )
 }
 
 template std::string sstr::Format_( const char*, const char*, int, int ); 
+template std::string sstr::Format_( const char*, int ); 
+template std::string sstr::Format_( const char*, unsigned long long ); 
+
+
+template<typename ... Args>
+inline const char* sstr::Format( const char* fmt, Args ... args )
+{
+    std::string str = Format_(fmt, std::forward<Args>(args)... ); 
+    return strdup(str.c_str()); 
+}
+
+template const char* sstr::Format( const char*, const char*, int, int ); 
+template const char* sstr::Format( const char*, int  ); 
+template const char* sstr::Format( const char*, unsigned long long  ); 
+
+
 
 
 inline std::string sstr::FormatIndexDefault_( int idx, const char* hdr )
@@ -798,14 +820,15 @@ sstr::ParseIntSpec
 * spec with prefix both uses the scales to multiply the value and sets the scale for subsequent
 * spec without prefix is multiplied by the current scale 
 
-+-----+-------------+
-| pfx |   scale     |
-+=====+=============+
-|  h  |       100   | 
-|  K  |     1,000   | 
-|  H  |   100,000   |
-|  M  | 1,000,000   |
-+-----+-------------+
++-----+-------------------+
+| pfx |   scale           |
++=====+===================+
+|  h  |            100    | 
+|  K  |          1,000    | 
+|  H  |        100,000    |
+|  M  |      1,000,000    |
+|  G  |  1,000,000,000    |                 
++-----+-------------------+
 
 Examples::
 
@@ -843,10 +866,11 @@ inline void sstr::ParseScale( const char* spec, T& scale )
     {
         switch(spec[0])
         {
-            case 'h': scale = 100     ; break ;  
-            case 'K': scale = 1000    ; break ;  
-            case 'H': scale = 100000   ; break ;  
-            case 'M': scale = 1000000 ; break ;  
+            case 'h': scale = 100        ; break ;  
+            case 'K': scale = 1000       ; break ;  
+            case 'H': scale = 100000     ; break ;  
+            case 'M': scale = 1000000    ; break ;  
+            case 'G': scale = 1000000000 ; break ;  // maximum int is 2,147,483,647  G2 
         }
     }
 }
@@ -856,15 +880,18 @@ inline void sstr::ParseScale( const char* spec, T& scale )
 sstr::ParseIntSpecList
 ------------------------
 
-Parses delimited string into vector of ints, for examples
+Parses delimited string into vector of ints, eg:
 
 +---------------------+------------------------------------------------------+
 |  spec               | values                                               | 
 +=====================+======================================================+
 |  "M1,2,3,4,5,K1,2"  | 1000000,2000000,3000000,4000000,5000000,1000,2000    |
 |  "M1:5,K1:2"        | 1000000,2000000,3000000,4000000,5000000,1000,2000    |
+|  "1x5,M1x5          | 1,1,1,1,1,1000000,1000000,1000000,1000000,1000000    |
 +---------------------+------------------------------------------------------+
 
+The repeated value spec "M1x5" meaning 5 times M1 puts the multiplicity to the right 
+in order to work with the scale specification to the left. 
 
 **/
 
@@ -880,19 +907,31 @@ inline void sstr::ParseIntSpecList( std::vector<T>& values, const char* spec, ch
     {
         const char* e = elem.c_str(); 
         const char* p = strstr(e, ":" ); 
+        const char* x = strstr(e, "x" ); 
 
-        if( p == nullptr )
+
+        if( p == nullptr && x == nullptr)
         {
             values.push_back(ParseIntSpec<T>( e, scale )); 
         }
-        else
+        else if ( p || x )
         {
-            const char* q = isdigit_(e[0]) ? e : e + 1 ; 
+            const char* q = isdigit_(e[0]) ? e : e + 1 ;  // jump past scale char if present
             T i0, i1 ; 
-            ParsePair<T>( q , i0, i1, ':' );
+            ParsePair<T>( q , i0, i1, p ? ':' : 'x' );
             ParseScale<T>( e, scale ); 
-            for(T i=i0 ; i <= i1 ; i++) values.push_back(i*scale) ;      
+
+            if( p )
+            {
+               for(T i=i0 ; i <= i1 ; i++) values.push_back(i*scale) ;      
+            }
+            else if( x )
+            {
+                for(T i=0 ; i < i1 ; i++) values.push_back(i0*scale) ;      
+            }
         }
+
+
     }
 }
 

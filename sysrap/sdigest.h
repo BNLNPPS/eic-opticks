@@ -12,6 +12,7 @@ Example from /usr/include/openssl/opensslv.h::
 **/
 
 #include <string>
+#include <vector>
 #include <sstream>
 
 #if defined __APPLE__
@@ -56,11 +57,20 @@ struct sdigest
     static std::string Buf(const char* buffer, int length); 
     static std::string Int(int i); 
     static std::string Path(const char* path, unsigned bufsize=8192 ); 
+    static std::string Paths(std::vector<std::string>& paths, unsigned bufsize=8192 );
+  
 
     static void Update( MD5_CTX& c, const std::string& str); 
     static void Update( MD5_CTX& c, const char* str ); 
     static void Update( MD5_CTX& c, int i ); 
     static void Update( MD5_CTX& c, const char* buffer, int length); 
+
+    //template<typename T> static void Update_(MD5_CTX& c, T v );
+    template<typename T> static void Update_(MD5_CTX& c, T* vv, size_t count ); 
+
+    //template<typename T> void add_( T v ); 
+    template<typename T> void add_( T* vv, size_t count ); 
+
 
     static std::string Finalize(MD5_CTX& c); 
 }; 
@@ -96,14 +106,12 @@ inline std::string sdigest::finalize(){ return Finalize(ctx) ; }
 
 
 
-
-
 #include "NP.hh"
    
 inline std::string sdigest::Item( const NP* a, int i, int j, int k, int l, int m, int o ) // static   
 {
     const char* start = nullptr ; 
-    unsigned num_bytes = 0 ; 
+    NP::INT num_bytes = 0 ; 
     a->itembytes_(&start, num_bytes, i, j, k, l, m, o ); 
     assert( start && num_bytes > 0 ); 
     return Buf( start, num_bytes ); 
@@ -149,6 +157,43 @@ inline std::string sdigest::Path(const char* path, unsigned bufsize )
     return out ; 
 }
 
+inline std::string sdigest::Paths(std::vector<std::string>& paths, unsigned bufsize )
+{
+    sdigest dig ; 
+    char* data = new char[bufsize] ; 
+
+    int num_paths = paths.size(); 
+    for(int i=0 ; i < num_paths ; i++)
+    {
+        const char* path = paths[i].c_str(); 
+ 
+        FILE* fp = fopen(path, "rb");  
+        if (fp == NULL) 
+        {
+            std::cerr 
+                << "sdigest::Paths" 
+                << " failed to open"
+                << " path [" << path << "]\n" 
+                ; 
+            continue ; 
+        }
+
+        int bytes ; 
+        while ((bytes = fread (data, 1, bufsize, fp)) != 0) dig.add(data, bytes);   
+
+        fclose(fp);         
+    }
+
+    delete[] data ; 
+
+    std::string out = dig.finalize();
+    //std::cout << "sdigest::Path out [" << out << "]" << std::endl ; 
+    return out ; 
+}
+
+
+
+
 
 inline void sdigest::Update(MD5_CTX& c, const std::string& str)
 {
@@ -165,8 +210,6 @@ inline void sdigest::Update(MD5_CTX& c, int i )
     Update( c, (char*)&i, sizeof(int) ); 
 }
 
-
-
 inline void sdigest::Update(MD5_CTX& c, const char* buffer, int length) // static
 {
     const int blocksize = 512 ; 
@@ -181,6 +224,42 @@ inline void sdigest::Update(MD5_CTX& c, const char* buffer, int length) // stati
         buffer += blocksize ;
     }
 }
+
+
+
+/*
+template<typename T>
+inline void sdigest::Update_(MD5_CTX& c, T v )
+{
+    Update( c, (char*)&v, sizeof(T) ); 
+}
+
+template<typename T>
+inline void sdigest::add_( T v ){ Update_<T>(ctx, v );  }
+*/
+
+template<typename T>
+inline void sdigest::Update_(MD5_CTX& c, T* vv, size_t count )
+{
+    Update( c, (char*)vv, sizeof(T)*count ); 
+}
+
+template<typename T>
+inline void sdigest::add_( T* vv, size_t count ){ Update_<T>(ctx, vv, count  );  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 inline std::string sdigest::Finalize(MD5_CTX& c) // static
 {

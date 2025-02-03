@@ -1,3 +1,11 @@
+/**
+QEvent_Lifecycle_Test.cc
+=========================
+
+~/o/qudarap/tests/QEvent_Lifecycle_Test.sh 
+
+
+**/
 
 #include <csignal>
 #include "OPTICKS_LOG.hh"
@@ -8,21 +16,21 @@
 
 struct QEvent_Lifecycle_Test
 {
-    static void Test(); 
+    static int EventLoop(); 
 }; 
 
 /**
-QEvent_Lifecycle_Test::Test
-----------------------------
+QEvent_Lifecycle_Test::EventLoop
+-------------------------------------
 
 Comments are from an input photon centric viewpoint 
 as those are useful for debugging. 
 
 **/
 
-void QEvent_Lifecycle_Test::Test()
+int QEvent_Lifecycle_Test::EventLoop()
 {
-    SEvt* sev = SEvt::Create(SEvt::EGPU) ; 
+    SEvt* sev = SEvt::Create_EGPU() ; 
     // instanciation may load input_photons if configured
     assert( sev );  
 
@@ -30,6 +38,8 @@ void QEvent_Lifecycle_Test::Test()
     // calls SEvt::setFrame which 
     // for non-placeholder frame might transform the input photons
     // using the frame transform 
+
+
 
     QEvent* event = new QEvent ; // grabs SEvt::EGPU  
 
@@ -47,14 +57,10 @@ void QEvent_Lifecycle_Test::Test()
         // SEvt::beginOfEvent calls SEvt::setFrameGenstep which creates 
         // the input photon genstep and calls SEvt::addGenstep
 
-        int rc = event->setGenstep(); 
+        NP* igs = sev->makeGenstepArrayFromVector();  
+        int rc = event->setGenstepUpload_NP(igs); 
         assert( rc == 0 );
         if(rc!=0) std::raise(SIGINT); 
-        // QEvent::setGenstep 
-        //    1. SEvt::gatherGenstep yielding NP* gs 
-        //    2. SEvt::clear which clears vectors and NPFold::clear which deletes arrays 
-        //    2. calls QEvent::setInputPhoton which invokes SEvt::gatherInputPhoton and uploads 
-        //
 
         // IN REALITY THE LAUNCH WOULD BE HERE
         // propagating the photons, changing GPU side buffers 
@@ -62,6 +68,7 @@ void QEvent_Lifecycle_Test::Test()
 
         sev->endOfEvent(eventID); 
     }
+    return 0 ; 
 }
 
 int main(int argc, char** argv)
@@ -83,6 +90,5 @@ int main(int argc, char** argv)
 
     ssys::setenvvar("GEOM", "TEST_CC", overwrite ); 
 
-    QEvent_Lifecycle_Test::Test() ;
-    return 0 ; 
+    return QEvent_Lifecycle_Test::EventLoop() ;
 }

@@ -1,7 +1,5 @@
 #include "OPTICKS_LOG.hh"
 
-#include "SSys.hh"
-#include "SPath.hh"
 #include "SEvt.hh"
 #include "SSim.hh"
 #include "NP.hh"
@@ -19,7 +17,7 @@ int main(int argc, char** argv)
 {
     OPTICKS_LOG(argc, argv); 
 
-    SEvt::Create(SEvt::EGPU) ;
+    SEvt* sev = SEvt::Create_EGPU() ;
 
     LOG(info) << "[ SSim::Load " ; 
     const SSim* sim = SSim::Load(); 
@@ -48,7 +46,11 @@ int main(int argc, char** argv)
     std::cout << " main ] SEvt::AddGenstep(gs ) " << std::endl ; 
 
     std::cout << " main [ qev->setGenstep  " << std::endl ; 
-    qev->setGenstep(); 
+
+
+    
+    const NP* igs = sev->makeGenstepArrayFromVector(); 
+    qev->setGenstepUpload_NP(igs); 
     std::cout << " main ] qev->setGenstep  " << std::endl ; 
 
     assert( int(qev->getNumPhoton()) == x_total ); 
