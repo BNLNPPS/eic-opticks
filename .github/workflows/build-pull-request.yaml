@@ -29,7 +29,7 @@ jobs:
         run: |
           echo OPTICKS_PREFIX=$OPTICKS_PREFIX
           rm -fr $OPTICKS_PREFIX/*
-          cmake -S . -B $OPTICKS_PREFIX/build -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B $OPTICKS_PREFIX/build -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DCMAKE_BUILD_TYPE=Debug
           cmake --build $OPTICKS_PREFIX/build --parallel --target install
 
       - name: Test
