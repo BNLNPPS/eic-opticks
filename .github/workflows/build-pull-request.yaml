@@ -35,7 +35,7 @@ jobs:
       - name: Test
         shell: bash
         run: |
-          QCurandState_SPEC=3:0:0 /usr/local/opticks/lib/QCurandStateTest
+          opticks-full-prepare
           ctest --test-dir $OPTICKS_PREFIX/build/okconf
           ctest --test-dir $OPTICKS_PREFIX/build/sysrap -E STTFTest
           ctest --test-dir $OPTICKS_PREFIX/build/ana
