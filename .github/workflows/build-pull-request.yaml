@@ -34,12 +34,12 @@ jobs:
 
       - name: Test
         shell: bash
-        env:
-          HOME: $ESI_DIR
         run: |
-          opticks-full-prepare
+          QCurandState_SPEC=3:0:0 /usr/local/opticks/lib/QCurandStateTest
           ls -la $HOME/
           ls -la $HOME/.opticks/
+          mkdir -p $HOME/.opticks/GEOM
+          cp tests/GEOM.sh $HOME/.opticks/GEOM/
           ctest --test-dir $OPTICKS_PREFIX/build/okconf
           ctest --test-dir $OPTICKS_PREFIX/build/sysrap -E STTFTest
           ctest --test-dir $OPTICKS_PREFIX/build/ana
