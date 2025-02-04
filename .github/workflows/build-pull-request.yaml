@@ -36,8 +36,6 @@ jobs:
         shell: bash
         run: |
           QCurandState_SPEC=3:0:0 /usr/local/opticks/lib/QCurandStateTest
-          ls -la $HOME/
-          ls -la $HOME/.opticks/
           mkdir -p $HOME/.opticks/GEOM
           cp tests/GEOM.sh $HOME/.opticks/GEOM/
           ctest --test-dir $OPTICKS_PREFIX/build/okconf
