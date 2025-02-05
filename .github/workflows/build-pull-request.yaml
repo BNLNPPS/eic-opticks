@@ -34,5 +34,7 @@ jobs:
 
       - name: Test
         shell: bash
+        env:
+          OPTICKS_HOME: $PWD
         run: |
           tests/test_opticks.sh
