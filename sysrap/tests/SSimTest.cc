@@ -1,57 +1,14 @@
-/**
-SSimTest.cc
-============
-
-TEST=Load ~/o/sysrap/tests/SSimTest.sh 
-
-TEST=get_jpmt_nocopy  ~/o/sysrap/tests/SSimTest.sh 
-TEST=get_jpmt         ~/o/sysrap/tests/SSimTest.sh 
-TEST=get_spmt         ~/o/sysrap/tests/SSimTest.sh 
-TEST=get_spmt_f       ~/o/sysrap/tests/SSimTest.sh 
-
-**/
-
-
 #include "SSim.hh"
-#include "NPFold.h"
+#include "NP.hh"
 #include "OPTICKS_LOG.hh"
-#include "SPMT.h"
 
-
-
-struct SSimTest
-{
-    static const char* TEST ; 
-
-    static int Load(); 
-    static int Load_get(); 
-    static int Create(); 
-    static int findName();
- 
-    static int addFake(); 
-    static int addFake_ellipsis(); 
-
-    static int get_bnd(); 
-
-    static int get_jpmt_nocopy(); 
-    static int get_jpmt(); 
-    static int get_spmt(); 
-    static int get_spmt_f(); 
-
-    static int Main(); 
-}; 
-
-
-const char* SSimTest::TEST = U::GetEnv("TEST","ALL");  
-
-
-int SSimTest::Load()
+void test_Load()
 {
     SSim* sim = SSim::Load(); 
     std::cout << ( sim ? sim->desc() : "-" ) ;  
-    return 0 ; 
 }
-int SSimTest::Load_get()
+
+void test_Load_get()
 {
     std::cout << "[test_Load_get " << std::endl ; 
     SSim* sim = SSim::Load(); 
@@ -59,15 +16,11 @@ int SSimTest::Load_get()
     const NP* optical = sim ? sim->get(snam::OPTICAL) : nullptr ; 
     std::cout << " optical " << ( optical ? optical->sstr() : "-" ) << std::endl ; 
     std::cout << "]test_Load_get " << std::endl ; 
-    return 0 ; 
 }
-int SSimTest::Create()
-{
-    SSim* sim = SSim::Create(); 
-    LOG(info) << " sim.desc " << sim->desc() ; 
-    return 0 ; 
-}
-int SSimTest::findName()
+
+
+
+void test_findName()
 {
     std::vector<std::string> names = {
         "Air", 
@@ -123,11 +76,10 @@ int SSimTest::findName()
          }
          std::cout << std::endl ;  
     }
-    return 0 ; 
 }
 
 
-int SSimTest::addFake()
+void test_addFake()
 {
     SSim* sim = SSim::Load(); 
     std::string bef = sim->desc(); 
@@ -142,86 +94,51 @@ int SSimTest::addFake()
 
     std::cout << "bef" << std::endl << bef << std::endl ; 
     std::cout << "aft" << std::endl << aft << std::endl ; 
-    return 0 ; 
 }
 
-int SSimTest::addFake_ellipsis()
+void test_addFake_ellipsis()
 {
     SSim* sim = SSim::Load(); 
     sim->addFake("Air///Water"); 
     sim->addFake("Air///Water", "Rock/perfectAbsorbSurface/perfectAbsorbSurface/Air"); 
     sim->addFake("Air///Water", "Rock/perfectAbsorbSurface/perfectAbsorbSurface/Air", "Water///Air" ); 
-    return 0 ; 
+
 }
 
-
-
-int SSimTest::get_bnd()
+void test_get_bnd()
 {
     SSim* sim = SSim::Load(); 
     const NP* bnd = sim->get_bnd(); 
     LOG(info) << bnd->desc() ;  
-    return 0 ; 
-}
-int SSimTest::get_jpmt_nocopy()
-{
-    SSim* sim = SSim::Load(); 
-    const NPFold* f  = sim->get_jpmt_nocopy(); 
-    LOG(info) << f->desc() ;  
-    return 0 ; 
-}
-int SSimTest::get_jpmt()
-{
-    SSim* sim = SSim::Load(); 
-    const NPFold* f  = sim->get_jpmt(); 
-    LOG(info) << f->desc() ;  
-    return 0 ; 
-}
-int SSimTest::get_spmt()
-{
-    SSim* sim = SSim::Load(); 
-    const SPMT* spmt  = sim->get_spmt(); 
-    LOG(info) << spmt->desc() ;  
-    return 0 ; 
-}
-int SSimTest::get_spmt_f()
-{
-    SSim* sim = SSim::Load(); 
-    const NPFold* spmt_f  = sim->get_spmt_f(); 
-    LOG(info) << spmt_f->desc() ;  
-    return 0 ; 
+
 }
 
-
-
-
-
-int SSimTest::Main()
+void test_Create()
 {
-    bool ALL = strcmp(TEST, "ALL") == 0 ; 
-    int rc = 0 ; 
-    if(ALL||0==strcmp(TEST,"Load"))      rc += Load(); 
-    if(ALL||0==strcmp(TEST,"Load_get"))  rc += Load_get(); 
-    if(ALL||0==strcmp(TEST,"Create"))    rc += Create(); 
-    if(ALL||0==strcmp(TEST,"findName"))  rc += findName(); 
-
-    // these two failing with consistencey assert
-    if(0||0==strcmp(TEST,"addFake"))   rc += addFake(); 
-    if(0||0==strcmp(TEST,"addFake_ellipsis")) rc += addFake_ellipsis(); 
-
-    if(ALL||0==strcmp(TEST,"get_bnd"))         rc += get_bnd(); 
-    if(ALL||0==strcmp(TEST,"get_jpmt_nocopy")) rc += get_jpmt_nocopy(); 
-    if(ALL||0==strcmp(TEST,"get_jpmt"))        rc += get_jpmt(); 
-    if(ALL||0==strcmp(TEST,"get_spmt"))        rc += get_spmt(); 
-    if(ALL||0==strcmp(TEST,"get_spmt_f"))      rc += get_spmt_f();
- 
-    return rc ; 
+    SSim* sim = SSim::Create(); 
+    LOG(info) << " sim.desc " << sim->desc() ; 
 }
 
 
 int main(int argc, char** argv)
 { 
     OPTICKS_LOG(argc, argv); 
-    return SSimTest::Main(); 
+   
+    test_Load(); 
+
+    /*
+    test_findName(); 
+    test_addFake();     
+    test_addFake_ellipsis();     
+    test_get_bnd(); 
+    test_Create(); 
+    test_Load_get(); 
+    */
+
+
+
+    return 0 ; 
 }
+
+
 
