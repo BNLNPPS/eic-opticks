@@ -51,10 +51,10 @@ EON
 qudarap-prepare-installation()
 {
    # these are the defaults anyhow
-   export SCurandState__init_SEED_OFFSET=0:0
-   export SCurandState__init_CHUNKSIZES=10x1M,9x10M,5x20M
+   export SCurandStateMonolithic__init_SEED_OFFSET=0:0
+   export SCurandStateMonolithic__init_CHUNKSIZES=10x1M,9x10M,5x20M
 
-   ${OPTICKS_PREFIX}/lib/QCurandStateTest
+   ${OPTICKS_PREFIX}/lib/QCurandStateMonolithicTest
 
    return $? 
 }
