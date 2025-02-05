@@ -10,6 +10,10 @@ mv $HOME/.opticks/rngcache/RNG/QCurandStateMonolithic_1M_0_0.bin $HOME/.opticks/
 mv $HOME/.opticks/rngcache/RNG/QCurandStateMonolithic_3M_0_0.bin $HOME/.opticks/rngcache/RNG/QCurandState_3000000_0_0.bin
 mv $HOME/.opticks/rngcache/RNG/QCurandStateMonolithic_10M_0_0.bin $HOME/.opticks/rngcache/RNG/QCurandState_10000000_0_0.bin
 
+echo "HOME: $HOME"
+echo "PWD: $PWD"
+ls -la .
+
 mkdir -p $HOME/.opticks/GEOM
 cp $OPTICKS_HOME/tests/GEOM.sh $HOME/.opticks/GEOM/
 
