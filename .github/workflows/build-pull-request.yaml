@@ -35,7 +35,7 @@ jobs:
       - name: Test
         shell: bash
         run: |
-          QCurandState_SPEC=3:0:0 /usr/local/opticks/lib/QCurandStateTest
+          QCurandStateMonolithic_SPEC=3:0:0 /usr/local/opticks/lib/QCurandStateMonolithicTest
           mkdir -p $HOME/.opticks/GEOM
           cp tests/GEOM.sh $HOME/.opticks/GEOM/
           ctest --test-dir $OPTICKS_PREFIX/build/okconf
