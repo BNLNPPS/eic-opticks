@@ -36,7 +36,6 @@ set(TEST_SOURCES
 
 
    QCurandStateMonolithicTest.cc
-   QCurandStateTest.cc
 
    qrng_test.cc
 )
