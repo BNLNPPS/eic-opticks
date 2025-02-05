@@ -1,115 +1,113 @@
 #pragma once
 /**
-srng.h : C++ standard random number generation
-=================================================
+srng.h : picks curandState implementation 
+===========================================
 
-Instead of generating randoms it is also possible to 
-use curand precooked randoms by calling the below method 
-with the photon index as argument::
+This is included into qudarap/qrng.h 
 
-    srng::setSequenceIndex
+Template specializations collecting details of the various curandState impls.  See::
 
-This is done by SGenerate::GeneratePhotons when the below EKEY is set::
+    ~/o/sysrap/tests/srng_test.sh 
 
-    export SGenerate__GeneratePhotons_RNG_PRECOOKED=1
 
-Using this limits the number of photons that can be
-generated to the number of rng_sequence that have been precooked 
-and persisted to ~/.opticks/precooked.
-To extend that see::
-  
-   ~/opticks/qudarap/tests/rng_sequence.sh
+https://stackoverflow.com/questions/8789867/c-template-class-specialization-why-do-common-methods-need-to-be-re-implement
+
+Each specialisation of a class template gives a different class - they do not share any members.
+So have to implement all methods in each specialization, or use a separate helper. 
 
 **/
 
-#include <random>
-#include "s_seq.h"
+#include <curand_kernel.h>
 
-struct srng
-{
-    std::mt19937_64                         engine ;
-    std::uniform_real_distribution<float>   fdist ; 
-    std::uniform_real_distribution<double>  ddist ; 
-    double                                  fake ; 
-    s_seq*                                  seq ; 
+using XORWOW = curandStateXORWOW ;
+using Philox = curandStatePhilox4_32_10 ; 
 
+#if defined(RNG_PHILITEOX)
+#include "curandlite/curandStatePhilox4_32_10_OpticksLite.h"
+using PhiLiteOx = curandStatePhilox4_32_10_OpticksLite ; 
+#endif
 
-    srng(unsigned seed_=1); 
-    std::string desc() const ; 
-
-    void set_fake(double fake_); 
-    void setSequenceIndex(int idx); 
-    int  getSequenceIndex() const ; 
-
-    float  generate_float(); 
-    double generate_double(); 
-
-    static float  uniform(srng* state );
-    static double uniform_double(srng* state ); 
-
-    std::string demo(int n) ; 
-}; 
+#if defined(RNG_XORWOW)
+using RNG = XORWOW ;
+#elif defined(RNG_PHILOX)
+using RNG = Philox ;
+#elif defined(RNG_PHILITEOX)
+using RNG = PhiLiteOx ;
+#endif
 
 
-inline srng::srng(unsigned seed_) 
-    : 
-    fdist(0,1), 
-    ddist(0,1),
-    fake(-1.),
-    seq(nullptr)
+#if defined(__CUDACC__) || defined(__CUDABE__)
+#else
+
+#include <sstream>
+#include <string>
+
+template<typename T> struct srng {};
+
+// template specializations for the different states
+template<> 
+struct srng<XORWOW>  
 { 
-    engine.seed(seed_) ; 
-}
+    static constexpr char CODE = 'X' ;
+    static constexpr const char* NAME = "XORWOW" ; 
+    static constexpr unsigned SIZE = sizeof(XORWOW) ; 
+    static constexpr bool UPLOAD_RNG_STATES = true ; 
+};
 
-inline std::string srng::desc() const 
+template<> 
+struct srng<Philox>  
+{ 
+    static constexpr char CODE = 'P' ;
+    static constexpr const char* NAME = "Philox" ; 
+    static constexpr unsigned SIZE = sizeof(Philox) ; 
+    static constexpr bool UPLOAD_RNG_STATES = false ; 
+};
+
+#if defined(RNG_PHILITEOX)
+template<> 
+struct srng<PhiLiteOx>  
+{ 
+    static constexpr char CODE = 'O' ;
+    static constexpr const char* NAME = "PhiLiteOx" ; 
+    static constexpr unsigned SIZE = sizeof(PhiLiteOx) ; 
+    static constexpr bool UPLOAD_RNG_STATES = false ; 
+};
+#endif
+
+// helper function
+template<typename T> 
+inline std::string srng_Desc()
 {
     std::stringstream ss ; 
-    ss << "srng::desc" << std::endl ; 
-    std::string str = ss.str(); 
+    ss 
+       << "[srng_Desc\n" 
+       <<  " srng<T>::NAME " << srng<T>::NAME << "\n"
+       <<  " srng<T>::CODE " << srng<T>::CODE << "\n"
+       <<  " srng<T>::SIZE " << srng<T>::SIZE << "\n"
+       << "]srng_Desc" 
+       ; 
+    std::string str = ss.str() ; 
     return str ; 
 }
 
-inline void srng::set_fake(double fake_){ fake = fake_ ; } 
+template<typename T> 
+inline bool srng_IsXORWOW(){ return strcmp(srng<T>::NAME, "XORWOW") == 0 ; }
 
-inline float srng::generate_float()
+template<typename T> 
+inline bool srng_IsPhilox(){ return strcmp(srng<T>::NAME, "Philox") == 0 ; }
+
+template<typename T> 
+inline bool srng_IsPhiLiteOx(){ return strcmp(srng<T>::NAME, "PhiLiteOx") == 0 ; }
+
+template<typename T> 
+inline bool srng_Matches(const char* arg)
 {
-    if( fake >= 0.f ) return fake ; 
-    float u = seq && seq->is_enabled() ? seq->flat() : fdist(engine) ; 
-    return u ; 
+    int match = 0 ; 
+    if( arg && strstr(arg, "XORWOW")    && srng_IsXORWOW<T>() )    match += 1 ; 
+    if( arg && strstr(arg, "Philox")    && srng_IsPhilox<T>() )    match += 1 ; 
+    if( arg && strstr(arg, "PhiLiteOx") && srng_IsPhiLiteOx<T>() ) match += 1 ; 
+    return match == 1 ; 
 } 
-inline double srng::generate_double()
-{ 
-    if( fake >= 0.f ) return fake ; 
-    double u = seq && seq->is_enabled() ? seq->flat() : ddist(engine) ; 
-    return u ; 
-}
-inline void srng::setSequenceIndex(int idx)
-{
-    if( seq == nullptr ) seq = new s_seq ; 
-    seq->setSequenceIndex(idx); 
-}
-inline int srng::getSequenceIndex() const 
-{
-    return seq == nullptr ? -2 : seq->getSequenceIndex() ; 
-}
 
-
-
-inline float  srng::uniform(srng* state ){        return state->generate_float() ; } 
-inline double srng::uniform_double(srng* state ){ return state->generate_double() ; } 
-
-inline std::string srng::demo(int n) 
-{
-    std::stringstream ss ; 
-    ss << "srng::demo seq " << getSequenceIndex()  << std::endl ;
-    for(int i=0 ; i < n ; i++) ss 
-         << std::setw(4) << i 
-         << " : " 
-         << std::fixed << std::setw(10) << std::setprecision(5) << generate_float() 
-         << std::endl
-         ; 
-    std::string str = ss.str(); 
-    return str ; 
-}
-
+#endif
 

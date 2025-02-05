@@ -45,6 +45,7 @@ struct ssys
     static int getenv_ParseInt(const char* ekey, const char* fallback);  
     static std::vector<int>* getenv_ParseIntSpecList(const char* ekey, const char* fallback); 
 
+    static unsigned long long getenvull(const char* ekey, unsigned long long fallback);  
     static int getenvint(const char* ekey, int fallback);  
     static int getenvintpick(const char* ekey, const std::vector<std::string>& strs, int fallback ); 
 
@@ -261,7 +262,7 @@ inline const char* ssys::getenvvar(const char* ekey)
 inline const char* ssys::getenvvar(const char* ekey, const char* fallback)
 {
     const char* val = getenvvar(ekey);
-    return val ? val : fallback ; 
+    return ( val && strlen(val)>0) ? val : fallback ;   // 2024/12 "" => fallback
 }
 inline const char* ssys::getenvvar(const char* ekey, const char* fallback, char q, char r)
 {
@@ -274,9 +275,21 @@ inline const char* ssys::getenvvar(const char* ekey, const char* fallback, char 
 
 inline int ssys::getenv_ParseInt(const char* ekey, const char* fallback)
 {
-    const char* spec = getenvvar(ekey, fallback); 
+    const char* spec = getenvvar(ekey, fallback);
     bool valid = spec != nullptr && strlen(spec) > 0 ;  
-    if(!valid) return -1 ;
+    if(!valid)
+    { 
+        std::cerr 
+            << "ssys::getenv_ParseInt"
+            << " ekey " << ( ekey ? ekey : "-" )
+            << " fallback " << ( fallback ? fallback : "-" )
+            << " spec [" << ( spec ? spec :  "-" ) << "]" 
+            << " valid " << ( valid ? "YES" : "NO " )
+            << "\n"
+            ;
+  
+        return -1 ;
+    }
     return sstr::ParseInt<int>(spec) ;  
 }
 
@@ -287,6 +300,14 @@ inline std::vector<int>* ssys::getenv_ParseIntSpecList(const char* ekey, const c
     if(!valid) return nullptr ;
     return sstr::ParseIntSpecList<int>( spec, ',' ); 
 }
+
+
+inline unsigned long long ssys::getenvull(const char* ekey, unsigned long long fallback)
+{
+    char* val = getenv(ekey);
+    return val ? std::atoll(val) : fallback ; 
+}
+
 
 
 inline int ssys::getenvint(const char* ekey, int fallback)
@@ -338,6 +359,19 @@ inline bool ssys::getenvbool( const char* ekey )
 {
     char* val = getenv(ekey);
     bool ival = val ? true : false ;
+
+    /*
+    // special casing a value indicating NO ?
+    if(val)  
+    {
+        if(strcmp(val,"NO") == 0) ival = false ;   
+        if(strcmp(val,"no") == 0) ival = false ;   
+        if(strcmp(val,"False") == 0) ival = false ;   
+        if(strcmp(val,"false") == 0) ival = false ;   
+        if(strcmp(val,"0") == 0) ival = false ;   
+    }
+    */
+
     return ival ; 
 }
 

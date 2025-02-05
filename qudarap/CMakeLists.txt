@@ -32,14 +32,21 @@ set(OpticksCUDA_VERBOSE ON)
 find_package(OpticksCUDA REQUIRED MODULE)
 
 
+set(DEV_SOURCES
+    QSim_cerenkov_dev.cu
+)
+
 set(SOURCES
     QUDARAP_LOG.cc
 
-    QCurandState.cc
+    QCurandStateMonolithic.cc
+    QCurandStateMonolithic.cu
     QCurandState.cu
+
 
     QSim.cc
     QSim.cu
+
 
     QPMT.cc
     QPMT.cu 
@@ -92,14 +99,17 @@ set(SOURCES
     QBuf.cc
 )
 
+
+
+
 SET(HEADERS
     QUDARAP_LOG.hh
     QUDARAP_API_EXPORT.hh
     QUDA_CHECK.h
 
 
-    QCurandState.hh
-    qcurandstate.h
+    QCurandStateMonolithic.hh
+    qcurandwrap.h
 
 
     QSim.hh
@@ -156,9 +166,6 @@ SET(HEADERS
 )
 
 
-# OLD_WAY needed GGeo
-# Opticks::SysRap
-# Opticks::GGeo
 
 if(UNIX AND NOT APPLE)
   set(LIBS ${LIBS} ssl )  
@@ -208,9 +215,16 @@ https://stackoverflow.com/questions/34490294/what-does-configdebugrelease-mean-i
 target_compile_definitions( ${name}
     PUBLIC
       OPTICKS_QUDARAP 
-      $<$<CONFIG:Debug>:DEBUG_TAG>
-      $<$<CONFIG:Debug>:DEBUG_PIDX>
 )
+#[=[
+
+Global compile definitions such as DEBUG_TAG and DEBUG_PIDX are defined in sysrap/CMakeLists.txt 
+and should be flipped there, NOT HERE. 
+
+For local debugging do flips within files, and do not commit like that 
+as they may cause difficult to debug build inconsistencies. 
+
+#]=]
 
 
 #[=[

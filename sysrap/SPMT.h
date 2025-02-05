@@ -361,6 +361,16 @@ inline void SPMT::init_rindex_thickness()
     assert( MPT_sub_expect );    // NUM_PMTCAT:3
 
     bool CONST_items_expect = CONST_items == NUM_PMTCAT  ;
+
+    if(!CONST_items_expect) std::cerr 
+        << "SPMT::init_rindex_thickness"
+        << " CONST_items_expect " << ( CONST_items_expect ? "YES" : "NO " )  
+        << " CONST_items " << CONST_items
+        << " NUM_PMTCAT " << NUM_PMTCAT
+        << " MPT_sub " << MPT_sub 
+        << "\n"
+        ;
+    
     if(!CONST_items_expect) std::raise(SIGINT); 
     assert( CONST_items_expect ); 
 
@@ -407,7 +417,7 @@ inline void SPMT::init_rindex_thickness()
         }
     }
     rindex = NP::Combine(v_rindex); 
-    const std::vector<int>& shape = rindex->shape ; 
+    const std::vector<NP::INT>& shape = rindex->shape ; 
     assert( shape.size() == 3 );
     rindex->change_shape( NUM_PMTCAT, NUM_LAYER, NUM_PROP, shape[shape.size()-2], shape[shape.size()-1] );
 }

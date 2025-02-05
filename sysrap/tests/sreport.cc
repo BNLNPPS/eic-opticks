@@ -43,6 +43,15 @@ Note that this means that can rsync just the small report directory
 and still be able to present the report and make plots on laptop concerning 
 run folders with many large arrays left on the server. 
 
+
+Debugging Notes
+-----------------
+
+Debugging this is whacky as its mostly stringstream preparation
+so cout/cerr reporting sometimes seems out of place compared to 
+the report output. For this reason its important to label most
+output with where it comes from to speedup understanding+debug. 
+
 **/
 
 #include "NPFold.h"
@@ -56,9 +65,12 @@ struct sreport
         SEvt__Init_RUN_META:CSGFoundry__Load_HEAD                     ## init
         CSGFoundry__Load_HEAD:CSGFoundry__Load_TAIL                   ## load_geom
         CSGOptiX__Create_HEAD:CSGOptiX__Create_TAIL                   ## upload_geom
-        A%0.3d_QSim__simulate_HEAD:A%0.3d_QSim__simulate_PREL         ## upload_genstep
-        A%0.3d_QSim__simulate_PREL:A%0.3d_QSim__simulate_POST         ## simulate
-        A%0.3d_QSim__simulate_POST:A%0.3d_QSim__simulate_TAIL         ## download 
+        A%0.3d_QSim__simulate_HEAD:A%0.3d_QSim__simulate_LBEG         ## slice_genstep
+        A%0.3d_QSim__simulate_PRUP:A%0.3d_QSim__simulate_PREL         ## upload genstep slice
+        A%0.3d_QSim__simulate_PREL:A%0.3d_QSim__simulate_POST         ## simulate slice
+        A%0.3d_QSim__simulate_POST:A%0.3d_QSim__simulate_DOWN         ## download slice
+        A%0.3d_QSim__simulate_LEND:A%0.3d_QSim__simulate_PCAT         ## concat slices
+        A%0.3d_QSim__simulate_BRES:A%0.3d_QSim__simulate_TAIL         ## save arrays 
        )" ; 
 
     bool    VERBOSE ;
@@ -159,8 +171,9 @@ inline std::string sreport::desc() const
 inline std::string sreport::desc_run() const
 {
     std::stringstream ss ; 
-    ss << "[sreport.desc_run (run is dummy small array used as somewhere to hang metadata) " << std::endl 
-       << ( run ? run->sstr() : "-" ) << std::endl 
+    ss << "[sreport.desc_run (run is dummy small array used as somewhere to hang metadata) "
+       << ( run ? run->sstr() : "-" ) 
+       << "\n"
        << "[sreport.desc_run.descMetaKVS " << std::endl 
        << ( run ? run->descMetaKVS(JUNCTURE, RANGES) : "-" ) << std::endl
        << "]sreport.desc_run.descMetaKVS " << std::endl 
@@ -187,9 +200,11 @@ inline std::string sreport::desc_runprof() const
 inline std::string sreport::desc_ranges() const
 {
     std::stringstream ss ; 
-    ss << "[sreport.desc_ranges" << std::endl 
-       << ( ranges ? ranges->sstr() : "-" ) << std::endl 
-       << ".sreport.desc_ranges.descTable " << std::endl 
+    ss << "[sreport.desc_ranges"  
+       << " ranges : " << ( ranges ? ranges->sstr() : "-" ) << std::endl 
+       << ".sreport.desc_ranges.descTable "
+       << " ( ta,tb : timestamps expressed as seconds from first timestamp, ab: (tb-ta) )"
+       << "\n" 
        << ( ranges ? ranges->descTable<int64_t>(17) : "-" ) << std::endl
        << "]sreport.desc_ranges" << std::endl 
        ; 
@@ -197,8 +212,16 @@ inline std::string sreport::desc_ranges() const
     return str ;  
 }
 
+/**
+report::desc_substamp
+-----------------------
+
+The substamp NPFold is created by::
+
+   substamp = fold->subfold_summary("substamp",   ASEL, BSEL)
 
 
+**/
 
 inline std::string sreport::desc_substamp() const
 {
@@ -269,10 +292,14 @@ inline std::string sreport::desc_subcount() const
 
 
 
+/**
+sreport_Creator
+---------------
 
+1. loads folder metadata with NPFold::LoadNoData 
+2. instanciates and populates sreport instance
 
-
-
+**/
 
 struct sreport_Creator
 { 
@@ -304,7 +331,12 @@ inline sreport_Creator::sreport_Creator( const char* dirp_ )
     run(fold_valid ? fold->get("run") : nullptr),
     report(new sreport)
 {
-    std::cout << "[sreport_Creator::sreport_Creator" << std::endl ;
+    std::cout 
+        << "[sreport_Creator::sreport_Creator"
+        << " fold_valid " << ( fold_valid ? "YES" : "NO " )
+        << " run " << ( run ? "YES" : "NO " ) 
+        << "\n"
+        ;
     init(); 
     std::cout << "]sreport_Creator::sreport_Creator" << std::endl ;
 }
@@ -319,8 +351,8 @@ inline void sreport_Creator::init()
     report->run     = run ? run->copy() : nullptr ; 
     std::cout << "-sreport_Creator::init.2.run       :" << ( report->run ? report->run->sstr() : "-" ) << std::endl ; 
 
-    report->ranges = run ? run->makeMetaKVS_ranges( sreport::RANGES ) : nullptr ; 
-    std::cout << "-sreport_Creator::init.3.ranges    :" << ( report->ranges ?  report->ranges->sstr() : "-" ) <<  std::endl ; 
+    report->ranges = run ? NP::MakeMetaKVS_ranges2( run->meta, sreport::RANGES ) : nullptr ; 
+    std::cout << "-sreport_Creator::init.3.ranges2   :" << ( report->ranges ?  report->ranges->sstr() : "-" ) <<  std::endl ; 
 
 
     std::cout << "-sreport_Creator::init.4 fold_valid " << ( fold_valid ? "Y" : "N" ) << std::endl ; 

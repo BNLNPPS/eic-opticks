@@ -140,7 +140,7 @@ SSim* SSim::Load(const char* base, const char* reldir)
 
 SSim::SSim()
     :
-    relp(ssys::getenvvar("SSim__RELP", RELP_DEFAULT )), // alt: "extra/GGeo"
+    relp(ssys::getenvvar("SSim__RELP", RELP_DEFAULT )),
     top(nullptr),
     extra(nullptr),
     tree(new stree),
@@ -305,18 +305,40 @@ then this returns nullptr.
 
 So that means must first call SSim::AddExtraSubfold
 
+Returning a deepcopy avoids subsequent parent changing assert 
+from NPFold::add_subfold. But causes other problems.
+
 **/
+
+const NPFold* SSim::get_jpmt_nocopy() const 
+{
+    NPFold* f = top ? top->find_subfold_(JPMT_RELP) : nullptr ; 
+    //if(f) f->set_verbose_r(); 
+    return f ; 
+}
 
 const NPFold* SSim::get_jpmt() const 
 {
-    const NPFold* f = top ? top->find_subfold(JPMT_RELP) : nullptr ; 
-    return f ; 
+    const NPFold* f = get_jpmt_nocopy(); 
+    const NPFold* fc  = f ? f->deepcopy() : nullptr ;   
+    return fc ; 
 }
 const SPMT* SSim::get_spmt() const 
 {
     const NPFold* jpmt = get_jpmt(); 
     return jpmt ? new SPMT(jpmt) : nullptr ; 
 }
+
+/**
+SSim::get_spmt_f
+------------------
+
+This is invoked from QSim::UploadComponents and
+used to instanciate QPMT for GPU uploading. 
+
+**/
+
+
 const NPFold* SSim::get_spmt_f() const 
 {
     const SPMT* spmt = get_spmt() ;
@@ -584,7 +606,7 @@ NP* SSim::AddOptical(
     if(!item_bytes_expect ) std::raise(SIGINT);
 
     NP* opticalplus = new NP(optical->dtype); 
-    std::vector<int> opticalplus_shape(optical->shape); 
+    std::vector<NP::INT> opticalplus_shape(optical->shape); 
     opticalplus_shape[0] += 4*num_add ; 
     opticalplus->set_shape(opticalplus_shape) ; 
 
@@ -611,10 +633,10 @@ NP* SSim::AddOptical(
             int i, j ; 
             bool found = SBnd::FindName(i, j, qname, bnames ); 
 
-            unsigned idx = i*4 + j ; 
+            NP::INT idx = i*4 + j ; 
 
             const char* ibytes = nullptr ; 
-            unsigned num_bytes = 0 ; 
+            NP::INT num_bytes = 0 ; 
 
             if(found)
             { 
@@ -707,7 +729,7 @@ NP* SSim::AddBoundary( const NP* dsrc, const std::vector<std::string>& specs ) /
 
     NP* dst = new NP(src->dtype);
 
-    std::vector<int> dst_shape(src->shape); 
+    std::vector<NP::INT> dst_shape(src->shape); 
     dst_shape[0] += specs.size() ; 
     dst->set_shape(dst_shape) ; 
 
@@ -743,7 +765,7 @@ NP* SSim::AddBoundary( const NP* dsrc, const std::vector<std::string>& specs ) /
             bool found = SBnd::FindName(i, j, qname, names ); 
             
             const char* ibytes = nullptr ; 
-            unsigned num_bytes = 0 ; 
+            NP::INT num_bytes = 0 ; 
 
             if(found)
             { 

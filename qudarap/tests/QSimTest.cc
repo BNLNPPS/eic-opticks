@@ -47,9 +47,9 @@ with the actual code being tested.
 
 struct QSimTest
 {
+    static constexpr const unsigned M = 1000000 ; 
     static const char* FOLD ; 
     static const plog::Severity LEVEL ; 
-    static void  EventConfig(unsigned type, const SPrd* prd);  // must be run after SEvt is instanciated
     static unsigned Num(int argc, char** argv); 
 
     const SPrd* sprd ; 
@@ -64,7 +64,6 @@ struct QSimTest
 
     static const bool rng_sequence_PRECOOKED ; 
     void rng_sequence(unsigned ni, int ni_tranche_size); 
-    void rng_sequence_with_skipahead(unsigned ni, int ni_tranche_size); 
 
 
     void boundary_lookup_all();
@@ -89,7 +88,10 @@ struct QSimTest
 
     void photon_launch_generate(); 
     void photon_launch_mutate(); 
+
+    static void  EventConfig(unsigned type, const SPrd* prd);  // must be run after SEvt is instanciated
     void fake_propagate(); 
+
     void quad_launch_generate(); 
 
 
@@ -140,36 +142,18 @@ void QSimTest::rng_sequence(unsigned ni, int ni_tranche_size_)
     unsigned nj = 16 ; 
     unsigned nk = 16 ; 
     unsigned ni_tranche_size = ni_tranche_size_ > 0 ? ni_tranche_size_ : ni ; 
-    bool skipahead = false ;
 
     const char* udir = rng_sequence_PRECOOKED ? "$HOME/.opticks/precooked/QSimTest/rng_sequence" : "$FOLD" ; 
+    LOG(info) << " idir " << udir ; 
+
+
     LOG_IF(error, rng_sequence_PRECOOKED) 
         << " QSimTest__rng_sequence_PRECOOKED envvar triggers directory override " << std::endl 
         << " default  [" << "$FOLD" << "] " << std::endl 
         << " override [" << udir << "]"  
         ; 
 
-  
-
-    qs->rng_sequence<float>(udir, ni, nj, nk, ni_tranche_size, skipahead ); 
-}
-
-
-void QSimTest::rng_sequence_with_skipahead(unsigned ni, int ni_tranche_size_)
-{
-    unsigned nj = 16 ; 
-    unsigned nk = 16 ; 
-    unsigned ni_tranche_size = ni_tranche_size_ > 0 ? ni_tranche_size_ : ni ; 
-    bool skipahead = true  ;
-
-    const char* eventID_key = "QSimTest__rng_sequence_with_skipahead__eventID";
-    int eventID = ssys::getenvint(eventID_key,1) ; 
-    bool reset = false ; 
-    LOG(info) << " eventID_key " << eventID_key << " eventID " << eventID ; 
-
-    qs->simulate(eventID, reset); 
-
-    qs->rng_sequence<float>("$FOLD", ni, nj, nk, ni_tranche_size, skipahead ); 
+    qs->rng_sequence<float>(udir, ni, nj, nk, ni_tranche_size ); 
 }
 
 
@@ -355,7 +339,7 @@ void QSimTest::wavelength()
     }
     else if( type == WAVELENGTH_CERENKOV )
     {
-      //  w = qs->cerenkov_wavelength_rejection_sampled(num); 
+        //w = qs->cerenkov_wavelength_rejection_sampled(num);  // MOVED TO QSim_dbg.cu 
         assert(0); 
         ss << "_cerenkov" ; 
     }
@@ -414,8 +398,31 @@ void QSimTest::generate_photon()
     assert(evt); 
 
     evt->addGenstep(gs); 
+    unsigned num_photon_after_SEvt__addGenstep = qs->event->getNumPhoton(); 
+
+
+    NP* igs = evt->makeGenstepArrayFromVector();        
+    qs->event->setGenstepUpload_NP(igs); 
+    unsigned num_photon_after_QEvent__setGenstep = qs->event->getNumPhoton(); 
+
+
+    LOG(info) 
+       << "\n"
+       << " gs_config " << gs_config
+       << " gs " << ( gs ? gs->sstr() : "-" )   
+       << "\n"
+       << " num_photon_after_SEvt__addGenstep " 
+       <<   num_photon_after_SEvt__addGenstep 
+       << "\n"
+       << " num_photon_after_QEvent__setGenstep " 
+       <<   num_photon_after_QEvent__setGenstep
+       << "\n"
+       ;
+
 
     qs->generate_photon();  
+
+
 
     NP* p = qs->event->gatherPhoton(); 
     p->save("$FOLD/p.npy"); 
@@ -484,6 +491,62 @@ void QSimTest::photon_launch_generate()
     qs->dbg->save("$FOLD"); 
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+QSimTest::EventConfig
+-----------------------
+
+This is invoked from the QSimTest main  immediately 
+prior to SEvt EGPU instanciation. 
+
+For the FAKE_PROPAGATE test the SEventConfig settings 
+are adjusted to configure the QEvent GPU buffers.
+This must be done prior to QEvent::init which happens 
+when QSim is instanciated.
+
+**/
+
+void QSimTest::EventConfig(unsigned type, const SPrd* prd )  // static
+{
+    SEvt* sev = SEvt::Get_EGPU();
+    LOG_IF(fatal, sev != nullptr ) << "QSimTest::EventConfig must be done prior to instanciating SEvt, eg for fake_propagate bounce consistency " ;  
+    assert(sev == nullptr); 
+
+    LOG(LEVEL) << "[ " <<  QSimLaunch::Name(type) ; 
+    if( type == FAKE_PROPAGATE )
+    {
+        LOG(LEVEL) << prd->desc() ;  
+        int maxbounce = prd->getNumBounce(); 
+
+        SEventConfig::SetMaxBounce(maxbounce); 
+        SEventConfig::SetEventMode("DebugLite"); 
+        SEventConfig::Initialize();   
+
+        SEventConfig::SetMaxGenstep(1);    // FAKE_PROPAGATE starts from input photons but uses a single placeholder genstep 
+
+        unsigned mx = 1000000 ;  
+        SEventConfig::SetMaxPhoton(mx);   // used for QEvent buffer sizing 
+        SEventConfig::SetMaxSlot(mx); 
+        // greatly reduced MaxSlot as debug arrays in use
+
+        LOG(LEVEL) << " SEventConfig::Desc " << SEventConfig::Desc() ;
+    }
+    LOG(LEVEL) << "] " <<  QSimLaunch::Name(type) ; 
+}
+
+
 /**
 QSimTest::fake_propagate
 ----------------------------------------
@@ -491,7 +554,6 @@ QSimTest::fake_propagate
 NB QSimTest::EventConfig does FAKE_PROPAGATE specific SEventConfig setup of event maxima 
 
 **/
-
 
 void QSimTest::fake_propagate()
 {
@@ -564,7 +626,10 @@ void QSimTest::photon_launch_mutate()
     assert( src_subfold ); 
 
     unsigned num_photon = num ; 
-    NP* a = NP::Load("$FOLD", src_subfold,  "p.npy" ); 
+    NP* a = NP::Load("$BASE", src_subfold,  "p.npy" ); 
+
+    // U::Resolve does not support "$FOLD/.." so use "$BASE" 
+    // and plant that in QSimTest.sh  
 
     if( a == nullptr )
     {
@@ -578,57 +643,32 @@ void QSimTest::photon_launch_mutate()
         return ; 
     } 
 
-    LOG(info) << " loaded " << a->sstr() << " from src_subfold " << src_subfold ; 
-    unsigned num_photon_ = a->shape[0] ; 
+    unsigned num_photon_loaded = a->shape[0] ; 
+    bool num_photon_consistent = num_photon_loaded == num_photon ;
 
-    bool num_photon_expect = num_photon_ == num_photon ;
-    assert( num_photon_expect ); 
-    if(!num_photon_expect) std::raise(SIGINT); 
+    LOG(info) 
+        << "\n" 
+        << " a.sstr " << a->sstr() << "\n" 
+        << " from src_subfold " << src_subfold << "\n"
+        << " a.lpath " << a->get_lpath() << "\n"
+        << " num_photon_loaded " << num_photon_loaded << "\n"
+        << " num_photon_loaded/M " << num_photon_loaded/M  << "\n"
+        << " num_photon " << num_photon << "\n"
+        << " num_photon/M " << num_photon/M << "\n"
+        << " num_photon_consistent " << ( num_photon_consistent ? "YES" : "NO " ) << "\n"
+        ; 
+
+    assert( num_photon_consistent ); 
+    if(!num_photon_consistent) std::raise(SIGINT); 
 
     sphoton* photons = (sphoton*)a->bytes() ; 
     qs->photon_launch_mutate( photons, num_photon, type ); 
 
+
+
     a->save("$FOLD/p.npy"); 
 
     qs->dbg->save("$FOLD"); 
-}
-
-/**
-QSimTest::EventConfig
------------------------
-
-SEventConfig settings to configure the QEvent GPU buffers
-must be done prior to QEvent::init which happens when QSim is instanciated.
-
-TODO : looks like for FAKE_PROPAGATE are changing config after 
-SEvt instanciation, hence the changes dont do anything ? 
-
-SO THIS NEEDS REWORKING TO CHANGE CONFIG EARLIER 
-
-**/
-
-void QSimTest::EventConfig(unsigned type, const SPrd* prd )  // static
-{
-    SEvt* sev = SEvt::Get_EGPU();
-    LOG_IF(fatal, sev != nullptr ) << "QSimTest::EventConfig must be done prior to instanciating SEvt, eg for fake_propagate bounce consistency " ;  
-    assert(sev == nullptr); 
-
-    LOG(LEVEL) << "[ " <<  QSimLaunch::Name(type) ; 
-    if( type == FAKE_PROPAGATE )
-    {
-        LOG(LEVEL) << prd->desc() ;  
-        int maxbounce = prd->getNumBounce(); 
-
-        SEventConfig::SetMaxBounce(maxbounce); 
-        SEventConfig::SetEventMode("DebugLite"); 
-        SEventConfig::Initialize();   
-
-        SEventConfig::SetMaxGenstep(1);        // FAKE_PROPAGATE starts from input photons but uses a single placeholder genstep 
-        SEventConfig::SetMaxPhoton(1000000);   // used for QEvent buffer sizing 
-
-        LOG(LEVEL) << " SEventConfig::Desc " << SEventConfig::Desc() ;
-    }
-    LOG(LEVEL) << "] " <<  QSimLaunch::Name(type) ; 
 }
 
 
@@ -659,7 +699,6 @@ void QSimTest::main()
     switch(type)
     {
         case RNG_SEQUENCE:                  rng_sequence(num, ni_tranche_size)                ; break ; 
-        case RNG_SEQUENCE_WITH_SKIPAHEAD:   rng_sequence_with_skipahead(num, ni_tranche_size) ; break ; 
 
         case WAVELENGTH_SCINTILLATION:      
         case WAVELENGTH_CERENKOV:           
@@ -733,8 +772,11 @@ int main(int argc, char** argv)
 {
     OPTICKS_LOG(argc, argv); 
 
-    const char* testname = ssys::getenvvar("TEST", "hemisphere_s_polarized"); 
-    int type = QSimLaunch::Type(testname); 
+    const char* TEST = ssys::getenvvar("TEST", "hemisphere_s_polarized"); 
+    LOG(info) << "[ TEST " << TEST ; 
+
+
+    int type = QSimLaunch::Type(TEST); 
     unsigned num = QSimTest::Num(argc, argv); 
 
     SSim* sim = SSim::Load(); 
@@ -754,7 +796,6 @@ int main(int argc, char** argv)
 
     QSimTest::EventConfig(type, prd );  // must be after QBnd instanciation and before SEvt instanciation
 
-
     [[maybe_unused]] SEvt* ev = SEvt::Create_EGPU() ; 
     assert(ev);
 
@@ -764,6 +805,6 @@ int main(int argc, char** argv)
 
     cudaDeviceSynchronize();
 
-    LOG(info) << " qst.rc " << qst.rc ; 
+    LOG(info) << "] TEST " << TEST << " qst.rc " << qst.rc ; 
     return qst.rc  ; 
 }

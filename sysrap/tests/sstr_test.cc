@@ -1,4 +1,14 @@
-// ~/opticks/sysrap/tests/sstr_test.sh
+/**
+sstr_test.cc
+==============
+
+~/opticks/sysrap/tests/sstr_test.sh
+
+TEST=Format ~/opticks/sysrap/tests/sstr_test.sh
+TEST=ParseIntSpecList32   ~/opticks/sysrap/tests/sstr_test.sh
+TEST=ParseIntSpecListDemo ~/opticks/sysrap/tests/sstr_test.sh
+
+**/
 
 #include <string>
 #include <vector>
@@ -315,9 +325,9 @@ void test_empty()
 template<typename T>
 void test_ParseIntSpecList()
 {
-     const char* _spec = "1,2,3,100,200,h1,h5,6,7,K1,K10,11,12,M1,2,3,K1,2,M1,H1,2,h1:4" ; 
+     const char* _spec = "1,2,3,100,200,h1,h5,6,7,K1,K10,11,12,M1,2,3,K1,2,M1,H1,2,G2,h1:4" ; 
 
-     std::vector<T> expect = {1,2,3,100,200,100,500,600,700,1000,10000,11000,12000,1000000,2000000,3000000,1000,2000,1000000,100000,200000,100,200,300,400 } ;  
+     std::vector<T> expect = {1,2,3,100,200,100,500,600,700,1000,10000,11000,12000,1000000,2000000,3000000,1000,2000,1000000,100000,200000,2000000000,100,200,300,400 } ;  
      int num_expect = expect.size(); 
 
      std::vector<std::string> spec ; 
@@ -358,10 +368,10 @@ void test_ParseIntSpecList()
 
          pass += int(match) ; 
          std::cout  
-              << std::setw(10) << ( s ? s : "-" )
-              << std::setw(10) << e
-              << std::setw(10) << v
-              << std::setw(10) << l
+              << std::setw(11) << ( s ? s : "-" )
+              << std::setw(11) << e
+              << std::setw(11) << v
+              << std::setw(11) << l
               << ( match ? " " : " ERROR MISMATCH" )
               << std::endl 
               ;
@@ -392,7 +402,9 @@ void test_ParseIntSpecList_demo()
          "h1:10",
          "K1:10",
          "H1:10",
-         "M1:10"
+         "M1:10",
+         "M1x10",
+         "1x5,2x5"
      };  
     int num_spec = spec.size(); 
      
@@ -424,6 +436,19 @@ void test_snprintf()
         int n = snprintf(buf, 10, "%0.3d", i) ; 
         std::cout << buf << ":" << n << std::endl ; 
     }
+} 
+
+
+void test_Format()
+{
+    const char* str_0 = sstr::Format("u_%d.npy", 214) ; 
+    const char* str_1 = sstr::Format("u_%llu.npy", 214ull ) ; 
+
+    std::cout 
+       << "test_Format\n"
+       << "str_0:[" << str_0 << "]\n"
+       << "str_1:[" << str_1 << "]\n"
+       ;
 } 
 
 
@@ -594,6 +619,7 @@ int sstr_test::Main()
     else if(strcmp(TEST, "ParseIntSpecList32")==0 )   test_ParseIntSpecList<int>();
     else if(strcmp(TEST, "ParseIntSpecListDemo")==0 ) test_ParseIntSpecList_demo<int>();
     else if(strcmp(TEST, "snprintf")==0 )             test_snprintf(); 
+    else if(strcmp(TEST, "Format") == 0 )             test_Format(); 
     else if(strcmp(TEST, "TAG")==0 )                  test_TAG(); 
     else if(strcmp(TEST, "StripTailUnique")==0 )      test_StripTail_Unique_0(); 
     else if(strcmp(TEST, "Extract") == 0 )            test_Extract(); 

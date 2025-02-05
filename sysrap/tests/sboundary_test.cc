@@ -4,7 +4,7 @@ sboundary_test.cc
 
 Build and run::
 
-    ./sboundary_test.sh
+    ~/o/sysrap/tests/sboundary_test.sh
 
 
               
@@ -17,6 +17,9 @@ Build and run::
 
 **/
 
+#include "srngcpu.h"
+using RNG = srngcpu ; 
+
 #include "sphoton.h"
 #include "sstate.h"
 #include "srec.h"
@@ -24,14 +27,16 @@ Build and run::
 #include "stag.h"
 #include "sevent.h"
 #include "sctx.h"
-#include "scurand.h"
+
 #include "sboundary.h"
 
 const char* FOLD = getenv("FOLD") ; 
 
+
+
 int main(int argc, char** argv)
 {
-    curandStateXORWOW rng(1u) ; 
+    RNG rng ;   
 
     float3 nrm = make_float3(0.f, 0.f, 1.f ); // surface normal in +z direction 
 

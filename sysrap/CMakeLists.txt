@@ -72,8 +72,7 @@ set(SOURCES
     SYSRAP_LOG.cc 
     SLOG.cc 
 
-    SCurandState.cc
-    SProc.cc
+    SCurandStateMonolithic.cc
     SSys.cc
     SProf.cc
 
@@ -140,7 +139,6 @@ set(SOURCES
 
 
     SEvent.cc
-    SGenstep.cc
     SFrameGenstep.cc
 
     SOpticks.cc
@@ -169,6 +167,10 @@ set(SOURCES
 ) 
     
 
+set(CURANDLITE_HEADERS
+    curandlite/curandStatePhilox4_32_10_OpticksLite.h
+) 
+
 
 set(HEADERS
     OPTICKS_LOG.hh
@@ -186,8 +188,13 @@ set(HEADERS
     SLaunchSequence.h 
 
 
-    SCurandState.hh
-    SProc.hh
+    SCurandSpec.h
+    SCurandChunk.h
+    scurandref.h
+    SCurandState.h
+
+
+    SCurandStateMonolithic.hh
     sproc.h
     sprof.h
     SProf.hh
@@ -335,7 +342,8 @@ set(HEADERS
     tcomplex.h
 
     srng.h
-    s_mock_curand.h
+    sbuild.h
+    srngcpu.h
     scurand.h  
 
     s_mock_texture.h
@@ -476,7 +484,9 @@ set(HEADERS
     SMath.hh
 
     SEvent.hh
-    SGenstep.hh
+    SGenstep.h
+    sslice.h 
+
     SFrameGenstep.hh
 
     SThetaCut.hh
@@ -495,6 +505,7 @@ set(HEADERS
 
     CUDA_CHECK.h
     SCU.h 
+    SCU_.h 
     OPTIX_CHECK.h
  
 
@@ -507,6 +518,7 @@ set(HEADERS
     SFrameConfig.hh
     SGeoConfig.hh
 
+    np.h
     NP.hh  
     NPU.hh 
     NPX.h 
@@ -714,13 +726,11 @@ PLOG_LOCAL
    integration with packages (like junosw) that do not hide 
    symbols by default  
 
-
-# TRY USING BUILD_TYPE dependent flags with generator expression
-#target_compile_definitions( ${name} PUBLIC OPTICKS_SYSRAP )
-#target_compile_definitions( ${name} PUBLIC WITH_CHILD ) 
-#target_compile_definitions( ${name} PUBLIC PRODUCTION )
-#target_compile_definitions( ${name} PUBLIC PLOG_LOCAL ) 
-#target_compile_definitions( ${name} PRIVATE DEBUG_TAG )    
+RNG_XORWOW/RNG_PHILOX/RNG_PHILITEOX
+   Use one of these to pick the curandState implementation, in srng.h
+   picking RNG_XORWOW requires curandState files which slows
+   down initialization greatly when simulating many millions 
+   of photons 
 
 #]=]
 
@@ -740,6 +750,8 @@ target_compile_definitions( ${name}
       OPTICKS_SYSRAP 
       WITH_CHILD
       PLOG_LOCAL
+      RNG_PHILOX
+
       $<$<CONFIG:Debug>:DEBUG_TAG>
       $<$<CONFIG:Debug>:DEBUG_PIDX>
       $<$<CONFIG:Debug>:DEBUG_PIDXYZ>
@@ -783,6 +795,10 @@ set( SCRIPTS
     OpticksCSG.py
 )
 install(PROGRAMS ${SCRIPTS}  DESTINATION py/opticks/sysrap)
+
+
+
+install(FILES ${CURANDLITE_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/curandlite)
 
 
 add_subdirectory(tests)

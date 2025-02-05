@@ -11,6 +11,7 @@ TODO: split off debug functions from actually used functions
 
 
 #include "stdio.h"
+#include "qrng.h"
 
 #include "scuda.h"
 #include "squad.h"
@@ -36,8 +37,6 @@ TODO: split off debug functions from actually used functions
 _QSim_rng_sequence
 --------------------
 
-id_offset : applies to sim.rngstate array controlling which curandState to use
-
 **/
 
 template <typename T>
@@ -45,7 +44,13 @@ __global__ void _QSim_rng_sequence(qsim* sim, T* seq, unsigned ni, unsigned nv, 
 {
     unsigned id = blockIdx.x*blockDim.x + threadIdx.x;
     if (id >= ni) return;
-    curandState rng = sim->rngstate[id+id_offset]; 
+
+    unsigned evt_index = sim->evt->index ;  
+    //if( id == 0 ) printf("//_QSim_rng_sequence id %d ni %d sim->evt->index %d \n", id, ni, sim->evt->index ); 
+
+    RNG rng ; 
+    sim->rng->init(rng, evt_index, id+id_offset) ; 
+
     unsigned ibase = id*nv ; 
 
     for(unsigned v=0 ; v < nv ; v++)
@@ -55,49 +60,17 @@ __global__ void _QSim_rng_sequence(qsim* sim, T* seq, unsigned ni, unsigned nv, 
     } 
 }
 
-template <typename T>
-__global__ void _QSim_rng_sequence_with_skipahead(qsim* sim, T* seq, unsigned ni, unsigned nv, unsigned id_offset )
-{
-    unsigned id = blockIdx.x*blockDim.x + threadIdx.x;
-    if (id >= ni) return;
-    curandState rng ;
-    sim->rng->get_rngstate_with_skipahead(rng, sim->evt->index, id+id_offset) ; 
-
-    if( id == 0 ) printf("//_QSim_rng_sequence_with_skipahead id %d sim->evt->index %d \n", id, sim->evt->index ); 
-
-
-    unsigned ibase = id*nv ; 
-
-    for(unsigned v=0 ; v < nv ; v++)
-    {
-        T u = scurand<T>::uniform(&rng) ;
-        seq[ibase+v] = u ;
-    } 
-} 
-
-
-
-
-
 
 template <typename T>
-extern void QSim_rng_sequence(dim3 numBlocks, dim3 threadsPerBlock, qsim* sim, T*  seq, unsigned ni, unsigned nv, unsigned id_offset, bool skipahead )
+extern void QSim_rng_sequence(dim3 numBlocks, dim3 threadsPerBlock, qsim* sim, T*  seq, unsigned ni, unsigned nv, unsigned id_offset )
 {
-    printf("//QSim_rng_sequence ni %d nv %d id_offset %d skipahead %d  \n", ni, nv, id_offset, skipahead ); 
-
-    if(skipahead)
-    {
-        _QSim_rng_sequence_with_skipahead<T><<<numBlocks,threadsPerBlock>>>( sim, seq, ni, nv, id_offset );
-    }
-    else
-    {
-        _QSim_rng_sequence<T><<<numBlocks,threadsPerBlock>>>( sim, seq, ni, nv, id_offset );
-    }
+    printf("//QSim_rng_sequence ni %d nv %d id_offset %d  \n", ni, nv, id_offset ); 
+    _QSim_rng_sequence<T><<<numBlocks,threadsPerBlock>>>( sim, seq, ni, nv, id_offset );
  
 }
 
-template void QSim_rng_sequence(dim3, dim3, qsim*, float* , unsigned, unsigned, unsigned, bool ); 
-template void QSim_rng_sequence(dim3, dim3, qsim*, double*, unsigned, unsigned, unsigned, bool ); 
+template void QSim_rng_sequence(dim3, dim3, qsim*, float* , unsigned, unsigned, unsigned ); 
+template void QSim_rng_sequence(dim3, dim3, qsim*, double*, unsigned, unsigned, unsigned ); 
 
 
 
@@ -108,7 +81,9 @@ __global__ void _QSim_scint_wavelength(qsim* sim, float* wavelength, unsigned nu
     unsigned id = blockIdx.x*blockDim.x + threadIdx.x;
     if (id >= num_wavelength) return;
 
-    curandState rng = sim->rngstate[id]; 
+    RNG rng ; 
+    sim->rng->init(rng, 0, id ) ; 
+
 
     float u_wl = curand_uniform(&rng); 
     float wl = sim->scint->wavelength(u_wl) ; 
@@ -133,7 +108,10 @@ __global__ void _QSim_RandGaussQ_shoot(qsim* sim, float* vv, unsigned num_v )
     unsigned id = blockIdx.x*blockDim.x + threadIdx.x;
     if (id >= num_v) return;
 
-    curandState rng = sim->rngstate[id]; 
+
+    RNG rng ; 
+    sim->rng->init(rng, 0, id ) ; 
+
 
     float mean = 5.f ; 
     float stdDev = 0.1f ; 
@@ -152,8 +130,13 @@ extern void QSim_RandGaussQ_shoot(  dim3 numBlocks, dim3 threadsPerBlock, qsim* 
 }
 
 
+/**
+_QSim_dbg_gs_generate
+------------------------
 
+Generate photons using the debug cerenkov or scint genstep 
 
+**/
 
 
 __global__ void _QSim_dbg_gs_generate(qsim* sim, qdebug* dbg, sphoton* photon, unsigned num_photon, unsigned type )
@@ -161,7 +144,9 @@ __global__ void _QSim_dbg_gs_generate(qsim* sim, qdebug* dbg, sphoton* photon, u
     unsigned idx = blockIdx.x*blockDim.x + threadIdx.x;
     if (idx >= num_photon) return;
 
-    curandState rng = sim->rngstate[idx] ; 
+    RNG rng ; 
+    sim->rng->init(rng, 0, idx ) ; 
+
     
     //printf("//_QSim_dbg_gs_generate sim.cerenkov %p sim.scint %p \n", sim->cerenkov, sim->scint ); 
 
@@ -203,7 +188,11 @@ __global__ void _QSim_generate_photon(qsim* sim)
 
     if (idx >= evt->num_photon) return;
     
-    curandState rng = sim->rngstate[idx] ; 
+
+    RNG rng ; 
+    sim->rng->init(rng, 0, idx ) ; 
+
+
     unsigned genstep_id = evt->seed[idx] ; 
     const quad6& gs     = evt->genstep[genstep_id] ; 
 
@@ -300,7 +289,9 @@ __global__ void _QSim_rayleigh_scatter_align( qsim* sim, sphoton* photon,  unsig
 
     if (idx >= num_photon) return;
 
-    curandState rng = sim->rngstate[idx] ; 
+    RNG rng ; 
+    sim->rng->init(rng, 0, idx ) ; 
+
 
     sctx ctx = {} ; 
     ctx.idx = idx ; 
@@ -318,7 +309,11 @@ __global__ void _QSim_propagate_to_boundary( qsim* sim, sphoton* photon, unsigne
 
     if (idx >= num_photon) return;
 
-    curandState rng = sim->rngstate[idx] ; 
+    RNG rng ; 
+    sim->rng->init(rng, 0, idx ) ; 
+
+
+
 
     sctx ctx = {} ; 
     ctx.idx = idx ;  
@@ -349,7 +344,9 @@ __global__ void _QSim_propagate_at_boundary_generate( qsim* sim, sphoton* photon
 
     if (idx >= num_photon) return;
 
-    curandState rng = sim->rngstate[idx] ; 
+    RNG rng ; 
+    sim->rng->init(rng, 0, idx ) ; 
+
 
     sctx ctx = {} ; 
     ctx.idx = idx ;  
@@ -374,11 +371,13 @@ __global__ void _QSim_propagate_at_boundary_generate( qsim* sim, sphoton* photon
 __global__ void _QSim_propagate_at_boundary_mutate( qsim* sim, sphoton* photon, unsigned num_photon, qdebug* dbg )
 {
     unsigned idx = blockIdx.x*blockDim.x + threadIdx.x;
-    //printf("//_QSim_propagate_at_boundary_mutate blockIdx.x %d blockDim.x %d threadIdx.x %d id %d \n", blockIdx.x, blockDim.x, threadIdx.x, id ); 
-
     if (idx >= num_photon) return;
 
-    curandState rng = sim->rngstate[idx] ; 
+
+    RNG rng ; 
+    sim->rng->init(rng, 0, idx ) ; 
+
+    //printf("//_QSim_propagate_at_boundary_mutate.after rnginit blockIdx.x %d blockDim.x %d threadIdx.x %d idx %d dbg %p \n", blockIdx.x, blockDim.x, threadIdx.x, idx, dbg ); 
 
     sctx ctx = {} ; 
     ctx.idx = idx ; 
@@ -389,9 +388,10 @@ __global__ void _QSim_propagate_at_boundary_mutate( qsim* sim, sphoton* photon, 
     quad4&  q  = (quad4&)ctx.p ; 
     q.q0.f = q.q1.f ;   // non-standard record initial mom and pol into q0, q3
     q.q3.f = q.q2.f ;
+
+    //printf("//_QSim_propagate_at_boundary_mutate bef callidx %d \n", idx ); 
  
     unsigned flag = 0 ; 
-    //sim->propagate_at_boundary( flag, p, prd, s, rng, idx, tagr );  
     sim->propagate_at_boundary( flag, rng, ctx );  
 
     q.q3.u.w = flag ;  // non-standard
@@ -409,7 +409,9 @@ __global__ void _QSim_propagate_at_multifilm_mutate( qsim* sim, sphoton* photon,
 
     if (idx >= num_photon) return;
 
-    curandState rng = sim->rngstate[idx] ; 
+    RNG rng ; 
+    sim->rng->init(rng, 0, idx ) ; 
+
 
     sctx ctx = {} ; 
     ctx.idx = idx ; 
@@ -444,7 +446,9 @@ __global__ void _QSim_hemisphere_polarized( qsim* sim, sphoton* photon, unsigned
 
     //printf("//_QSim_hemisphere_polarized idx %d num_photon %d polz %d \n", idx, num_photon, polz ); 
 
-    curandState rng = sim->rngstate[idx] ; 
+    RNG rng ; 
+    sim->rng->init(rng, 0, idx ) ; 
+
 
     sctx ctx = {} ; 
     ctx.idx = idx ; 
@@ -480,7 +484,11 @@ __global__ void _QSim_reflect_generate( qsim* sim, sphoton* photon, unsigned num
     unsigned idx = blockIdx.x*blockDim.x + threadIdx.x;
     if (idx >= num_photon) return;
 
-    curandState rng = sim->rngstate[idx] ; 
+
+    RNG rng ; 
+    sim->rng->init(rng, 0, idx ) ; 
+
+
     sctx ctx = {} ; 
 
     ctx.idx = idx ; 
@@ -509,7 +517,10 @@ __global__ void _QSim_quad_launch( qsim* sim, quad* q, unsigned num_quad, qdebug
     unsigned idx = blockIdx.x*blockDim.x + threadIdx.x;
     if (idx >= num_quad ) return;
 
-    curandState rng = sim->rngstate[idx] ; 
+
+    RNG rng ; 
+    sim->rng->init(rng, 0, idx ) ; 
+
 
     sctx ctx = {} ; 
     ctx.idx = idx ; 
@@ -564,6 +575,8 @@ extern void QSim_quad_launch(dim3 numBlocks, dim3 threadsPerBlock, qsim* sim, qu
 QSim_photon_launch
 --------------------
 
+Invoked from QSim::photon_launch_mutate all pointer args are on device. 
+
 **/
 
 extern void QSim_photon_launch(dim3 numBlocks, dim3 threadsPerBlock, qsim* sim, sphoton* photon, unsigned num_photon, qdebug* dbg, unsigned type  )
@@ -606,18 +619,21 @@ extern void QSim_photon_launch(dim3 numBlocks, dim3 threadsPerBlock, qsim* sim, 
 
 
     }
+
+    cudaDeviceSynchronize(); 
+    printf("//QSim_photon_launch post launch cudaDeviceSynchronize \n"); 
 }
 
 
 /**
-_QSim_mock_propagate
+_QSim_fake_propagate
 -----------------------
 
 TODO: compare performance using reference or pointer into global mem here rather than local stack copy    
 
 **/
 
-__global__ void _QSim_mock_propagate( qsim* sim, quad2* prd )
+__global__ void _QSim_fake_propagate( qsim* sim, quad2* prd )
 {
     sevent* evt = sim->evt ; 
     int idx = blockIdx.x*blockDim.x + threadIdx.x;
@@ -626,21 +642,25 @@ __global__ void _QSim_mock_propagate( qsim* sim, quad2* prd )
 #ifdef DEBUG_PIDX
     qbase* base = sim->base ;  
     if( idx == base->pidx )
-    printf("//_QSim_mock_propagate idx %d evt.num_photon %d evt.max_record %d  \n", idx, evt->num_photon, evt->max_record ); 
+    printf("//_QSim_fake_propagate idx %d evt.num_photon %d evt.max_record %d  \n", idx, evt->num_photon, evt->max_record ); 
 #endif
 
-    curandState rng = sim->rngstate[idx] ; 
+
+    RNG rng ; 
+    sim->rng->init(rng, 0, idx ) ; 
+
+
     sphoton p = evt->photon[idx] ;   
     p.set_idx(idx); 
 
-    sim->mock_propagate( p, prd, rng, idx );  
+    sim->fake_propagate( p, prd, rng, idx );  
 
 }
 
 
-extern void QSim_mock_propagate_launch(dim3 numBlocks, dim3 threadsPerBlock, qsim* sim, quad2* prd )
+extern void QSim_fake_propagate_launch(dim3 numBlocks, dim3 threadsPerBlock, qsim* sim, quad2* prd )
 {
-    _QSim_mock_propagate<<<numBlocks,threadsPerBlock>>>( sim, prd ); 
+    _QSim_fake_propagate<<<numBlocks,threadsPerBlock>>>( sim, prd ); 
 }
 
 

@@ -94,6 +94,9 @@ struct SYSRAP_API SEvt : public SCompProvider
     friend struct SEvtTest ; 
 
 
+    static constexpr const char* SEvt__NPFOLD_VERBOSE = "SEvt__NPFOLD_VERBOSE" ; 
+    static bool NPFOLD_VERBOSE ; 
+
     static constexpr const char* SEvt__GATHER = "SEvt__GATHER" ; 
     static bool GATHER ; 
 
@@ -102,6 +105,14 @@ struct SYSRAP_API SEvt : public SCompProvider
 
     static constexpr const char* SEvt__MINIMAL = "SEvt__MINIMAL" ; 
     static bool MINIMAL ; 
+
+    static constexpr const char* SEvt__MINTIME = "SEvt__MINTIME" ; 
+    static bool MINTIME ; 
+
+    static constexpr const char* SEvt__DIRECTORY = "SEvt__DIRECTORY" ; 
+    static bool DIRECTORY ; 
+
+
 
     static constexpr const char* SEvt__CLEAR_SIGINT = "SEvt__CLEAR_SIGINT" ; 
     static bool CLEAR_SIGINT ; 
@@ -134,6 +145,7 @@ struct SYSRAP_API SEvt : public SCompProvider
     int index ; 
     int instance ; 
     int stage ; 
+    int gather_metadata_notopfold ; 
 
     sprof p_SEvt__beginOfEvent_0 ; 
     sprof p_SEvt__beginOfEvent_1 ; 
@@ -159,7 +171,6 @@ struct SYSRAP_API SEvt : public SCompProvider
     uint64_t t_PenultimatePoint ; 
     uint64_t t_LastPoint ; 
 
-
     double   t_Launch ; 
 
     sphoton_selector* selector ; 
@@ -179,6 +190,7 @@ struct SYSRAP_API SEvt : public SCompProvider
     //      but its useful to have somewhere to hang it  
 
     const SCompProvider*  provider ; 
+    NPFold*               topfold ; 
     NPFold*               fold ; 
     const SGeo*           cf ; 
     const stree*          tree ; 
@@ -452,10 +464,12 @@ public:
     static int  GetIndex(int idx); 
     static S4RandomArray* GetRandomArray(int idx); 
 
-    static const char*  DEFAULT_RELDIR ; 
-    static const char* RELDIR ; 
-    static void SetReldir(const char* reldir); 
-    static const char* GetReldir(); 
+
+    // MOVED TO SEventConfig::EventReldir 
+    //static const char*  DEFAULT_RELDIR ; 
+    //static const char* RELDIR ; 
+    //static void SetReldir(const char* reldir); 
+    //static const char* GetReldir(); 
 
 
     static int GetNumPhotonCollected(int idx); 
@@ -558,7 +572,7 @@ public:
     NP*    gatherGenstep() const ;  // from genstep vector
     quad6* getGenstepVecData() const ; 
     int    getGenstepVecSize() const ; 
-    NP*    getGenstepArray() const ; 
+    NP*    makeGenstepArrayFromVector() const ;   // formerly misnamed getGenstepArray
 
 
     bool haveGenstepVec() const ; 
@@ -638,16 +652,15 @@ public:
     bool hasIndex() const ; 
     bool hasInstance() const ; 
 
-    const char* getOutputDir_OLD(const char* base_=nullptr) const ; 
-    const char* getOutputDir(const char* base_=nullptr) const ; 
+
+    static const char* DefaultBase(const char* base_=nullptr) ; 
+    static const char* RunDir( const char* base_=nullptr ); 
+    const char* getDir(const char* base_=nullptr) const ; 
 
     char getInstancePrefix() const ; 
     std::string getIndexString_(const char* hdr) const ; 
     const char* getIndexString(const char* hdr) const ; 
 
-
-    static const char* RunDir( const char* base_=nullptr ); 
-    static const char* DefaultDir() ; 
 
     std::string descSaveDir(const char* dir_) const ; 
 
@@ -659,6 +672,8 @@ public:
     void saveFrame(const char* dir_) const ; 
 
     std::string descComponent() const ; 
+    static std::string DescComponent(const NPFold* f); 
+
     std::string descComp() const ; 
     std::string descVec() const ; 
 

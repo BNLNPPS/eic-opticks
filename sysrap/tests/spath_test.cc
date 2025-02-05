@@ -1,4 +1,21 @@
-// ~/opticks/sysrap/tests/spath_test.sh
+/**
+spath_test.cc
+===============
+
+::
+
+     ~/opticks/sysrap/tests/spath_test.sh
+     TEST=ResolveToken ~/opticks/sysrap/tests/spath_test.sh
+     TEST=Resolve      ~/opticks/sysrap/tests/spath_test.sh
+     TEST=Resolve3     ~/opticks/sysrap/tests/spath_test.sh
+     TEST=Resolve_setenvvar ~/opticks/sysrap/tests/spath_test.sh
+     TEST=Resolve_setenvmap ~/opticks/sysrap/tests/spath_test.sh
+       
+     TEST=DefaultOutputPath ~/opticks/sysrap/tests/spath_test.sh
+
+
+
+**/
 
 #include <cassert>
 #include <iostream>
@@ -27,6 +44,7 @@ struct spath_test
 
    static int Resolve_(const char* spec); 
    static int Resolve1(); 
+   static int Resolve3(); 
    static int Resolve(); 
    static int Resolve_setenvvar(); 
    static int Resolve_setenvmap(); 
@@ -43,8 +61,8 @@ struct spath_test
    static int Read(); 
    static int EndsWith(); 
    static int SplitExt(int impl); 
+   static int Filesize(); 
 
-   static int ALL();  
    static int Main();  
 };
 
@@ -236,11 +254,59 @@ int spath_test::Resolve_(const char* spec)
 
 int spath_test::Resolve1()
 {
-    //Resolve_("${RNGDir:-$HOME/.opticks/rngcache/RNG}") ;
-    Resolve_("$DefaultOutputDir") ;
+    std::vector<std::string> pp = { 
+       "${RNGDir:-$HOME/.opticks/rngcache/RNG}", 
+       "$DefaultOutputDir",
+       "$DefaultOutputDir/$TEST",
+       "$DefaultOutputDir/${TEST:-notest}",
+     } ; 
+
+    for(int i=0 ; i < int(pp.size()) ; i++)
+    {
+        const char* p = pp[i].c_str(); 
+        const char* path0 = spath::ResolvePath(p) ;
+        const char* path1 = spath::ResolvePathGeneralized(p) ;
+        std::cout 
+            << "spath_test::Resolve1\n"
+            << " p                             : " << p << "\n"
+            << " spath::ResolvePath            : " << ( path0 ? path0 : "-" ) << "\n"
+            << " spath::ResolvePathGeneralized : " << ( path1 ? path1 : "-" ) << "\n"
+            << "\n"
+            ;
+    }
+
     return 0 ; 
 }
 
+int spath_test::Resolve3()
+{
+    const char* base = "$TMP/GEOM/$GEOM/$ExecutableName" ; 
+    const char* sidx = "A000" ; 
+
+    std::vector<std::string> pp = { 
+         "ALL${VERSION:-0}", 
+         "ALL${VERSION:-0}${TEST:-}", 
+         "ALL${VERSION:-0}${XTEST:-}",
+         "ALL${VERSION:-0}${XTEST:-notest}"
+     } ; 
+ 
+ 
+    for(int i=0 ; i < int(pp.size()) ; i++)
+    {
+        const char* reldir = pp[i].c_str(); 
+        const char* path = spath::Resolve(base,reldir,sidx ) ; 
+        std::cout 
+            << "spath_test::Resolve3\n"
+            << " base   : " << base << "\n"
+            << " reldir : " << reldir << "\n"
+            << " sidx   : " << sidx << "\n"
+            << " path   : " << ( path ? path : "-" ) << "\n\n"
+            ;
+    }
+
+    return 0 ; 
+
+}
 
 int spath_test::Resolve()
 {
@@ -504,78 +570,59 @@ int spath_test::SplitExt(int impl)
     return rc  ; 
 }
 
-
-
-int spath_test::ALL()
+int spath_test::Filesize()
 {
-    int rc = 0 ; 
+    long sz = spath::Filesize(spath::CWD(), __FILE__); 
 
-    rc += Resolve_defaultOutputPath() ; 
-    //rc += DefaultOutputPath();      // comment as writes
-    rc += Resolve_with_undefined_token();
-    rc += Resolve_with_undefined_TMP();
-    rc += Resolve_inline();
-    rc += ResolveToken(); 
-    rc += Resolve(); 
-    rc += Exists(); 
-    rc += Exists2(); 
-    rc += Basename(); 
-    rc += Name(); 
-    rc += Remove(); 
-    rc += IsTokenWithFallback(); 
-    rc += ResolveTokenWithFallback(); 
-    rc += _ResolveToken(); 
-    rc += Resolve(); 
-    rc += Resolve_setenvvar(); 
-    rc += Resolve_setenvmap(); 
-    rc += ResolveToken1(); 
-    rc += Resolve1(); 
-    rc += _Check(); 
-    rc += Write(); 
-    //rc += WriteIntoInvokingDirectory();   // comment as leaves droppings
-    //rc += Read(); 
-
-    return rc ; 
+    std::cout 
+        << "spath_test::Filesize"
+        << "[" << __FILE__ << "]"
+        << " sz : " << sz
+        << "\n"
+        ;
+  
+    return sz > 0 ? 0 : 1 ;
 }
+
 
 
 int spath_test::Main()
 {
-    //const char* test = "Resolve_defaultOutputPath" ;
-    //const char* test = "Read" ;
-    //const char* test = "EndsWith" ;
-    const char* test = "SplitExt" ;
+    const char* test = "ALL" ;
  
     const char* TEST = ssys::getenvvar("TEST", test ); 
+    bool ALL = strcmp(TEST, "ALL") == 0 ; 
+
     int rc = 0 ; 
-    if(     strcmp(TEST, "Resolve_defaultOutputPath")==0 )   rc = Resolve_defaultOutputPath();
-    else if(strcmp(TEST, "DefaultOutputPath")==0) rc = DefaultOutputPath();
-    else if(strcmp(TEST, "Resolve_with_undefined_token")==0) rc = Resolve_with_undefined_token();
-    else if(strcmp(TEST, "Resolve_with_undefined_TMP")==0) rc = Resolve_with_undefined_TMP();
-    else if(strcmp(TEST, "Resolve_inline")==0) rc = Resolve_inline();
-    else if(strcmp(TEST, "ResolveToken")==0) rc = ResolveToken();
-    else if(strcmp(TEST, "Resolve")==0) rc = Resolve();
-    else if(strcmp(TEST, "Exists")==0) rc = Exists();
-    else if(strcmp(TEST, "Exists2")==0) rc = Exists2();
-    else if(strcmp(TEST, "Basename")==0) Basename();
-    else if(strcmp(TEST, "Name")==0) rc = Name();
-    else if(strcmp(TEST, "Remove")==0) rc = Remove();
-    else if(strcmp(TEST, "IsTokenWithFallback")==0) rc = IsTokenWithFallback();
-    else if(strcmp(TEST, "ResolveTokenWithFallback")==0) rc = ResolveTokenWithFallback();
-    else if(strcmp(TEST, "_ResolveToken")==0) rc = _ResolveToken();
-    else if(strcmp(TEST, "Resolve")==0) rc = Resolve();
-    else if(strcmp(TEST, "Resolve_setenvvar")==0) rc = Resolve_setenvvar();
-    else if(strcmp(TEST, "Resolve_setenvmap")==0) rc = Resolve_setenvmap();
-    else if(strcmp(TEST, "ResolveToken1")==0) rc = ResolveToken1();
-    else if(strcmp(TEST, "Resolve1")==0) rc = Resolve1();
-    else if(strcmp(TEST, "_Check")==0) rc = _Check();
-    else if(strcmp(TEST, "Write")==0) rc = Write();
-    else if(strcmp(TEST, "WriteIntoInvokingDirectory")==0) rc = WriteIntoInvokingDirectory();
-    else if(strcmp(TEST, "Read")==0) rc = Read();
-    else if(strcmp(TEST, "EndsWith")==0) rc = EndsWith();
-    else if(strcmp(TEST, "SplitExt0")==0) rc = SplitExt(0);
-    else if(strcmp(TEST, "SplitExt")==0) rc = SplitExt(1);
-    else if(strcmp(TEST, "ALL")==0) rc = ALL();
+    if(     ALL||strcmp(TEST, "Resolve_defaultOutputPath")==0 )   rc += Resolve_defaultOutputPath();
+    //else if(ALL||strcmp(TEST, "DefaultOutputPath")==0) rc += DefaultOutputPath();
+    else if(ALL||strcmp(TEST, "Resolve_with_undefined_token")==0) rc += Resolve_with_undefined_token();
+    else if(ALL||strcmp(TEST, "Resolve_with_undefined_TMP")==0) rc += Resolve_with_undefined_TMP();
+    else if(ALL||strcmp(TEST, "Resolve_inline")==0) rc += Resolve_inline();
+    else if(ALL||strcmp(TEST, "ResolveToken")==0) rc += ResolveToken();
+    else if(ALL||strcmp(TEST, "Resolve")==0) rc += Resolve();
+    else if(ALL||strcmp(TEST, "Exists")==0) rc += Exists();
+    else if(ALL||strcmp(TEST, "Exists2")==0) rc += Exists2();
+    else if(ALL||strcmp(TEST, "Basename")==0) Basename();
+    else if(ALL||strcmp(TEST, "Name")==0) rc += Name();
+    else if(ALL||strcmp(TEST, "Remove")==0) rc += Remove();
+    else if(ALL||strcmp(TEST, "IsTokenWithFallback")==0) rc += IsTokenWithFallback();
+    else if(ALL||strcmp(TEST, "ResolveTokenWithFallback")==0) rc += ResolveTokenWithFallback();
+    else if(ALL||strcmp(TEST, "_ResolveToken")==0) rc += _ResolveToken();
+    else if(ALL||strcmp(TEST, "Resolve")==0) rc += Resolve();
+    else if(ALL||strcmp(TEST, "Resolve_setenvvar")==0) rc += Resolve_setenvvar();
+    else if(ALL||strcmp(TEST, "Resolve_setenvmap")==0) rc += Resolve_setenvmap();
+    else if(ALL||strcmp(TEST, "ResolveToken1")==0) rc += ResolveToken1();
+    else if(ALL||strcmp(TEST, "Resolve1")==0) rc += Resolve1();
+    else if(ALL||strcmp(TEST, "Resolve3")==0) rc += Resolve3();
+    else if(ALL||strcmp(TEST, "_Check")==0) rc += _Check();
+    else if(ALL||strcmp(TEST, "Write")==0) rc += Write();
+    //else if(ALL||strcmp(TEST, "WriteIntoInvokingDirectory")==0) rc += WriteIntoInvokingDirectory();
+    //else if(ALL||strcmp(TEST, "Read")==0) rc += Read();
+    else if(ALL||strcmp(TEST, "EndsWith")==0) rc += EndsWith();
+    else if(ALL||strcmp(TEST, "SplitExt0")==0) rc += SplitExt(0);
+    else if(ALL||strcmp(TEST, "SplitExt")==0) rc += SplitExt(1);
+    else if(ALL||strcmp(TEST, "Filesize")==0) rc += Filesize();
     return rc ; 
 }
 
@@ -583,21 +630,5 @@ int main(int argc, char** argv)
 {
     return spath_test::Main(); 
 }
-
-/**
-
-::
-
-     ~/opticks/sysrap/tests/spath_test.sh
-     TEST=ResolveToken ~/opticks/sysrap/tests/spath_test.sh
-     TEST=Resolve      ~/opticks/sysrap/tests/spath_test.sh
-     TEST=Resolve_setenvvar ~/opticks/sysrap/tests/spath_test.sh
-     TEST=Resolve_setenvmap ~/opticks/sysrap/tests/spath_test.sh
-       
-     TEST=DefaultOutputPath ~/opticks/sysrap/tests/spath_test.sh
-
-
-**/
-
 
 

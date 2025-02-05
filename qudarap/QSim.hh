@@ -79,8 +79,8 @@ struct QUDARAP_API QSim
     const QPMT<float>*   pmt ; 
     const QMultiFilm*    multifilm ;
 
-    qsim*             sim ;  
-    qsim*           d_sim ;  
+    qsim*                 sim ;  
+    qsim*               d_sim ;  
 
     qdebug*           dbg ; 
     qdebug*           d_dbg ; 
@@ -97,7 +97,12 @@ private:
 public:
     void setLauncher(SCSGOptiX* cx_ ); 
 
+    static constexpr const char* QSim__simulate_KEEP_SUBFOLD = "QSim__simulate_KEEP_SUBFOLD" ; 
+    static bool KEEP_SUBFOLD ; 
+
     double simulate(int eventID, bool reset_ );      // via cx launch 
+    int    getPhotonSlotOffset() const ; 
+
     void   reset( int eventID);  
 
     double simtrace(int eventID);
@@ -121,13 +126,13 @@ public:
 
 
     template<typename T>
-    void rng_sequence( dim3 numblocks, dim3 threadsPerBlock, qsim* d_sim, T* d_seq, unsigned ni_tranche, unsigned nv, unsigned ioffset, bool skipahead );
+    void rng_sequence( dim3 numblocks, dim3 threadsPerBlock, qsim* d_sim, T* d_seq, unsigned ni_tranche, unsigned nv, unsigned ioffset );
 
     template<typename T>
-    void rng_sequence( T* seq, unsigned ni, unsigned nj, unsigned ioffset, bool skipahead ); 
+    void rng_sequence( T* seq, unsigned ni, unsigned nj, unsigned ioffset ); 
 
     template<typename T>
-    void rng_sequence( const char* dir, unsigned ni, unsigned nj, unsigned nk, unsigned ni_tranche_size, bool skipahead );
+    void rng_sequence( const char* dir, unsigned ni, unsigned nj, unsigned nk, unsigned ni_tranche_size );
 
 
     NP* scint_wavelength( unsigned num_wavelength, unsigned& hd_factor ); 
@@ -135,7 +140,7 @@ public:
     NP* RandGaussQ_shoot(unsigned num_v ); 
 
 
-    NP* cerenkov_wavelength_rejection_sampled( unsigned num_wavelength ); 
+    // NP* cerenkov_wavelength_rejection_sampled( unsigned num_wavelength ); 
     void dump_wavelength(                       float* wavelength, unsigned num_wavelength, unsigned edgeitems=10 ); 
 
 
@@ -151,7 +156,7 @@ public:
     NP* quad_launch_generate(unsigned num_quad, unsigned type ); 
     NP* photon_launch_generate(unsigned num_photon, unsigned type ); 
 
-
+    static constexpr const char* _QSim__photon_launch_mutate_DEBUG_NUM_PHOTON = "QSim__photon_launch_mutate_DEBUG_NUM_PHOTON" ; 
     void photon_launch_mutate(   sphoton* photon, unsigned num_photon, unsigned type ); 
 
 
