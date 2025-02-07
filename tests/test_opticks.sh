@@ -10,7 +10,7 @@ mv $HOME/.opticks/rngcache/RNG/QCurandStateMonolithic_1M_0_0.bin $HOME/.opticks/
 mv $HOME/.opticks/rngcache/RNG/QCurandStateMonolithic_3M_0_0.bin $HOME/.opticks/rngcache/RNG/QCurandState_3000000_0_0.bin
 mv $HOME/.opticks/rngcache/RNG/QCurandStateMonolithic_10M_0_0.bin $HOME/.opticks/rngcache/RNG/QCurandState_10000000_0_0.bin
 
-install -D $OPTICKS_HOME/tests/GEOM.sh $HOME/.opticks/GEOM/
+install -D $OPTICKS_HOME/tests/GEOM.sh $HOME/.opticks/GEOM/GEOM.sh
 
 DTYPE=np.float32 $OPTICKS_HOME/ana/input_photons.py
 DTYPE=np.float64 $OPTICKS_HOME/ana/input_photons.py
