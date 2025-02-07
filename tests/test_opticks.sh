@@ -12,6 +12,9 @@ mv $HOME/.opticks/rngcache/RNG/QCurandStateMonolithic_10M_0_0.bin $HOME/.opticks
 
 install -D $OPTICKS_HOME/tests/GEOM.sh $HOME/.opticks/GEOM/
 
+DTYPE=np.float32 $OPTICKS_HOME/ana/input_photons.py
+DTYPE=np.float64 $OPTICKS_HOME/ana/input_photons.py
+
 ctest --test-dir $OPTICKS_PREFIX/build/okconf
 ctest --test-dir $OPTICKS_PREFIX/build/sysrap -E STTFTest
 ctest --test-dir $OPTICKS_PREFIX/build/ana
