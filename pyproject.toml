@@ -1,0 +1,18 @@
+[project]
+name = "eic-opticks"
+version = "0.0.0"
+description = ""
+authors = [ { name = "Dmitri Smirnov", email = "dmixsmi@gmail.com" } ]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=2.0.0",
+    "pyvista>=0.43.8",
+    "plotly>=5.22.0",
+]
+
+[tool.poetry]
+packages = [ { include = "ana", from = ".", to = "opticks" } ]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
