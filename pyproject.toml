@@ -11,7 +11,10 @@ dependencies = [
 ]
 
 [tool.poetry]
-packages = [ { include = "ana", from = ".", to = "opticks" } ]
+packages = [
+    { include = "ana", from = ".", to = "opticks" },
+    { include = "sysrap", from = ".", to = "opticks" }
+]
 
 [build-system]
 requires = ["poetry-core"]
