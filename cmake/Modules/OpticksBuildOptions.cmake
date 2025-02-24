@@ -69,17 +69,8 @@ include(CTest)
 include(GNUInstallDirs)
 set(CMAKE_INSTALL_INCLUDEDIR "include/${name}")  # override the GNUInstallDirs default of "include"
 
-
-find_package(BCM CONFIG)
-
-if(NOT BCM_FOUND)
-   message(STATUS "CMAKE_MODULE_PATH:${CMAKE_MODULE_PATH}")
-   message(STATUS "CMAKE_PREFIX_PATH:${CMAKE_PREFIX_PATH}   expect to find BCM in one of these prefix dirs")
-   message(STATUS "see examples/UseBCM to debug failure to find BCM")
-   message(FATAL_ERROR "ABORT " )
-endif()
-
 include(BCMDeploy)
+include(BCMFuture)
 include(BCMSetupVersion)  # not yet used in anger, see examples/UseGLM
 include(EchoTarget)
 include(TopMetaTarget)
@@ -91,5 +82,3 @@ include(OpticksCXXFlags)
 if(OBO_VERBOSE)
 message(STATUS "OpticksBuildOptions.cmake Configuring ${name} ]")
 endif()
-
-
