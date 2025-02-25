@@ -12,8 +12,10 @@ dependencies = [
 
 [tool.poetry]
 packages = [
+    { include = "CSG", from = ".", to = "opticks" },
     { include = "ana", from = ".", to = "opticks" },
-    { include = "sysrap", from = ".", to = "opticks" }
+    { include = "sysrap", from = ".", to = "opticks" },
+    { include = "tools", from = ".", to = "opticks" }
 ]
 
 [build-system]
