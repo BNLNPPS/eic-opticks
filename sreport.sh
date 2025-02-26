@@ -1,1 +1,0 @@
-sysrap/tests/sreport.sh

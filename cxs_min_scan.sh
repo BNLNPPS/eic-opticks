@@ -1,1 +1,0 @@
-CSGOptiX/cxs_min_scan.sh
