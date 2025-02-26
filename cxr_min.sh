@@ -1,1 +1,0 @@
-CSGOptiX/cxr_min.sh
