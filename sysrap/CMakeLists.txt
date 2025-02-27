@@ -41,7 +41,7 @@ But as OpticksCSG.h updates are rare, For now just need to remember to generate 
 
 #]=]
 
-find_package(NLJSON REQUIRED MODULE)
+find_package(nlohmann_json REQUIRED)
 find_package(PLog   REQUIRED MODULE)
 find_package(OpticksCUDA REQUIRED MODULE)
 find_package(GLM REQUIRED)
@@ -75,6 +75,7 @@ set(SOURCES
     SCurandStateMonolithic.cc
     SSys.cc
     SProf.cc
+    SMeta.cc
 
 
     SStr.cc
@@ -198,6 +199,7 @@ set(HEADERS
     sproc.h
     sprof.h
     SProf.hh
+    SMeta.hh
     smeta.h
 
     SBacktrace.h
@@ -619,14 +621,6 @@ list(APPEND HEADERS
 ) 
 
 
-if(NLJSON_FOUND)  
-   message(STATUS "SYSRAP.NLJSON_FOUND")
-   list(APPEND SOURCES  SMeta.cc)
-   list(APPEND HEADERS  SMeta.hh)
-endif()
-
-
-
 set(WITH_SIMG YES)
 if(WITH_SIMG)
     list(APPEND HEADERS   stb_image.h  stb_image_write.h)   
@@ -664,10 +658,7 @@ target_link_libraries( ${name} Opticks::PLog Opticks::OKConf )
 
 #Opticks::OpticksCUDA 
 
-if(NLJSON_FOUND)
-#target_link_libraries(${name} PUBLIC Opticks::NLJSON)
-target_link_libraries(${name}  Opticks::NLJSON)
-endif()
+target_link_libraries(${name} nlohmann_json::nlohmann_json)
 
 
 if(UNIX AND NOT APPLE)
