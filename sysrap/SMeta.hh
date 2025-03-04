@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SYSRAP_API_EXPORT.hh"
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include <iostream>
 #include "plog/Severity.h"
 
