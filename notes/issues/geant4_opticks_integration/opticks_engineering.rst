@@ -1,2 +1,0 @@
-Opticks Engineering
-=======================
