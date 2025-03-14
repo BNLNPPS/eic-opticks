@@ -15,7 +15,7 @@ jobs:
     runs-on: [gpu]
 
     container:
-      image: ghcr.io/bnlnpps/esi-shell:1.4.2
+      image: ghcr.io/bnlnpps/esi-shell:1.5.0
       volumes:
         - /usr/local/optix:/usr/local/optix
       options: -i -t
@@ -25,14 +25,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build
-        shell: bash
         run: |
           rm -fr $OPTICKS_PREFIX/*
           cmake -S . -B $OPTICKS_PREFIX/build -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DCMAKE_BUILD_TYPE=Debug
           cmake --build $OPTICKS_PREFIX/build --parallel --target install
 
       - name: Test
-        shell: bash
         env:
           OPTICKS_HOME: .
         run: |
