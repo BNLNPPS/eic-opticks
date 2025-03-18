@@ -10,6 +10,7 @@ find_package(OpticksOptiX REQUIRED MODULE)
 
 get_target_property(CSG_INCLUDE_DIRS Opticks::CSG INTERFACE_INCLUDE_DIRECTORIES)
 
+
 message(STATUS "CSG_FOUND     : ${CSG_FOUND} ")
 message(STATUS "CSG_INCLUDE_DIRS : ${CSG_INCLUDE_DIRS} ")
 message(STATUS "OpticksOptiX_VERSION  : ${OpticksOptiX_VERSION} ")
@@ -18,14 +19,6 @@ set(buildenvpath ${CMAKE_CURRENT_BINARY_DIR}/buildenv.sh)
 file(WRITE ${buildenvpath} "export OPTIX_VERSION=${OpticksOptiX_VERSION}\n")
 message(STATUS "write to buildenvpath ${buildenvpath} ")
 
-
-include_directories(
-    ${CUDA_INCLUDE_DIRS}
-    ${CSG_INCLUDE_DIRS}
-    ${OpticksOptiX_INCLUDE}
-    ${OPTICKS_PREFIX}/externals/glm/glm
-    ${CMAKE_CURRENT_SOURCE_DIR} 
-)
 
 
 #set(COMPUTE_CAPABILITY $ENV{OPTICKS_COMPUTE_CAPABILITY})

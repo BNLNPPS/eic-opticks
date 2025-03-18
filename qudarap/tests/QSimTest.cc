@@ -132,6 +132,10 @@ Default dir is $TMP/QSimTest/rng_sequence leading to npy paths like::
 
     /tmp/blyth/opticks/QSimTest/rng_sequence/rng_sequence_f_ni1000000_nj16_nk16_tranche100000/rng_sequence_f_ni100000_nj16_nk16_ioffset000000.npy
 
+As default ni of 1M taking too much space on /tmp/QSimTest/rng_sequence arranged to delete the FOLD after ana at bash level::
+
+    977M    rng_sequence
+
 **/
 
 
@@ -633,9 +637,11 @@ void QSimTest::photon_launch_mutate()
 
     if( a == nullptr )
     {
+        const char* a_path = U::Resolve("$BASE", src_subfold,  "p.npy" ); 
         LOG(fatal) 
              << "failed to NP::Load photons from "
-             <<  " src_subfold " << src_subfold   
+             << " src_subfold [" << ( src_subfold ? src_subfold : "-" ) << "]"   
+             << " a_path [" << ( a_path ? a_path : "-" ) << "]" 
              << std::endl 
              << " YOU PROBABLY NEED TO RUN ANOTHER TEST FIRST TO GENERATE THE PHOTONS "
              ;

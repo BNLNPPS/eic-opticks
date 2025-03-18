@@ -5,15 +5,36 @@ G4CXTest_GEOM.sh : Standalone optical only bi-simulation with G4CXApp::Main and 
 
 Standalone optical Geant4 initialization is faster than embedded Geant4 + Opticks but still ~120s to voxelize. 
 
-Workstation::
+
+Usage examples
+----------------
+
+Typically on workstation::
 
     ~/opticks/g4cx/tests/G4CXTest_GEOM.sh
     ~/opticks/g4cx/tests/G4CXTest_GEOM.sh dbg
     LOG=1 BP=C4CustomART::doIt ~/opticks/g4cx/tests/G4CXTest_GEOM.sh dbg  
 
-
     PRECOOKED=1 ~/o/G4CXTest_GEOM.sh
 
+    ~/opticks/g4cx/tests/G4CXTest_GEOM.sh info
+    ~/opticks/g4cx/tests/G4CXTest_GEOM.sh chi2
+
+
+Following inclusion of _${TEST} in LOGDIR can compare different tests easily 
+-----------------------------------------------------------------------------
+
+::
+
+    TEST=jan20 ~/opticks/g4cx/tests/G4CXTest_GEOM.sh chi2
+
+    TEST=feb20 ~/opticks/g4cx/tests/G4CXTest_GEOM.sh chi2  ## small diffs only following DEBUG_TAG switch off from different randoms  
+    TEST=ref1  ~/opticks/g4cx/tests/G4CXTest_GEOM.sh chi2  ## same as feb20
+
+
+
+Reporting on the nature of the geometry conversion
+------------------------------------------------------
 
 Q: This is running from GDML, is the force triangulation done ? 
 A: probably not without the config::
@@ -21,14 +42,23 @@ A: probably not without the config::
    export stree__force_triangulate_solid='filepath:$HOME/.opticks/GEOM/${GEOM}_meshname_stree__force_triangulate_solid.txt'
 
 
+TODO: confirmation in metadata of what is triangulated in the geometry, stree level for details and CSGFoundry::descSolidIntent
+for the collective situation 
+
+
+The info would be persisted with the stree info, but no persist ? Can be reported by stree::desc_lvid::
+
+     318     const char*      force_triangulate_solid ;
+     319     std::vector<int> force_triangulate_lvid ;
+
+
+
 
 Laptop::
 
     ~/opticks/g4cx/tests/G4CXTest_GEOM.sh grab 
     EYE=0,-400,0 ~/opticks/g4cx/tests/G4CXTest_GEOM.sh ana
-
     ~/opticks/g4cx/tests/G4CXTest_GEOM.sh pvcap 
-
 
 
 Where possible its better to use pure Opticks simulation (no bi-simulation) 
@@ -37,13 +67,14 @@ booting from a persisted geometry during testing due to the ~2s initialization t
     ~/opticks/CSGOptiX/cxs_min.sh
 
 
-
-chi2 subcommand
-----------------
+chi2 subcommand uses a faster C++ sseq index comparison implementation of the python/NumPy chi2 calc
+---------------------------------------------------------------------------------------------------------
 
 Uses::
 
    $SDIR/../../sysrap/tests/sseq_index_test.sh info_run_ana
+
+*  ~/opticks/sysrap/tests/sseq_index_test.sh
 
 
 
@@ -62,11 +93,6 @@ storch::generate is used for both GPU and CPU generation
   storch::generate    
 
 
-For faster sseq index comparison see the C++ impl
------------------------------------------------------
-
-*  ~/opticks/sysrap/tests/sseq_index_test.sh
-
 
 EOU
 }
@@ -80,6 +106,63 @@ dna_script=$SDIR/G4CXTest.py
 
 source $HOME/.opticks/GEOM/GEOM.sh   # set GEOM and associated envvars for finding geometry
 export ${GEOM}_GDMLPathFromGEOM=$HOME/.opticks/GEOM/$GEOM/origin.gdml
+export stree__force_triangulate_solid='filepath:$HOME/.opticks/GEOM/${GEOM}_meshname_stree__force_triangulate_solid.txt'
+export SSim__stree_level=1 
+
+## CURRENTLY CAN MANUALLY CHECK WHAT IS TRIANGULATED BY UPPING THE LOGGING 
+## TODO: some reporting in metadata of which solids are triangulated that gets saved with event metadata
+
+
+#test=small
+#test=ref1
+test=ref5
+#test=large_scan
+TEST=${TEST:-$test}
+
+if [ "$TEST" == "ref1" ]; then 
+
+   opticks_num_event=1
+   opticks_num_genstep=1
+   opticks_num_photon=M1
+   opticks_max_slot=M1
+
+elif [ "$TEST" == "ref5" ]; then 
+
+   opticks_num_event=1
+   opticks_num_genstep=1
+   opticks_num_photon=M5
+   opticks_max_slot=M5
+
+elif [ "$TEST" == "small" ]; then 
+
+   opticks_num_event=1
+   opticks_num_genstep=1
+   opticks_num_photon=H1
+   opticks_max_slot=M1
+
+elif [ "$TEST" == "tiny_scan" ]; then 
+
+   opticks_num_event=10
+   opticks_num_genstep=1x10
+   opticks_num_photon=K1:10
+   opticks_max_slot=M1
+
+elif [ "$TEST" == "large_scan" ]; then 
+
+   opticks_num_event=20
+   opticks_num_genstep=1x10,10x10
+   opticks_num_photon=H1:10,M2,3,5,7,10,20,40,60,80,100
+   opticks_max_slot=M100  
+
+elif [ "$TEST" == "large_evt" ]; then 
+
+   opticks_num_event=1
+   opticks_num_genstep=40
+   opticks_num_photon=M180   ## M200 gives OOM with TITAN RTX 24G with debug arrays enabled
+   opticks_max_slot=M180
+
+fi 
+
 
 
 version=98
@@ -88,7 +171,9 @@ export VERSION    ## used in SEvt output directory name ALL$VERSION
 
 
 ctx=$(TEST=ContextString sbuild_test)  ## eg Debug_Philox see sbuild.h 
-export OPTICKS_EVENT_NAME=$ctx  # used by SEventConfig::EventReldir "OPTICKS_EVENT_RELDIR"
+#export OPTICKS_EVENT_NAME=$ctx  # used by SEventConfig::EventReldir "OPTICKS_EVENT_RELDIR"
+export OPTICKS_EVENT_NAME=${ctx}_${TEST}
+
 
 opticks_event_reldir=ALL${VERSION:-0}_${OPTICKS_EVENT_NAME:-none}   
 export OPTICKS_EVENT_RELDIR='ALL${VERSION:-0}_${OPTICKS_EVENT_NAME:-none}'  ## this is the default in SEventConfig
@@ -170,43 +255,6 @@ esac
 
 
 
-#test=small
-test=reference
-#test=large_scan
-TEST=${TEST:-$test}
-
-if [ "$TEST" == "reference" ]; then 
-
-   opticks_num_photon=M1
-   opticks_max_slot=M1
-   opticks_num_event=1
-
-elif [ "$TEST" == "small" ]; then 
-
-   opticks_num_photon=H1
-   opticks_max_slot=M1
-   opticks_num_event=1
-
-
-elif [ "$TEST" == "tiny_scan" ]; then 
-
-   opticks_num_photon=K1:10
-   opticks_max_slot=M1
-   opticks_num_event=10
-
-elif [ "$TEST" == "large_scan" ]; then 
-
-   opticks_num_photon=H1:10,M2,3,5,7,10,20,40,60,80,100
-   opticks_max_slot=M100  
-   opticks_num_event=20
-
-elif [ "$TEST" == "large_evt" ]; then 
-
-   opticks_num_photon=M180   ## M200 gives OOM with TITAN RTX 24G with debug arrays enabled
-   opticks_max_slot=M180
-   opticks_num_event=1
-
-fi 
 
 opticks_start_index=0
 opticks_max_bounce=31
@@ -218,14 +266,19 @@ opticks_running_mode=SRM_TORCH
 #opticks_running_mode=SRM_INPUT_GENSTEP    ## NOT IMPLEMENTED FOR GEANT4
 #opticks_running_mode=SRM_GUN
 
-export OPTICKS_EVENT_MODE=${OPTICKS_EVENT_MODE:-$opticks_event_mode}   
-export OPTICKS_NUM_PHOTON=${OPTICKS_NUM_PHOTON:-$opticks_num_photon}   
+
 export OPTICKS_NUM_EVENT=${OPTICKS_NUM_EVENT:-$opticks_num_event}  
+export OPTICKS_NUM_GENSTEP=${OPTICKS_NUM_GENSTEP:-$opticks_num_genstep}   
+export OPTICKS_NUM_PHOTON=${OPTICKS_NUM_PHOTON:-$opticks_num_photon}  
+
+export OPTICKS_RUNNING_MODE=${OPTICKS_RUNNING_MODE:-$opticks_running_mode}   # SRM_TORCH/SRM_INPUT_PHOTON/SRM_INPUT_GENSTEP
+export OPTICKS_EVENT_MODE=${OPTICKS_EVENT_MODE:-$opticks_event_mode}         # what arrays are saved eg Hit,HitPhoton,HitPhotonSeq 
+
+ 
 export OPTICKS_MAX_SLOT=${OPTICKS_MAX_SLOT:-$opticks_max_slot}  
 export OPTICKS_START_INDEX=${OPTICKS_START_INDEX:-$opticks_start_index}
 export OPTICKS_MAX_BOUNCE=${OPTICKS_MAX_BOUNCE:-$opticks_max_bounce}
 export OPTICKS_INTEGRATION_MODE=${OPTICKS_INTEGRATION_MODE:-$opticks_integration_mode}
-export OPTICKS_RUNNING_MODE=${OPTICKS_RUNNING_MODE:-$opticks_running_mode}
 
 
 if [ -n "$PRECOOKED" ]; then 
@@ -329,7 +382,10 @@ gdb__()
 }
 
 
-vars="BASH_SOURCE allarg defarg arg SDIR GEOM ${GEOM}_CFBaseFromGEOM ${GEOM}_GDMLPathFromGEOM bin VERSION TMP BASE PWD LOGDIR AFOLD BFOLD CUDA_VISIBLE_DEVICES ana_script dna_script TEST" 
+vars="BASH_SOURCE allarg defarg arg SDIR GEOM ${GEOM}_CFBaseFromGEOM ${GEOM}_GDMLPathFromGEOM bin VERSION"
+vars="$vars TMP BASE PWD"
+vars="$vars OPTICKS_EVENT_NAME OPTICKS_EVENT_RELDIR"
+vars="$vars LOGDIR AFOLD BFOLD CUDA_VISIBLE_DEVICES ana_script dna_script TEST" 
 
 
 if [ "${arg/info}" != "$arg" ]; then 

@@ -25,7 +25,6 @@ set(TEST_SOURCES
    QPropTest.cc 
    QEventTest.cc 
    QEvent_Lifecycle_Test.cc
-   QSim_Lifecycle_Test.cc
    QSimWithEventTest.cc 
    QSimCreateTest.cc 
    QUTest.cc
@@ -40,6 +39,9 @@ set(TEST_SOURCES
    qrng_test.cc
 )
 
+set( JUNO_SPECIFIC_TEST_SOURCES
+   QSim_Lifecycle_Test.cc
+)
 
 
 ## THESE NEED REJIG : THEY FAIL FOR LACK OF DEPENDENCIES 

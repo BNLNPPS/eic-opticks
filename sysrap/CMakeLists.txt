@@ -52,11 +52,6 @@ find_package(Custom4 CONFIG)
 message(STATUS "${name} Custom4_FOUND:${Custom4_FOUND}  " )
 
 
-include_directories(
-    ${OPTICKS_PREFIX}/externals/glm/glm
-)
-
-
 set(WITH_SLOG YES)
 
 
@@ -685,6 +680,8 @@ target_include_directories( ${name} PUBLIC
 )
 
 
+
+
 #[=[
 SysRap Compile Definitions
 ----------------------------
@@ -708,9 +705,16 @@ NOT:WITH_CHILD
    sysrap/sn.h uses left, right sn pointers supporting only binary trees
 
 DEBUG_TAG 
+
+   $<$<CONFIG:Debug>:DEBUG_TAG>
+
+   ONLY LEAVE ENABLED WHEN DOING RANDOM ALIGNED RUNNING TESTS
+
    needed for random aligned running in multiple pkgs: sysrap, qudarap, u4  
    however making this PUBLIC makes rebuilding real heavy 
    so must rely on making coordinated switches when doing random aligned running  
+
+
 
 PLOG_LOCAL
    changes visibility of plog external symbols, allowing better
@@ -743,7 +747,6 @@ target_compile_definitions( ${name}
       PLOG_LOCAL
       RNG_PHILOX
 
-      $<$<CONFIG:Debug>:DEBUG_TAG>
       $<$<CONFIG:Debug>:DEBUG_PIDX>
       $<$<CONFIG:Debug>:DEBUG_PIDXYZ>
       $<$<CONFIG:Release>:PRODUCTION>
