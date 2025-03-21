@@ -4,6 +4,10 @@ project(eic-opticks VERSION 0.1.0)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 
+if(DEFINED ENV{OPTIX_DIR} AND NOT "$ENV{OPTIX_DIR}" STREQUAL "")
+    set(OptiX_INSTALL_DIR $ENV{OPTIX_DIR} CACHE PATH "Path to the installed location of the OptiX SDK.")
+endif()
+
 add_subdirectory(okconf)
 add_subdirectory(sysrap)
 add_subdirectory(ana)
