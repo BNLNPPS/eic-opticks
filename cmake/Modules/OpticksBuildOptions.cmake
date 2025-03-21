@@ -75,8 +75,6 @@ include(BCMSetupVersion)  # not yet used in anger, see examples/UseGLM
 
 set(BUILD_SHARED_LIBS ON)
 
-include(OpticksCXXFlags)   
-
 if(OBO_VERBOSE)
 message(STATUS "OpticksBuildOptions.cmake Configuring ${name} ]")
 endif()
