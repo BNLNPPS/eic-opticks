@@ -16,13 +16,11 @@ set(desc "Geant4 Low Level Utilities")
 project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions NO_POLICY_SCOPE)
 
-message(STATUS "${CMAKE_CURRENT_LIST_FILE} : ====== 0 ======= find SysRap, G4  ")
-
-find_package(G4 REQUIRED MODULE)
 
 message(STATUS "${CMAKE_CURRENT_LIST_FILE} : ====== 1 ======= find GDXML CLHEP XercesC ")
 
-find_package(CLHEP  REQUIRED CONFIG) 
+find_package(Geant4 REQUIRED)
+find_package(CLHEP  REQUIRED) 
 find_package(XercesC REQUIRED)
 
 message(STATUS "${CMAKE_CURRENT_LIST_FILE} : ====== 2 =======  find Custom4 PMTSim  ")
@@ -166,11 +164,11 @@ set(OTHER_HEADERS
 add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
 
 target_link_libraries( ${name} PUBLIC
-    Opticks::G4
     Opticks::SysRap 
     CLHEP::CLHEP
     XercesC::XercesC
     Opticks::GDXML
+    Geant4::G4persistency
 )
 
 target_include_directories( ${name} PUBLIC 
