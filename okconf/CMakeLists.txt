@@ -41,7 +41,7 @@ find_package(OpticksCUDA MODULE QUIET)
 
 set(OptiX_VERBOSE ON)
 find_package(OptiX       MODULE QUIET) 
-find_package(G4          MODULE QUIET) 
+find_package(Geant4) 
 #find_package(Custom4     MODULE QUIET) 
 
 message(STATUS "OKCONF_OPTIX_INSTALL_DIR : ${OKCONF_OPTIX_INSTALL_DIR}")
@@ -57,7 +57,7 @@ message(STATUS "G4_VERSION_INTEGER      : ${G4_VERSION_INTEGER}")
 set(OKCONF_CUDA_API_VERSION_INTEGER "${OpticksCUDA_API_VERSION}")
 set(OKCONF_OPTIX_VERSION_INTEGER  "${OptiX_VERSION_INTEGER}")
 set(OKCONF_OPTIX_INSTALL_DIR      "${OptiX_INSTALL_DIR}")
-set(OKCONF_GEANT4_VERSION_INTEGER "${G4_VERSION_INTEGER}")
+string(REPLACE "." "" OKCONF_GEANT4_VERSION_INTEGER "${Geant4_VERSION}")
 
 set(OKCONF_OPTICKS_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -118,7 +118,6 @@ message(STATUS "G4_targets:${G4_targets}")
 ## top_meta_target(TOPMETA..)  function call from cmake/Modules/TopMetaTarget.cmake creates TOPMETA string into this scope
 top_meta_target(OpticksCUDA_TOPMETA "OpticksCUDA" "${OpticksCUDA_targets}" )
 top_meta_target(OptiX_TOPMETA       "OptiX"       "${OptiX_targets}" )
-top_meta_target(G4_TOPMETA          "G4"          "${G4_targets}" )
 
 #message(STATUS "${OpticksCUDA_TOPMETA}")
 #message(STATUS "${OptiX_TOPMETA}")

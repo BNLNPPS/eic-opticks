@@ -42,20 +42,14 @@ But as OpticksCSG.h updates are rare, For now just need to remember to generate 
 #]=]
 
 find_package(nlohmann_json REQUIRED)
-find_package(PLog   REQUIRED MODULE)
+find_package(plog   REQUIRED)
 find_package(OpticksCUDA REQUIRED MODULE)
-find_package(GLM REQUIRED)
+find_package(glm REQUIRED)
 
 set(Custom4_VERBOSE ON) 
 find_package(Custom4 CONFIG)
 
 message(STATUS "${name} Custom4_FOUND:${Custom4_FOUND}  " )
-
-
-include_directories(
-    ${OPTICKS_PREFIX}/externals/glm/glm
-)
-
 
 set(WITH_SLOG YES)
 
@@ -652,9 +646,7 @@ CUDA_ADD_LIBRARY( ${name} ${SOURCES} )
 set_property( TARGET ${name} PROPERTY INTERFACE_DESCRIPTION ${desc} )
 #set_property( TARGET ${name} PROPERTY INTERFACE_PKG_CONFIG_REQUIRES ${preq} ) 
 
-
-#target_link_libraries( ${name} PUBLIC Opticks::PLog Opticks::OKConf )
-target_link_libraries( ${name} Opticks::PLog Opticks::OKConf )
+target_link_libraries( ${name} plog::plog Opticks::OKConf )
 
 #Opticks::OpticksCUDA 
 
@@ -681,7 +673,6 @@ target_include_directories( ${name} PUBLIC
    $<INSTALL_INTERFACE:include>
    $<INSTALL_INTERFACE:include/SysRap>
    ${CUDA_INCLUDE_DIRS}
-   ${GLM_INCLUDE_DIR}
 )
 
 
@@ -762,18 +753,12 @@ endif()
 
 
 # <findname>_targets is my convention
-message(STATUS "PLog_targets:${PLog_targets}")
 
 ## top_meta_target(TOPMETA..)  function call from cmake/Modules/TopMetaTarget.cmake creates TOPMETA string into this scope
-top_meta_target(PLog_TOPMETA    "PLog" "${PLog_targets}" )
 
-message(STATUS "${PLog_TOPMETA}")
- 
 set(PC_VERBOSE ON)
 bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL TOPMATTER  "
 ## SysRap TOPMATTER
-
-${PLog_TOPMETA}
 
 ## end SysRap TOPMATTER
 ")

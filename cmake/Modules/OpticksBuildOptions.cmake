@@ -72,8 +72,6 @@ set(CMAKE_INSTALL_INCLUDEDIR "include/${name}")  # override the GNUInstallDirs d
 include(BCMDeploy)
 include(BCMFuture)
 include(BCMSetupVersion)  # not yet used in anger, see examples/UseGLM
-include(EchoTarget)
-include(TopMetaTarget)
 
 set(BUILD_SHARED_LIBS ON)
 
