@@ -115,40 +115,9 @@ message(STATUS "OpticksCUDA_targets:${OpticksCUDA_targets}")
 message(STATUS "OptiX_targets:${OptiX_targets}")
 message(STATUS "G4_targets:${G4_targets}")
 
-## top_meta_target(TOPMETA..)  function call from cmake/Modules/TopMetaTarget.cmake creates TOPMETA string into this scope
-top_meta_target(OpticksCUDA_TOPMETA "OpticksCUDA" "${OpticksCUDA_targets}" )
-top_meta_target(OptiX_TOPMETA       "OptiX"       "${OptiX_targets}" )
-
-#message(STATUS "${OpticksCUDA_TOPMETA}")
-#message(STATUS "${OptiX_TOPMETA}")
-#message(STATUS "${G4_TOPMETA}")
-
 set(PC_VERBOSE ON)
 
-bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL TOPMATTER "
-## OKConf generated TOPMATTER
-
-set(OptiX_INSTALL_DIR ${OptiX_INSTALL_DIR})
-set(COMPUTE_CAPABILITY ${COMPUTE_CAPABILITY})
-
-if(OKConf_VERBOSE)
-  message(STATUS \"\${CMAKE_CURRENT_LIST_FILE} : OKConf_VERBOSE     : \${OKConf_VERBOSE} \")
-  message(STATUS \"\${CMAKE_CURRENT_LIST_FILE} : OptiX_INSTALL_DIR  : \${OptiX_INSTALL_DIR} \")
-  message(STATUS \"\${CMAKE_CURRENT_LIST_FILE} : COMPUTE_CAPABILITY : \${COMPUTE_CAPABILITY} \")
-endif()
-
-include(OpticksCUDAFlags)
-## see notes/issues/OpticksCUDAFlags.rst
-
-${OpticksCUDA_TOPMETA}
-
-${OptiX_TOPMETA}
-
-${G4_TOPMETA}
-
-
-## end of OKConf generated TOPMATTER
-" )
+bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)
 
 install(FILES ${HEADERS}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/inc/${OKConf_GENERATED_HEADER}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
