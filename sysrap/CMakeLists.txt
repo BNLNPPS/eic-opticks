@@ -754,14 +754,8 @@ endif()
 
 # <findname>_targets is my convention
 
-## top_meta_target(TOPMETA..)  function call from cmake/Modules/TopMetaTarget.cmake creates TOPMETA string into this scope
-
 set(PC_VERBOSE ON)
-bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL TOPMATTER  "
-## SysRap TOPMATTER
-
-## end SysRap TOPMATTER
-")
+bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)
 
 install(FILES ${HEADERS}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
