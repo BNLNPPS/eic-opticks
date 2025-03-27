@@ -3,19 +3,6 @@ set(desc "Top Level")
 project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions NO_POLICY_SCOPE)
 
-#[=[
-G4CX
-=====
-
-#]=]
-
-#find_package(Custom4 CONFIG)   # hmm U4 looks for Custom4 and does setup
-
-message(STATUS "${CMAKE_CURRENT_LIST_FILE} : Custom4_FOUND      : ${Custom4_FOUND}")
-message(STATUS "${CMAKE_CURRENT_LIST_FILE} : Custom4_VERSION    : ${Custom4_VERSION}")
-
-
-
 set(SOURCES
     G4CX_LOG.cc 
     G4CXOpticks.cc
@@ -47,6 +34,3 @@ install(FILES ${HEADERS}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)
 
 add_subdirectory(tests)
-
-
-

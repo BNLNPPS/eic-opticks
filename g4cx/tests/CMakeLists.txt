@@ -40,24 +40,13 @@ foreach(SRC ${SINGLE_SOURCES})
 endforeach()
 
 
-#find_program(BASH_EXECUTABLE NAMES bash REQUIRED)
-#message(STATUS "BASH_EXECUTABLE : ${BASH_EXECUTABLE}")
-
 foreach(SRC ${TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} G4CX CUDA::cudart)
 
-    #add_test(${name}.${TGT} ${TGT})
     add_test(
        NAME ${name}.${TGT} 
        COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/GXTestRunner.sh ${CMAKE_CURRENT_BINARY_DIR}/${TGT}
     )
 endforeach()
-
-
-
-
-
-
-

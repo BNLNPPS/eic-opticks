@@ -14,16 +14,6 @@ set(Custom4_VERBOSE ON)
 find_package(Custom4 CONFIG)
 
 message(STATUS "${name} Custom4_FOUND:${Custom4_FOUND}  " )
-
-#[=[
-A successful find of Custom4 runs some CMake config, see::
-
-    epsilon:qudarap blyth$ cat ${OPTICKS_PREFIX}_externals/custom4/0.1.9/lib/Custom4-0.1.9/Custom4Config.cmake | grep WITH
-    set(Custom4_DEFINITIONS -DWITH_CUSTOM4 )
-          INTERFACE_COMPILE_DEFINITIONS "WITH_CUSTOM4"
-
-#]=]
-
 set(DEV_SOURCES
     QSim_cerenkov_dev.cu
 )
@@ -90,9 +80,6 @@ set(SOURCES
 
     QBuf.cc
 )
-
-
-
 
 SET(HEADERS
     QUDARAP_LOG.hh
@@ -163,28 +150,11 @@ if(UNIX AND NOT APPLE)
   set(LIBS ${LIBS} ssl )  
 endif()
 
-
-
-
-
-
-
-
 add_library( ${name} ${SOURCES} )
 
 get_target_property(ILL ${name} INTERFACE_LINK_LIBRARIES)
 message(STATUS "${name} INTERFACE_LINK_LIBRARIES:${ILL} " )
 
-#[=[
-As QUDARap only requires a single header-only header from Custom4,
-not the library it is unnecessarily adding dependency on the lib and 
-all the Geant4 libs when hooking up the full target with::
-
-   # set(LIBS ${LIBS} Custom4::Custom4) 
-
-So instead just hookup the include_directories and 
-compile_definitions not the full target. 
-#]=]
 
 if(Custom4_FOUND)
    target_compile_definitions( ${name} PUBLIC WITH_CUSTOM4 )
@@ -194,15 +164,6 @@ endif()
 target_link_libraries( ${name} ${LIBS})
 target_compile_definitions( ${name} PUBLIC OPTICKS_QUDARAP DEBUG_TAG )
 
-#[=[
-
-https://stackoverflow.com/questions/34490294/what-does-configdebugrelease-mean-in-cmake
-
-   $<CONFIG:Debug>   1 for Debug, 0 otherwise
-   $<1:X>            X 
-   $<0:X>            Empty 
-
-#]=]
 
 #[=[
 
@@ -230,22 +191,14 @@ WITH_THRUST compile definition
 
 target_compile_definitions( ${name} PRIVATE WITH_THRUST )
 
-#target_compile_definitions( ${name} PRIVATE DEBUG_TIME )
 target_include_directories( ${name}
    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
    $<INSTALL_INTERFACE:include>
    $<INSTALL_INTERFACE:include/QUDARap>
 )
 
-# see notes/issues/QUDARap_symbol_visibility_warnings.rst 
-#set_target_properties( ${name} PROPERTIES CXX_VISIBILITY_PRESET hidden )
-
-
-
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)
 
 add_subdirectory(tests)
-
-

@@ -56,18 +56,13 @@ foreach(SRC ${VIZ_SOURCES})
          )
 endforeach()
 
-
-
 foreach(SRC ${TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} CSGOptiX CUDA::cudart)
 
-    #add_test(${name}.${TGT} ${TGT})
     add_test(
        NAME ${name}.${TGT} 
        COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/CXTestRunner.sh ${CMAKE_CURRENT_BINARY_DIR}/${TGT}
     )
 endforeach()
-
-

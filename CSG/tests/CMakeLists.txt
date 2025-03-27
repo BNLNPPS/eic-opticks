@@ -1,6 +1,5 @@
 set(name CSGTest)
 
-#find_package(OpticksCore REQUIRED CONFIG)
 find_package(CUDAToolkit REQUIRED)
 
 set(TEST_SOURCES
@@ -64,24 +63,17 @@ set( DEFERRED_TEST_SOURCES
     CSGGeometryFromGeocacheTest.cc
 )
 
-find_program(BASH_EXECUTABLE NAMES bash REQUIRED)
-message(STATUS "BASH_EXECUTABLE : ${BASH_EXECUTABLE}")
-
 foreach(SRC ${TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} Opticks::CSG CUDA::cudart)
 
-    #add_test(${name}.${TGT} ${TGT})
     add_test(
        NAME ${name}.${TGT} 
        COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/CSGTestRunner.sh ${CMAKE_CURRENT_BINARY_DIR}/${TGT}
     )
 endforeach()
 
-
-
 set(TGT CSGDemoTest)
 add_executable(${TGT} CSGDemoTest.cc DemoGeo.cc DemoGrid.cc)
-#target_link_libraries(${TGT} Opticks::CSG Opticks::OpticksCore)
 target_link_libraries(${TGT} Opticks::CSG CUDA::cudart)

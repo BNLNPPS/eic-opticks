@@ -3,15 +3,6 @@ set(desc "XML Level xercesc fixing GDML")
 project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions NO_POLICY_SCOPE)
 
-#[=[
-
-
-#]=]
-
-
-#set(G4_VERBOSE YES)
-#set(OpticksXercesC_VERBOSE YES)
-
 find_package(XercesC REQUIRED)
 
 set(SOURCES

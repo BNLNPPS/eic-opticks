@@ -27,12 +27,10 @@ set(TEST_SOURCES
    QBufTest.cc
    QMultiFilmTest.cc
 
-
    QCurandStateMonolithicTest.cc
 
    qrng_test.cc
 )
-
 
 
 ## THESE NEED REJIG : THEY FAIL FOR LACK OF DEPENDENCIES 
@@ -59,9 +57,6 @@ foreach(SRC ${TEST_SOURCES})
 
 endforeach()
 
-
-#[=[
-#]=]
 foreach(SRC ${KNOWN_FAIL_TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
@@ -107,9 +102,4 @@ if(PMTSim_standalone_FOUND)
 
 else()
     message(STATUS "${name} PMTSim_standalone_FOUND:${PMTSim_standalone_FOUND}  " )
-
 endif()
-
-
-
-
