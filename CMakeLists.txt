@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(eic-opticks VERSION 0.1.0)
+project(eic-opticks VERSION 0.1.0 LANGUAGES CXX CUDA)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
+
+set(CMAKE_CUDA_ARCHITECTURES 89)
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 if(DEFINED ENV{OPTIX_DIR} AND NOT "$ENV{OPTIX_DIR}" STREQUAL "")
     set(OptiX_INSTALL_DIR $ENV{OPTIX_DIR} CACHE PATH "Path to the installed location of the OptiX SDK.")

@@ -3,6 +3,8 @@ set(name QUDARapTest)
 project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions)   
 
+find_package(CUDAToolkit REQUIRED)
+
 set(INSTALLED_SCRIPTS
    QTestRunner.sh 
 )
@@ -59,7 +61,7 @@ message(STATUS "BASH_EXECUTABLE : ${BASH_EXECUTABLE}")
 foreach(SRC ${TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
-    target_link_libraries(${TGT} QUDARap )
+    target_link_libraries(${TGT} QUDARap CUDA::cudart)
     target_include_directories(${TGT} PRIVATE $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/sysrap/inc>)
     install(TARGETS ${TGT} DESTINATION lib)
 

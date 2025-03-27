@@ -36,8 +36,6 @@ running one is a bad one.  So paths need to be overridden.
 
 #]=]
 
-set(OpticksCUDA_VERBOSE YES)
-find_package(OpticksCUDA MODULE QUIET) 
 
 set(OptiX_VERBOSE ON)
 find_package(OptiX) 
@@ -46,7 +44,6 @@ find_package(Geant4)
 
 message(STATUS "OKCONF_OPTIX_INSTALL_DIR : ${OKCONF_OPTIX_INSTALL_DIR}")
 message(STATUS "OptiX_VERSION_INTEGER : ${OptiX_VERSION}")
-message(STATUS "OpticksCUDA_API_VERSION : ${OpticksCUDA_API_VERSION}")
 message(STATUS "G4_VERSION_INTEGER      : ${G4_VERSION_INTEGER}")
 
 
@@ -54,7 +51,7 @@ message(STATUS "G4_VERSION_INTEGER      : ${G4_VERSION_INTEGER}")
 
 # generate define header for hardcoding in the library 
 
-set(OKCONF_CUDA_API_VERSION_INTEGER "${OpticksCUDA_API_VERSION}")
+string(REPLACE "." "" OKCONF_CUDA_API_VERSION_INTEGER "${CMAKE_CUDA_COMPILER_VERSION}")
 set(OKCONF_OPTIX_VERSION_INTEGER  "${OptiX_VERSION}")
 set(OKCONF_OPTIX_INSTALL_DIR      "${OptiX_INSTALL_DIR}")
 string(REPLACE "." "" OKCONF_GEANT4_VERSION_INTEGER "${Geant4_VERSION}")
@@ -111,7 +108,6 @@ add_subdirectory(tests)
 
 
 # <findname>_targets is my convention
-message(STATUS "OpticksCUDA_targets:${OpticksCUDA_targets}")
 message(STATUS "OptiX_targets:${OptiX_targets}")
 message(STATUS "G4_targets:${G4_targets}")
 

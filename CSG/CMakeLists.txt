@@ -3,10 +3,7 @@ set(name CSG)
 project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions NO_POLICY_SCOPE)
 
-find_package(CUDA REQUIRED) 
-
 include_directories(
-    ${CUDA_INCLUDE_DIRS}
     ${OPTICKS_PREFIX}/externals/glm/glm
     ${OPTICKS_PREFIX}/include/SysRap
     ${CMAKE_CURRENT_SOURCE_DIR} 
@@ -138,7 +135,7 @@ message(STATUS "CMAKE_BINARY_DIR         : ${CMAKE_BINARY_DIR}")
 
 #add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
 
-CUDA_ADD_LIBRARY( ${name} ${SOURCES} )
+add_library( ${name} ${SOURCES} )
 
 
 target_compile_definitions( ${name} PUBLIC OPTICKS_CSG )
@@ -176,7 +173,7 @@ target_include_directories(${name}
 )
 
 #target_link_libraries(${name} PUBLIC ${CUDA_LIBRARIES} Opticks::SysRap)
-target_link_libraries(${name} ${CUDA_LIBRARIES} Opticks::SysRap)
+target_link_libraries(${name} Opticks::SysRap)
 
 
 bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)

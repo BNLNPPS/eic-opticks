@@ -25,13 +25,6 @@ A successful find of Custom4 runs some CMake config, see::
 
 #]=]
 
-
-
-
-set(OpticksCUDA_VERBOSE ON)
-find_package(OpticksCUDA REQUIRED MODULE)
-
-
 set(DEV_SOURCES
     QSim_cerenkov_dev.cu
 )
@@ -178,7 +171,7 @@ endif()
 
 
 
-CUDA_ADD_LIBRARY( ${name} ${SOURCES} )
+add_library( ${name} ${SOURCES} )
 
 get_target_property(ILL ${name} INTERFACE_LINK_LIBRARIES)
 message(STATUS "${name} INTERFACE_LINK_LIBRARIES:${ILL} " )
