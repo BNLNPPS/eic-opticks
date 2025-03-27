@@ -40,12 +40,12 @@ set(OpticksCUDA_VERBOSE YES)
 find_package(OpticksCUDA MODULE QUIET) 
 
 set(OptiX_VERBOSE ON)
-find_package(OptiX       MODULE QUIET) 
+find_package(OptiX) 
 find_package(Geant4) 
 #find_package(Custom4     MODULE QUIET) 
 
 message(STATUS "OKCONF_OPTIX_INSTALL_DIR : ${OKCONF_OPTIX_INSTALL_DIR}")
-message(STATUS "OptiX_VERSION_INTEGER : ${OptiX_VERSION_INTEGER}")
+message(STATUS "OptiX_VERSION_INTEGER : ${OptiX_VERSION}")
 message(STATUS "OpticksCUDA_API_VERSION : ${OpticksCUDA_API_VERSION}")
 message(STATUS "G4_VERSION_INTEGER      : ${G4_VERSION_INTEGER}")
 
@@ -55,7 +55,7 @@ message(STATUS "G4_VERSION_INTEGER      : ${G4_VERSION_INTEGER}")
 # generate define header for hardcoding in the library 
 
 set(OKCONF_CUDA_API_VERSION_INTEGER "${OpticksCUDA_API_VERSION}")
-set(OKCONF_OPTIX_VERSION_INTEGER  "${OptiX_VERSION_INTEGER}")
+set(OKCONF_OPTIX_VERSION_INTEGER  "${OptiX_VERSION}")
 set(OKCONF_OPTIX_INSTALL_DIR      "${OptiX_INSTALL_DIR}")
 string(REPLACE "." "" OKCONF_GEANT4_VERSION_INTEGER "${Geant4_VERSION}")
 
