@@ -3,8 +3,6 @@ set(name CSGOptiX)
 project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions)
 
-find_package(CUDA REQUIRED)   
-
 find_package(OptiX)
 
 get_target_property(CSG_INCLUDE_DIRS Opticks::CSG INTERFACE_INCLUDE_DIRECTORIES)
@@ -18,7 +16,6 @@ message(STATUS "write to buildenvpath ${buildenvpath} ")
 
 
 include_directories(
-    ${CUDA_INCLUDE_DIRS}
     ${CSG_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR} 
 )
@@ -127,7 +124,6 @@ target_include_directories( ${name} PUBLIC
 
 target_link_libraries(${name} 
      PUBLIC 
-         ${CUDA_LIBRARIES}
          OptiX::OptiX
          Opticks::CSG
          Opticks::QUDARap

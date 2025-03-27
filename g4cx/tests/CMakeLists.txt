@@ -3,6 +3,8 @@ set(name G4CXTest)
 project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions)   
 
+find_package(CUDAToolkit REQUIRED)
+
 set(INSTALLED_SCRIPTS
     GXTestRunner.sh 
 )
@@ -40,7 +42,7 @@ set(TEST_SOURCES
 foreach(SRC ${SINGLE_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
-    target_link_libraries(${TGT} G4CX)
+    target_link_libraries(${TGT} G4CX CUDA::cudart)
     install(TARGETS ${TGT} DESTINATION lib)
 endforeach()
 
@@ -51,7 +53,7 @@ endforeach()
 foreach(SRC ${TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
-    target_link_libraries(${TGT} G4CX)
+    target_link_libraries(${TGT} G4CX CUDA::cudart)
     install(TARGETS ${TGT} DESTINATION lib)
 
     #add_test(${name}.${TGT} ${TGT})

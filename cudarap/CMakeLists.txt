@@ -11,17 +11,10 @@ include(OpticksBuildOptions NO_POLICY_SCOPE)
 set(FLAGS_VERBOSE ON)
 
 find_package(SysRap REQUIRED CONFIG)
-set(OpticksCUDA_VERBOSE ON)
-find_package(OpticksCUDA REQUIRED MODULE)
 ## NB **NO BOOST** or pkgs with Boost ancestry : as nvcc barfs on it
 ##  this may be no longer the case 
 
 #set(CUDARap_VERBOSE OFF)
-set(CUDARap_VERBOSE ON)
-if(CUDARap_VERBOSE)
-   message(STATUS "${name}.CUDA_NVCC_FLAGS : ${CUDA_NVCC_FLAGS} ")
-endif()
-
 
 
 set(SOURCES
@@ -60,8 +53,6 @@ SET(HEADERS
 
 set(LIBRARIES
    Opticks::SysRap
-   Opticks::OpticksCUDA
-   Opticks::CUDASamples
    Opticks::OKConf
 )
 if(UNIX AND NOT APPLE)
@@ -69,7 +60,7 @@ if(UNIX AND NOT APPLE)
 endif()
 
 
-CUDA_ADD_LIBRARY( ${name} ${SOURCES} )
+add_library( ${name} ${SOURCES} )
 
 get_target_property(ILL ${name} INTERFACE_LINK_LIBRARIES)
 message(STATUS "${name} INTERFACE_LINK_LIBRARIES:${ILL} " )

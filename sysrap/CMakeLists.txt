@@ -43,8 +43,8 @@ But as OpticksCSG.h updates are rare, For now just need to remember to generate 
 
 find_package(nlohmann_json REQUIRED)
 find_package(plog   REQUIRED)
-find_package(OpticksCUDA REQUIRED MODULE)
 find_package(glm REQUIRED)
+find_package(CUDAToolkit REQUIRED)
 
 set(Custom4_VERBOSE ON) 
 find_package(Custom4 CONFIG)
@@ -633,7 +633,7 @@ endif()
 set(WITH_NP YES)
 
 
-CUDA_ADD_LIBRARY( ${name} ${SOURCES} )
+add_library( ${name} ${SOURCES} )
 
 
 #add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
@@ -652,6 +652,7 @@ target_link_libraries( ${name} plog::plog Opticks::OKConf )
 
 target_link_libraries(${name} nlohmann_json::nlohmann_json)
 
+target_link_libraries(${name} CUDA::cudart)
 
 if(UNIX AND NOT APPLE)
 find_package(OpenSSL REQUIRED)
@@ -672,7 +673,6 @@ target_include_directories( ${name} PUBLIC
    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/okconf/inc>
    $<INSTALL_INTERFACE:include>
    $<INSTALL_INTERFACE:include/SysRap>
-   ${CUDA_INCLUDE_DIRS}
 )
 
 

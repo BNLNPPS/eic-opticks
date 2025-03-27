@@ -3,6 +3,8 @@ set(name U4Test)
 project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions)   
 
+find_package(CUDAToolkit REQUIRED)
+
 set(INSTALLED_SCRIPTS
     U4TestRunner.sh 
 )
@@ -140,7 +142,7 @@ set(U4HitTest_SOURCES
 
 set(TGT U4HitTest)
 add_executable(${TGT} ${U4HitTest_SOURCES})
-target_link_libraries(${TGT} U4 Opticks::CSG)
+target_link_libraries(${TGT} U4 Opticks::CSG CUDA::cudart)
 install(TARGETS ${TGT} DESTINATION lib)
 
 message(STATUS "${CMAKE_CURRENT_LIST_FILE} : PMTSim_standalone_FOUND     : ${PMTSim_standalone_FOUND}")
