@@ -45,7 +45,6 @@ CONFIG_RelWithDebInfo
 CONFIG_MinSizeRel
 PRODUCTION
 WITH_CHILD
-WITH_CUSTOM4
 PLOG_LOCAL
 DEBUG_PIDX
 DEBUG_TAG
@@ -58,4 +57,3 @@ cat << EOT
     return str ;  
 }
 EOT
-
