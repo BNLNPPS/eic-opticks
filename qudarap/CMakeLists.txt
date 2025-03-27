@@ -193,7 +193,7 @@ if(Custom4_FOUND)
 endif()
 
 target_link_libraries( ${name} ${LIBS})
-target_compile_definitions( ${name} PUBLIC OPTICKS_QUDARAP )
+target_compile_definitions( ${name} PUBLIC OPTICKS_QUDARAP DEBUG_TAG )
 
 #[=[
 
