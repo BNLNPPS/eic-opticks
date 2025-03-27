@@ -5,25 +5,21 @@ include(OpticksBuildOptions)
 
 find_package(CUDA REQUIRED)   
 
-set(OpticksOptiX_VERBOSE ON)
-find_package(OpticksOptiX REQUIRED MODULE)   
+find_package(OptiX)
 
 get_target_property(CSG_INCLUDE_DIRS Opticks::CSG INTERFACE_INCLUDE_DIRECTORIES)
 
 message(STATUS "CSG_FOUND     : ${CSG_FOUND} ")
 message(STATUS "CSG_INCLUDE_DIRS : ${CSG_INCLUDE_DIRS} ")
-message(STATUS "OpticksOptiX_VERSION  : ${OpticksOptiX_VERSION} ")
 
 set(buildenvpath ${CMAKE_CURRENT_BINARY_DIR}/buildenv.sh)
-file(WRITE ${buildenvpath} "export OPTIX_VERSION=${OpticksOptiX_VERSION}\n")
+file(WRITE ${buildenvpath} "export OPTIX_VERSION=${OptiX_VERSION}\n")
 message(STATUS "write to buildenvpath ${buildenvpath} ")
 
 
 include_directories(
     ${CUDA_INCLUDE_DIRS}
     ${CSG_INCLUDE_DIRS}
-    ${OpticksOptiX_INCLUDE}
-    ${OPTICKS_PREFIX}/externals/glm/glm
     ${CMAKE_CURRENT_SOURCE_DIR} 
 )
 
@@ -59,42 +55,45 @@ list(APPEND HEADERS
     CSGOPTIX_LOG.hh
 )
 
-if(OpticksOptiX_VERSION GREATER_EQUAL 70000)
-   list(APPEND CU_SOURCES 
-        CSGOptiX7.cu
-        Check.cu
-    )
-   list(APPEND SOURCES  
-        Ctx.cc 
-        Properties.cc 
-        GAS.cc 
-        GAS_Builder.cc 
-        PIP.cc 
-        IAS.cc 
-        IAS_Builder.cc 
-        SBT.cc 
-    )
-else()
-   # TODO: note that have to manually touch .cu in order to pick up changed CSG headers in build, find way to fix this  
-   list(APPEND CU_SOURCES 
-        CSGOptiX6.cu  
-        CSGOptiX6geo.cu 
-   )
-   list(APPEND SOURCES  
-        Six.cc 
-   )
-endif()
+list(APPEND CU_SOURCES 
+     CSGOptiX7.cu
+     Check.cu
+)
+
+list(APPEND SOURCES  
+     Ctx.cc 
+     Properties.cc 
+     GAS.cc 
+     GAS_Builder.cc 
+     PIP.cc 
+     IAS.cc 
+     IAS_Builder.cc 
+     SBT.cc 
+)
 
 message(STATUS "CU_SOURCES : ${CU_SOURCES} ")
 
+set(_generated_PTX_files "")
 
-CUDA_WRAP_SRCS( ${name} PTX _generated_PTX_files ${CU_SOURCES} )
-CUDA_WRAP_SRCS( ${name} OBJ _generated_OBJ_files ${SOURCES} )
+foreach(cu_src IN LISTS CU_SOURCES)
+    message(STATUS "Processing ${cu_src}")
+    add_library(${cu_src} OBJECT ${cu_src})
+    set_target_properties(${cu_src} PROPERTIES CUDA_PTX_COMPILATION ON)
+    target_include_directories(${cu_src} PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/sysrap>
+            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/qudarap>)
+    target_compile_definitions(${cu_src} PUBLIC WITH_PRD WITH_SIMULATE WITH_SIMTRACE WITH_RENDER
+            OPTICKS_CSGOPTIX WITH_THRUST OPTICKS_CSG WITH_CONTIGUOUS WITH_S_BB CONFIG_Debug OPTICKS_SYSRAP WITH_CHILD
+            PLOG_LOCAL RNG_PHILOX DEBUG_TAG DEBUG_PIDX DEBUG_PIDXYZ WITH_STTF WITH_SLOG OPTICKS_OKCONF OPTICKS_QUDARAP NVCC)
+    target_link_libraries(${cu_src} PUBLIC OptiX::OptiX)
+
+    list(APPEND _generated_PTX_files "${cu_src}.ptx")
+endforeach()
 
 message(STATUS "_generated_OBJ_files ${_generated_OBJ_files}") 
 message(STATUS "_generated_PTX_files ${_generated_PTX_files}") 
 
-add_library( ${name} SHARED ${SOURCES} ${HEADERS}  ${_generated_OBJ_files} ${_generated_PTX_files}   )
+add_library( ${name} SHARED ${SOURCES} ${HEADERS} )
 
 target_compile_definitions( ${name} PRIVATE WITH_PRD )  # using Pointer trick means can reduce attrib and payload to 2 
 target_compile_definitions( ${name} PUBLIC WITH_SIMULATE )
@@ -129,14 +128,14 @@ target_include_directories( ${name} PUBLIC
 target_link_libraries(${name} 
      PUBLIC 
          ${CUDA_LIBRARIES}
-         Opticks::OptiX
+         OptiX::OptiX
          Opticks::CSG
          Opticks::QUDARap
 )
 
 # Opticks::OpticksCore
 
-install(FILES ${_generated_PTX_files} DESTINATION ptx)
+install(FILES $<TARGET_OBJECTS:CSGOptiX7.cu> DESTINATION ptx RENAME CSGOptiX_generated_CSGOptiX7.cu.ptx)
 install(FILES ${HEADERS}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 add_subdirectory(tests)
