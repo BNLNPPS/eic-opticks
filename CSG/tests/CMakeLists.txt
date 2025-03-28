@@ -1,16 +1,7 @@
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 set(name CSGTest)
-project(${name} VERSION 0.1.0)
 
 #find_package(OpticksCore REQUIRED CONFIG)
 find_package(CUDAToolkit REQUIRED)
-
-set(INSTALLED_SCRIPTS
-    CSGTestRunner.sh 
-)
-install(PROGRAMS ${INSTALLED_SCRIPTS} DESTINATION bin)
-
-
 
 set(TEST_SOURCES
     CSGNodeTest.cc
@@ -80,13 +71,11 @@ foreach(SRC ${TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} Opticks::CSG CUDA::cudart)
-    install(TARGETS ${TGT} DESTINATION lib)
 
     #add_test(${name}.${TGT} ${TGT})
     add_test(
        NAME ${name}.${TGT} 
-       COMMAND bash CSGTestRunner.sh ${TGT}
-       #COMMAND ${BASH_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/CSGTestRunner.sh ${TGT}
+       COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/CSGTestRunner.sh ${CMAKE_CURRENT_BINARY_DIR}/${TGT}
     )
 endforeach()
 
@@ -96,6 +85,3 @@ set(TGT CSGDemoTest)
 add_executable(${TGT} CSGDemoTest.cc DemoGeo.cc DemoGrid.cc)
 #target_link_libraries(${TGT} Opticks::CSG Opticks::OpticksCore)
 target_link_libraries(${TGT} Opticks::CSG CUDA::cudart)
-install(TARGETS ${TGT} DESTINATION lib)
-
-

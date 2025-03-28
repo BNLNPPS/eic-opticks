@@ -4,12 +4,6 @@ include(OpticksBuildOptions)
 
 find_package(CUDAToolkit REQUIRED)
 
-set(INSTALLED_SCRIPTS
-    U4TestRunner.sh 
-)
-install(PROGRAMS ${INSTALLED_SCRIPTS} DESTINATION bin)
-
-
 #[=[
 Unlike most executables U4VPrimaryGeneratorTest 
 needs the MOCK_CURAND macro in order to use CUDA 
@@ -31,7 +25,6 @@ set(TGT U4VPrimaryGeneratorTest)
 add_executable(${TGT} U4VPrimaryGeneratorTest.cc)
 target_compile_definitions( ${TGT} PRIVATE MOCK_CURAND ) 
 target_link_libraries(${TGT} U4)
-install(TARGETS ${TGT} DESTINATION lib)
 
 set(TEST_SOURCES
    U4Custom4Test.cc
@@ -90,11 +83,10 @@ foreach(SRC ${TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} U4)
-    install(TARGETS ${TGT} DESTINATION lib)
 
     add_test(
        NAME ${name}.${TGT} 
-       COMMAND bash U4TestRunner.sh ${TGT}
+       COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/U4TestRunner.sh ${CMAKE_CURRENT_BINARY_DIR}/${TGT}
     )
 endforeach()
 
@@ -102,14 +94,12 @@ foreach(SRC ${EXPECTED_TO_FAIL_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} U4)
-    install(TARGETS ${TGT} DESTINATION lib)
 endforeach()
 
 foreach(SRC ${SLOW_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} U4)
-    install(TARGETS ${TGT} DESTINATION lib)
 endforeach()
 
 
@@ -132,7 +122,6 @@ set(TGT U4AppTest)
 add_executable(${TGT} ${U4AppTest_SOURCES})
 target_compile_definitions( ${TGT} PRIVATE MOCK_CURAND ) 
 target_link_libraries(${TGT} U4)
-install(TARGETS ${TGT} DESTINATION lib)
 
 
 set(U4HitTest_SOURCES
@@ -142,7 +131,6 @@ set(U4HitTest_SOURCES
 set(TGT U4HitTest)
 add_executable(${TGT} ${U4HitTest_SOURCES})
 target_link_libraries(${TGT} U4 Opticks::CSG CUDA::cudart)
-install(TARGETS ${TGT} DESTINATION lib)
 
 message(STATUS "${CMAKE_CURRENT_LIST_FILE} : PMTSim_standalone_FOUND     : ${PMTSim_standalone_FOUND}")
 message(STATUS "${CMAKE_CURRENT_LIST_FILE} : Custom4_FOUND    : ${Custom4_FOUND}")
@@ -169,7 +157,6 @@ if(PMTSim_standalone_FOUND)
            target_compile_definitions( ${TGT} PRIVATE PMTSIM_STANDALONE )   
            target_link_libraries(${TGT} Opticks::PMTSim_standalone)
 
-        install(TARGETS ${TGT} DESTINATION lib)
     endforeach()
 
 endif()
