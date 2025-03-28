@@ -1,1 +1,0 @@
-const char* CMAKE_TARGET =  "UseOptiXTextureLayeredOKImg" ; 
