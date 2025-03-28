@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 set(name G4CX)
 set(desc "Top Level")
 project(${name} VERSION 0.1.0)
