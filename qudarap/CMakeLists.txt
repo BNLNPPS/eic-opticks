@@ -204,10 +204,6 @@ https://stackoverflow.com/questions/34490294/what-does-configdebugrelease-mean-i
 
 #]=]
 
-target_compile_definitions( ${name}
-    PUBLIC
-      OPTICKS_QUDARAP 
-)
 #[=[
 
 Global compile definitions such as DEBUG_TAG and DEBUG_PIDX are defined in sysrap/CMakeLists.txt 
