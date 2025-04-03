@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 set(name SysRap)
 set(desc "System Level Utilities depending")
 project(${name} VERSION 0.1.0)
