@@ -14,26 +14,21 @@ jobs:
   build-n-test:
     runs-on: [gpu]
 
-    container:
-      image: ghcr.io/bnlnpps/esi-shell:1.5.0
-      volumes:
-        - /usr/local/optix:/usr/local/optix
-      options: -i -t
-
     steps:
+      - name: Define environment variables
+        run: |
+          echo IMAGE_NAME=ghcr.io/$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+          echo TAG=$(echo "PR-${{ github.event.pull_request.number }}") >> $GITHUB_ENV
+
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build
-        shell: bash
-        run: |
-          rm -fr $OPTICKS_PREFIX/*
-          cmake -S . -B $OPTICKS_PREFIX/build -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DCMAKE_BUILD_TYPE=Debug
-          cmake --build $OPTICKS_PREFIX/build --parallel --target install
+      - name: Set up docker
+        uses: docker/setup-buildx-action@v3
 
-      - name: Test
-        shell: bash
-        env:
-          OPTICKS_HOME: .
-        run: |
-          tests/test_opticks.sh
+      - name: Build and push with docker
+        uses: docker/build-push-action@v6
+        with:
+          tags: ${{ env.IMAGE_NAME }}:${{ env.TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
