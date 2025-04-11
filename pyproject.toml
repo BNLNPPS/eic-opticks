@@ -1,5 +1,5 @@
 [project]
-name = "eic-opticks"
+name = "optiphy"
 version = "0.0.0"
 description = ""
 authors = [ { name = "Dmitri Smirnov", email = "dmixsmi@gmail.com" } ]
@@ -10,12 +10,8 @@ dependencies = [
     "plotly>=5.22.0",
 ]
 
-[tool.poetry]
-packages = [
-    { include = "CSG", from = ".", to = "opticks" },
-    { include = "ana", from = ".", to = "opticks" },
-    { include = "sysrap", from = ".", to = "opticks" },
-]
+[project.scripts]
+input_photons = "optiphy.tools.input_photons:main"
 
 [build-system]
 requires = ["poetry-core"]
