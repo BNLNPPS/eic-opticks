@@ -10,8 +10,8 @@ import argparse, logging, os, json
 log = logging.getLogger(__name__)
 import numpy as np
 np.set_printoptions(linewidth=200, suppress=True, precision=3)
-from opticks.ana.sample import sample_trig, sample_normals, sample_reject, sample_linear, sample_linspace, sample_disc
-from opticks.ana.sample import xy_grid_coordinates
+from optiphy.ana.sample import sample_trig, sample_normals, sample_reject, sample_linear, sample_linspace, sample_disc
+from optiphy.ana.sample import xy_grid_coordinates
 
 def vnorm(v):
     norm = np.sqrt((v*v).sum(axis=1))
