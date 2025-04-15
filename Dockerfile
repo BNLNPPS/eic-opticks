@@ -39,6 +39,11 @@ RUN curl -O https://developer.download.nvidia.com/redist/optix/v8.0/OptiX-8.0-In
  && unzip -d /opt/optix/include OptiX-8.0-Include.zip \
  && rm OptiX-8.0-Include.zip
 
+RUN mkdir -p /opt/cmake/src && curl -sL https://github.com/Kitware/CMake/releases/download/v3.30.7/cmake-3.30.7.tar.gz | tar -xz --strip-components 1 -C /opt/cmake/src \
+ && cmake -S /opt/cmake/src -B /opt/cmake/build \
+ && cmake --build /opt/cmake/build --parallel --target install \
+ && rm -fr /opt/cmake/build
+
 ENV OPTICKS_HOME=/usr/local/eic-opticks/src
 ENV OPTICKS_PREFIX=/usr/local/eic-opticks
 ENV LD_LIBRARY_PATH=${OPTICKS_PREFIX}/lib:${LD_LIBRARY_PATH}
