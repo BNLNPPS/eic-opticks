@@ -23,12 +23,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up docker
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push with docker
+      - name: Build and push with Docker
         uses: docker/build-push-action@v6
         with:
           tags: ${{ env.IMAGE_NAME }}:${{ env.TAG }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
