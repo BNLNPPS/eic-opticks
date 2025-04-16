@@ -8,11 +8,6 @@ endif()
 
 project(eic-opticks VERSION 0.1.0 LANGUAGES CXX CUDA)
 
-
-if(DEFINED ENV{OPTIX_DIR} AND NOT "$ENV{OPTIX_DIR}" STREQUAL "")
-    set(OptiX_INSTALL_DIR $ENV{OPTIX_DIR} CACHE PATH "Path to the installed location of the OptiX SDK.")
-endif()
-
 add_subdirectory(okconf)
 add_subdirectory(sysrap)
 add_subdirectory(ana)
@@ -24,4 +19,3 @@ add_subdirectory(CSGOptiX)
 add_subdirectory(gdxml)
 add_subdirectory(u4)
 add_subdirectory(g4cx)
-
