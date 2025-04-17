@@ -47,5 +47,8 @@ ENV NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
 
 COPY . $OPTICKS_HOME 
 
+RUN python -m venv .venv && source .venv/bin/activate && pip install -e $OPTICKS_HOME
+RUN echo "source /.venv/bin/activate" > /etc/profile.d/z10_activate_venv.sh
+
 RUN cmake -S $OPTICKS_HOME -B $OPTICKS_PREFIX/build -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Release \
  && cmake --build $OPTICKS_PREFIX/build --parallel --target install
