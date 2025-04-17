@@ -14,6 +14,7 @@ class EicOpticks(CMakePackage, CudaPackage):
 
     maintainers("plexoos")
 
+    version("main", branch="main")
     version("1.0.0-rc1", sha256="fd5a7c7848a3c1211a203d7223f4eff2da810fb7dd3d10d1ea0edff451f966c8")
 
     depends_on("cxx", type="build")
