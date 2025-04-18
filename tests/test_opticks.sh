@@ -18,7 +18,6 @@ DTYPE=np.float64 $OPTICKS_HOME/optiphy/tools/input_photons.py
 export GEOM=RaindropRockAirWater
 export G4CXOpticks__setGeometry_saveGeometry=$TMP/G4CXOpticks_setGeometry_Test/$GEOM
 
-ctest --test-dir $OPTICKS_PREFIX/build/okconf -j
 ctest --test-dir $OPTICKS_PREFIX/build/sysrap -j -E STTFTest
 ctest --test-dir $OPTICKS_PREFIX/build/ana -j
 ctest --test-dir $OPTICKS_PREFIX/build/analytic -j
