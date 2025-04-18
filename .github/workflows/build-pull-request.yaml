@@ -29,6 +29,7 @@ jobs:
       - name: Build and push with Docker
         uses: docker/build-push-action@v6
         with:
+          load: true
           tags: ${{ env.IMAGE_NAME }}:${{ env.TAG }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
