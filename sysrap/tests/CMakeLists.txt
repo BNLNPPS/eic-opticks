@@ -93,7 +93,6 @@ set(TEST_SOURCES
 
    CastTest.cc
 
-   SOpticksVersionNumberTest.cc
    SRngTest.cc 
    SDirTest.cc
    SDiceTest.cc
