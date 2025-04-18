@@ -111,9 +111,6 @@ class SYSRAP_API SSys {
      static int GetInteractivityLevel();
      static bool IsCTestRunning();
 
-     static int OKConfCheck();
-
-
      static unsigned COUNT ; 
      static void Dump_(const char* msg);
      static void Dump(const char* msg);

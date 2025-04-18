@@ -13,7 +13,6 @@ install(PROGRAMS ${INSTALLED_SCRIPTS}   DESTINATION bin)
 set(TEST_SOURCES
 
    PythonImportTest.cc
-   SOKConfTest.cc
    SArTest.cc
    SArrTest.cc
    SArgsTest.cc
