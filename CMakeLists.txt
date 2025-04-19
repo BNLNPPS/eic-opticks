@@ -8,7 +8,6 @@ endif()
 
 project(eic-opticks VERSION 0.1.0 LANGUAGES CXX CUDA)
 
-add_subdirectory(okconf)
 add_subdirectory(sysrap)
 add_subdirectory(ana)
 add_subdirectory(analytic)

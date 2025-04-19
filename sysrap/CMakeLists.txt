@@ -645,7 +645,7 @@ add_library( ${name} ${SOURCES} )
 set_property( TARGET ${name} PROPERTY INTERFACE_DESCRIPTION ${desc} )
 #set_property( TARGET ${name} PROPERTY INTERFACE_PKG_CONFIG_REQUIRES ${preq} ) 
 
-target_link_libraries( ${name} plog::plog Opticks::OKConf )
+target_link_libraries( ${name} plog::plog )
 
 #Opticks::OpticksCUDA 
 
@@ -660,16 +660,8 @@ message(STATUS "adding ssl crypto for UNIX AND NOT APPLE")
 target_link_libraries( ${name} OpenSSL::SSL OpenSSL::Crypto )
 endif()
 
-set(SysRap_VERBOSE OFF)
-if(SysRap_VERBOSE)
-  echo_target_std(Opticks::OKConf) 
-  #echo_target_std(${name}) 
-endif()
-
 target_include_directories( ${name} PUBLIC
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/okconf>
-   $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/okconf/inc>
    $<INSTALL_INTERFACE:include>
    $<INSTALL_INTERFACE:include/SysRap>
 )
