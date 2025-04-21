@@ -33,8 +33,6 @@
 
 #include <sys/wait.h>
 
-#include "OKConf.hh"
-
 #include "SSys.hh"
 #include "SStr.hh"
 #include "SLOG.hh"
@@ -269,18 +267,6 @@ std::string SSys::hexlify(const void* obj, size_t size, bool reverse)
     std::stringstream ss ; 
     for(size_t i=0 ; i < size ; i++) ss << std::setw(2) << std::hex << std::setfill('0') << unsigned(bytes[reverse ? size - 1 - i : i]) ; 
     return ss.str(); 
-}
-
-
-
-
-
-int SSys::OKConfCheck()
-{
-    int rc = OKConf::Check(); 
-    OKConf::Dump();
-    assert( rc == 0 );
-    return rc ; 
 }
 
 
