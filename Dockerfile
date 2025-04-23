@@ -53,16 +53,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
 SHELL ["/bin/bash", "-l", "-c"]
 
 # Set up non-interactive shells by sourcing all of the scripts in /etc/profile.d/
-RUN cat <<"EOF" > /etc/bash.nonint
-if [ -d /etc/profile.d ]; then
-  for i in /etc/profile.d/*.sh; do
-    if [ -r $i ]; then
-      . $i
-    fi
-  done
-  unset i
-fi
-EOF
+COPY spack/bash.nonint /etc/bash.nonint
 
 RUN cat /etc/bash.nonint >> /etc/bash.bashrc
 

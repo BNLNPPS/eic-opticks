@@ -1,0 +1,3 @@
+export LD_LIBRARY_PATH=$OPTICKS_PREFIX/lib:$SPACK_ENV/.spack-env/view/lib:$SPACK_ENV/.spack-env/view/lib64
+PATH=$PATH:$OPTICKS_PREFIX/bin:$OPTICKS_PREFIX/lib
+# lib is added to find the test programs.
