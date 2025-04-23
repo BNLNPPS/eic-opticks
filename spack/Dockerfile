@@ -20,24 +20,96 @@ RUN echo "source /opt/spack/share/spack/setup-env.sh" > /etc/profile.d/z09_sourc
 
 SHELL ["/bin/bash", "-l", "-c"]
 
-# Set up non-interactive shells by sourcing all of the scripts in /etc/profile.d/
-RUN cat <<"EOF" > /etc/bash.nonint
-if [ -d /etc/profile.d ]; then
-  for i in /etc/profile.d/*.sh; do
-    if [ -r $i ]; then
-      . $i
-    fi
-  done
-  unset i
-fi
-EOF
+COPY  spack/bash.nonint /etc/bash.nonint
 
 RUN cat /etc/bash.nonint >> /etc/bash.bashrc
 
 ENV BASH_ENV=/etc/bash.nonint
 
-COPY spack esi-spack
+### Avoid copying non-spack files
+# COPY spack esi-spack
+RUN mkdir esi-spack
+COPY spack/packages esi-spack/packages
+COPY spack/repo.yaml esi-spack/repo.yaml
 
 RUN spack repo add esi-spack
-RUN spack install --only dependencies eic-opticks
+# will build this below
+RUN spack env create eodev
+
+RUN spack install --only dependencies eic-opticks ^ optix-dev@8.1.0
 #RUN spack install eic-opticks
+
+## Create and populate the spack environment with dependencies.
+
+RUN echo "spack env activate eodev -p" > /etc/profile.d/z10_spack_env_activate_eodev.sh
+
+RUN bash -c 'test -n "$SPACK_ENV"'
+
+# See README.md notes
+# RUN spack install --add eic-opticks ^optix-dev@8.1.0 python py-pip cmake openssl
+RUN spack install --add \
+    geant4 \
+    glew \
+    glfw \
+    glm \
+    glu \
+    nlohmann-json \
+    mesa~llvm \
+    optix-dev@8.1.0 \
+    openssl \
+    plog \
+    python \
+    py-pip \
+    cmake \
+    openssl
+
+
+# Where eic-opticks will be installed
+ENV OPTICKS_PREFIX=/opt/eic-opticks
+# Where eic-opticks source is found
+ENV OPTICKS_HOME=/src/eic-opticks
+# Where eic-opticks build resides.  Note, for now, this must be under the prefix
+# due to the test script hard-wiring this location.  This variable is not
+# canonical and only invented for here!
+ENV OPTICKS_BUILD=/opt/eic-opticks/build
+
+RUN git clone https://github.com/BNLNPPS/eic-opticks.git $OPTICKS_HOME
+RUN which python
+RUN cd $OPTICKS_HOME && python -m pip install -e .
+
+# See README.md notes for the next few chunks
+
+## Build time
+
+RUN cd $OPTICKS_HOME \
+    && \
+    cmake -S . -B $OPTICKS_BUILD \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX \
+    -DCMAKE_SHARED_LINKER_FLAGS_INIT=-L$SPACK_ENV/.spack-env/view/lib64 \
+    -DCMAKE_EXE_LINKER_FLAGS_INIT=-L$SPACK_ENV/.spack-env/view/lib64
+
+
+## Run time
+
+COPY spack/bash.runtime /etc/profile.d/z11_eic_optics_runtime.sh
+
+RUN cd $OPTICKS_HOME \
+    && \
+    cmake --build $OPTICKS_BUILD --parallel --target install
+
+# RUN $OPTICKS_HOME/tests/test_opticks.sh
+
+# LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/install/lib
+
+# ./tests/test_opticks.sh  # no rpath to deps, fails to find libs
+
+# LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/spack/var/spack/environments/eodev/.spack-env/view/lib
+
+# ./tests/test_opticks.sh  # wrong libssl
+
+# LD_LIBRARY_PATH=/install/lib:/opt/spack/var/spack/environments/eodev/.spack-env/view/lib:/opt/spack/var/spack/environments/eodev/.spack-env/view/lib64:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+
+# ./tests/test_opticks.sh  # optix ABI wrongness
+
+ENTRYPOINT ["bash","--login"]
