@@ -1,6 +1,5 @@
 #!/bin/bash
 # Set up non-interactive shells by sourcing all of the scripts in /etc/profile.d/
-cat <<EOF > /etc/bash.nonint
 if [ -d /etc/profile.d ]; then
   for i in /etc/profile.d/*.sh; do
     if [ -r "$i" ]; then
@@ -9,4 +8,4 @@ if [ -d /etc/profile.d ]; then
   done
   unset i
 fi
-EOF
+
