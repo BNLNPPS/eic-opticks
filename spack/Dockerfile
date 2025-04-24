@@ -72,6 +72,7 @@ ENV OPTICKS_HOME=/src/eic-opticks
 # due to the test script hard-wiring this location.  This variable is not
 # canonical and only invented for here!
 ENV OPTICKS_BUILD=/opt/eic-opticks/build
+ENV NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
 
 RUN git clone https://github.com/BNLNPPS/eic-opticks.git $OPTICKS_HOME
 RUN which python
