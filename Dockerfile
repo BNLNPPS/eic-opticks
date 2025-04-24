@@ -34,10 +34,7 @@ RUN mkdir -p /opt/plog/src && curl -sL https://github.com/SergiusTheBest/plog/ar
  && cmake --build /opt/plog/build --parallel --target install \
  && rm -fr /opt/plog/build
 
-RUN curl -O https://developer.download.nvidia.com/redist/optix/v8.0/OptiX-8.0-Include.zip \
- && mkdir -p /opt/optix/include \
- && unzip -d /opt/optix/include OptiX-8.0-Include.zip \
- && rm OptiX-8.0-Include.zip
+RUN mkdir -p /opt/optix && curl -sL https://github.com/NVIDIA/optix-dev/archive/refs/tags/v8.1.0.tar.gz | tar -xz --strip-components 1 -C /opt/optix
 
 RUN mkdir -p /opt/cmake/src && curl -sL https://github.com/Kitware/CMake/releases/download/v3.30.7/cmake-3.30.7.tar.gz | tar -xz --strip-components 1 -C /opt/cmake/src \
  && cmake -S /opt/cmake/src -B /opt/cmake/build \
