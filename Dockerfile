@@ -4,19 +4,18 @@ FROM nvcr.io/nvidia/cuda:12.5.0-runtime-ubuntu22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Install Spack package manager
 RUN apt update \
- && apt install -y bzip2 ca-certificates g++ gcc gfortran git gzip lsb-release patch python3 tar unzip xz-utils zstd \
+ && apt install -y g++ gcc gzip tar python3 python-is-python3 python3-pip \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
 
 RUN apt update \
- && apt install -y curl cuda-nvcc-12-5 libcurand-dev-12-5 python-is-python3 \
+ && apt install -y curl cuda-nvcc-12-5 libcurand-dev-12-5 \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
 
 RUN apt update \
- && apt install -y python3-pip libssl-dev \
+ && apt install -y libssl-dev \
     nlohmann-json3-dev \
     libglew-dev libglfw3-dev libglm-dev libglu1-mesa-dev libxmu-dev \
     cmake qtbase5-dev libxerces-c-dev libexpat1-dev \
