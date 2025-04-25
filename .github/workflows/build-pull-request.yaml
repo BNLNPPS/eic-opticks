@@ -36,4 +36,4 @@ jobs:
 
       - name: Run tests
         run: |
-          docker run --rm ${{ env.IMAGE_NAME }}:${{ env.TAG }} /usr/local/eic-opticks/src/tests/test_opticks.sh
+          docker run --rm ${{ env.IMAGE_NAME }}:${{ env.TAG }} /src/eic-opticks/tests/test_opticks.sh
