@@ -33,36 +33,25 @@ COPY spack/packages esi-spack/packages
 COPY spack/repo.yaml esi-spack/repo.yaml
 
 RUN spack repo add esi-spack
-# will build this below
+
+# Install eic-opticks and dependencies (outside of any spack env).
+RUN spack install eic-opticks ^optix-dev@8.1.0
+
 RUN spack env create eodev
+RUN echo "spack env activate eodev" > /etc/profile.d/z10_spack_env_activate_eodev.sh
 
-RUN spack install --only dependencies eic-opticks ^ optix-dev@8.1.0
-#RUN spack install eic-opticks
+# There is apparently no way to create a Spack Environment based on a seed (aka
+# "root") package but to not actually have the root package.  Creating the Spack
+# Environment and then uninstalling the root, also uninstalls (some)
+# dependencies.
+RUN spack install --add eic-opticks ^optix-dev@8.1.0
 
-## Create and populate the spack environment with dependencies.
+# These are required for development build and test.
+RUN spack install --add python py-pip cmake openssl
 
-RUN echo "spack env activate eodev -p" > /etc/profile.d/z10_spack_env_activate_eodev.sh
-
-RUN bash -c 'test -n "$SPACK_ENV"'
-
-# See README.md notes
-# RUN spack install --add eic-opticks ^optix-dev@8.1.0 python py-pip cmake openssl
-RUN spack install --add \
-    geant4 \
-    glew \
-    glfw \
-    glm \
-    glu \
-    nlohmann-json \
-    mesa~llvm \
-    optix-dev@8.1.0 \
-    openssl \
-    plog \
-    python \
-    py-pip \
-    cmake \
-    openssl
-
+# At this point we'd have an end-user, ready-to-run container.  The rest sets up
+# a developer environment, builds eic-opticks outside of Spack, but based on
+# dependencies from the Spack Environment.
 
 # Where eic-opticks will be installed
 ENV OPTICKS_PREFIX=/opt/eic-opticks
@@ -72,16 +61,14 @@ ENV OPTICKS_HOME=/src/eic-opticks
 # due to the test script hard-wiring this location.  This variable is not
 # canonical and only invented for here!
 ENV OPTICKS_BUILD=/opt/eic-opticks/build
+
 ENV NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
 
 RUN git clone https://github.com/BNLNPPS/eic-opticks.git $OPTICKS_HOME
 RUN which python
 RUN cd $OPTICKS_HOME && python -m pip install -e .
 
-# See README.md notes for the next few chunks
-
-## Build time
-
+## Development build configuration
 RUN cd $OPTICKS_HOME \
     && \
     cmake -S . -B $OPTICKS_BUILD \
@@ -91,26 +78,15 @@ RUN cd $OPTICKS_HOME \
     -DCMAKE_EXE_LINKER_FLAGS_INIT=-L$SPACK_ENV/.spack-env/view/lib64
 
 
-## Run time
-
+## Set up runtime environment
 COPY spack/bash.runtime /etc/profile.d/z11_eic_optics_runtime.sh
 
+## Do build
 RUN cd $OPTICKS_HOME \
     && \
     cmake --build $OPTICKS_BUILD --parallel --target install
 
-# RUN $OPTICKS_HOME/tests/test_opticks.sh
 
-# LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/install/lib
-
-# ./tests/test_opticks.sh  # no rpath to deps, fails to find libs
-
-# LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/spack/var/spack/environments/eodev/.spack-env/view/lib
-
-# ./tests/test_opticks.sh  # wrong libssl
-
-# LD_LIBRARY_PATH=/install/lib:/opt/spack/var/spack/environments/eodev/.spack-env/view/lib:/opt/spack/var/spack/environments/eodev/.spack-env/view/lib64:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
-
-# ./tests/test_opticks.sh  # optix ABI wrongness
-
+## Ready for use
 ENTRYPOINT ["bash","--login"]
+
