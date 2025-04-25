@@ -18,13 +18,13 @@ DTYPE=np.float64 $OPTICKS_HOME/optiphy/tools/input_photons.py
 export GEOM=RaindropRockAirWater
 export G4CXOpticks__setGeometry_saveGeometry=$TMP/G4CXOpticks_setGeometry_Test/$GEOM
 
-ctest --test-dir $OPTICKS_PREFIX/build/sysrap -j -E STTFTest
-ctest --test-dir $OPTICKS_PREFIX/build/ana -j
-ctest --test-dir $OPTICKS_PREFIX/build/analytic -j
-ctest --test-dir $OPTICKS_PREFIX/build/bin -j
-ctest --test-dir $OPTICKS_PREFIX/build/g4cx -j -E G4CXRenderTest
-ctest --test-dir $OPTICKS_PREFIX/build/CSG -j -E CSGQueryTest
-ctest --test-dir $OPTICKS_PREFIX/build/qudarap -j -E "QSimTest|QOpticalTest|QEvent_Lifecycle_Test|QSim_Lifecycle_Test|QSimWithEventTest"
-ctest --test-dir $OPTICKS_PREFIX/build/CSGOptiX -j -E CSGOptiXRenderTest
-ctest --test-dir $OPTICKS_PREFIX/build/gdxml -j
-ctest --test-dir $OPTICKS_PREFIX/build/u4 -j -E "U4GDMLReadTest|U4RandomTest|U4TraverseTest"
+ctest --test-dir $OPTICKS_BUILD/sysrap -j -E STTFTest
+ctest --test-dir $OPTICKS_BUILD/ana -j
+ctest --test-dir $OPTICKS_BUILD/analytic -j
+ctest --test-dir $OPTICKS_BUILD/bin -j
+ctest --test-dir $OPTICKS_BUILD/g4cx -j -E G4CXRenderTest
+ctest --test-dir $OPTICKS_BUILD/CSG -j -E CSGQueryTest
+ctest --test-dir $OPTICKS_BUILD/qudarap -j -E "QSimTest|QOpticalTest|QEvent_Lifecycle_Test|QSim_Lifecycle_Test|QSimWithEventTest"
+ctest --test-dir $OPTICKS_BUILD/CSGOptiX -j -E CSGOptiXRenderTest
+ctest --test-dir $OPTICKS_BUILD/gdxml -j
+ctest --test-dir $OPTICKS_BUILD/u4 -j -E "U4GDMLReadTest|U4RandomTest|U4TraverseTest"
