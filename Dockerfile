@@ -41,9 +41,8 @@ RUN mkdir -p /opt/cmake/src && curl -sL https://github.com/Kitware/CMake/release
  && cmake --build /opt/cmake/build --parallel --target install \
  && rm -fr /opt/cmake/build
 
-ENV OPTICKS_PREFIX=/opt/eic-opticks
-ENV OPTICKS_HOME=/src/eic-opticks
-ENV OPTICKS_BUILD=/opt/eic-opticks/build
+ENV OPTICKS_HOME=/usr/local/eic-opticks/src
+ENV OPTICKS_PREFIX=/usr/local/eic-opticks
 ENV LD_LIBRARY_PATH=${OPTICKS_PREFIX}/lib:${LD_LIBRARY_PATH}
 ENV PATH=${OPTICKS_PREFIX}/bin:${OPTICKS_PREFIX}/lib:${PATH}
 ENV NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
@@ -62,5 +61,5 @@ COPY . $OPTICKS_HOME
 RUN python -m venv .venv && source .venv/bin/activate && pip install -e $OPTICKS_HOME
 RUN echo "source /.venv/bin/activate" > /etc/profile.d/z10_activate_venv.sh
 
-RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Release \
- && cmake --build $OPTICKS_BUILD --parallel --target install
+RUN cmake -S $OPTICKS_HOME -B $OPTICKS_PREFIX/build -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Release \
+ && cmake --build $OPTICKS_PREFIX/build --parallel --target install
