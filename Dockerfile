@@ -4,10 +4,19 @@ FROM nvcr.io/nvidia/cuda:12.5.0-runtime-ubuntu22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 
+# Install Spack package manager
 RUN apt update \
- && apt install -y build-essential ca-certificates coreutils curl environment-modules gfortran git gpg lsb-release python3 python3-distutils python3-venv unzip zip \
-    libssl-dev python-is-python3 \
-    cuda-nvcc-12-5 libcurand-dev-12-5 \
+ && apt install -y bzip2 ca-certificates g++ gcc gfortran git gzip lsb-release patch python3 tar unzip xz-utils zstd \
+ && apt clean \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN apt update \
+ && apt install -y curl cuda-nvcc-12-5 libcurand-dev-12-5 python-is-python3 \
+ && apt clean \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN apt update \
+ && apt install -y python3-pip libssl-dev \
     nlohmann-json3-dev \
     libglew-dev libglfw3-dev libglm-dev libglu1-mesa-dev libxmu-dev \
     cmake qtbase5-dev libxerces-c-dev libexpat1-dev \
@@ -59,8 +68,7 @@ ENV BASH_ENV=/etc/bash.nonint
 
 COPY . $OPTICKS_HOME 
 
-RUN python -m venv .venv && source .venv/bin/activate && pip install -e $OPTICKS_HOME
-RUN echo "source /.venv/bin/activate" > /etc/profile.d/z10_activate_venv.sh
+RUN python -m pip install -e $OPTICKS_HOME
 
 RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Release \
  && cmake --build $OPTICKS_BUILD --parallel --target install
