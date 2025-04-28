@@ -3,8 +3,6 @@ project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions NO_POLICY_SCOPE)
 
 include_directories(
-    ${OPTICKS_PREFIX}/externals/glm/glm
-    ${OPTICKS_PREFIX}/include/SysRap
     ${CMAKE_CURRENT_SOURCE_DIR} 
 )
 

@@ -1,6 +1,4 @@
-cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 set(name AnaTests)
-project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions)
 
 
@@ -17,7 +15,6 @@ foreach(SRC ${TEST_SOURCES})
     target_link_libraries(${TGT} PUBLIC 
           Opticks::SysRap
     )
-    install(TARGETS ${TGT} DESTINATION lib)
 endforeach()
 
 

@@ -4,12 +4,6 @@ include(OpticksBuildOptions)
 
 find_package(CUDAToolkit REQUIRED)
 
-set(INSTALLED_SCRIPTS
-   STestRunner.sh   
-)
-
-install(PROGRAMS ${INSTALLED_SCRIPTS}   DESTINATION bin)
-
 set(TEST_SOURCES
 
    PythonImportTest.cc
@@ -139,25 +133,14 @@ set(TEST_SOURCES
 
 )
 
-
-#if(RNG_XORWOW)
-#  list(APPEND TEST_SOURCES SCurandStateMonolithicTest.cc)
-#endif()
-# better to just do nothing in the executable to avoid need to cleaning when switching
-
-
 set(REPORT_SOURCES
    sreport.cc
 )
-
 
 set(RETIRED_TEST_SOURCES
    SProcTest.cc
 )
 
-
-
-#SEnvTest_FAIL.cc
 set(BASH_RUN_TEST_SOURCES
     SOpticksResourceTest.cc
     SEnvTest_PASS.cc
@@ -179,8 +162,6 @@ if(WITH_STTF)
 endif()
 
 
-
-
 set(_TEST_SOURCES
    UnwindTest.cc
 )
@@ -195,8 +176,6 @@ set(_OBJC_TEST_SOURCES
 )
 
 
-
-
 foreach(SRC ${TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
@@ -207,25 +186,15 @@ foreach(SRC ${TEST_SOURCES})
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../inc>
     )    
 
-    install(TARGETS ${TGT} DESTINATION lib)
     add_test(${name}.${TGT} ${TGT})
 endforeach()
-
 
 
 foreach(SRC ${REPORT_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} SysRap)
-    install(TARGETS ${TGT} DESTINATION lib)
 endforeach()
-
-
-
-
-
-
-
 
 
 set(TEST_COLORS 
@@ -241,42 +210,13 @@ foreach(COLOR ${TEST_COLORS})
     set_tests_properties(${TEST} PROPERTIES ENVIRONMENT "SEnvTest_COLOR=${COLOR}")
 endforeach()
 
-#[=[
-Debug these "fabricated" tests with::
-
-   ctest -R SysRapTest.SEnvTest. -V
-
-#]=]
-
-
-#foreach(SRC ${OBJC_TEST_SOURCES})
-#    get_filename_component(TGT ${SRC} NAME_WE)
-#    add_executable(${TGT} ${SRC})
-#
-#    add_test(${name}.${TGT} ${TGT})
-#    #add_dependencies(check ${TGT})
-#
-#    target_link_libraries(${TGT} ${LIBRARIES} "-framework Foundation")
-#    install(TARGETS ${TGT} DESTINATION lib)
-#endforeach()
-
-
-
-find_program(BASH_EXECUTABLE NAMES bash REQUIRED)
-message(STATUS "BASH_EXECUTABLE : ${BASH_EXECUTABLE}")
 
 foreach(SRC ${BASH_RUN_TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} SysRap)
-    install(TARGETS ${TGT} DESTINATION lib)
     add_test(
        NAME ${name}.${TGT} 
-       COMMAND bash STestRunner.sh ${TGT}  
-       #COMMAND ${BASH_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/STestRunner.sh ${TGT}
+       COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/STestRunner.sh ${CMAKE_CURRENT_BINARY_DIR}/${TGT}  
     )
-    #[=[
-    Try to be more portable by getting bash and Runner off the PATH 
-    #]=]
 endforeach()
-

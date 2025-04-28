@@ -4,14 +4,6 @@ include(OpticksBuildOptions)
 
 find_package(CUDAToolkit REQUIRED)
 
-set(INSTALLED_SCRIPTS
-   QTestRunner.sh 
-)
-install(PROGRAMS ${INSTALLED_SCRIPTS} DESTINATION bin)
-
-
-
-
 set(TEST_SOURCES
 
    QTexRotateTest.cc
@@ -54,21 +46,15 @@ set(OTHER_TEST_SOURCES
 )
 
 
-find_program(BASH_EXECUTABLE NAMES bash REQUIRED)
-message(STATUS "BASH_EXECUTABLE : ${BASH_EXECUTABLE}")
-
 foreach(SRC ${TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} QUDARap CUDA::cudart)
     target_include_directories(${TGT} PRIVATE $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/sysrap/inc>)
-    install(TARGETS ${TGT} DESTINATION lib)
 
-    #add_test(${name}.${TGT} ${TGT})
     add_test(
        NAME ${name}.${TGT} 
-       COMMAND bash QTestRunner.sh ${TGT}
-       #COMMAND ${BASH_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/QTestRunner.sh ${TGT}
+       COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/QTestRunner.sh ${CMAKE_CURRENT_BINARY_DIR}/${TGT}
     )
 
 endforeach()
@@ -80,7 +66,6 @@ foreach(SRC ${KNOWN_FAIL_TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} QUDARap )
-    install(TARGETS ${TGT} DESTINATION lib)
 endforeach()
 
 
@@ -95,7 +80,6 @@ foreach(CU ${TEST_SOURCES_CU})
     add_test(${name}.${TGT} ${TGT})
 
     target_link_libraries(${TGT} QUDARap )
-    install(TARGETS ${TGT} DESTINATION lib)
 endforeach()
 
 
@@ -119,8 +103,6 @@ if(PMTSim_standalone_FOUND)
         target_link_libraries(${TGT} QUDARap )
         target_link_libraries( ${TGT} Opticks::PMTSim_standalone )
         target_compile_definitions( ${TGT} PRIVATE WITH_PMTSIM )
-
-        install(TARGETS ${TGT} DESTINATION lib)
     endforeach()
 
 else()

@@ -4,11 +4,6 @@ include(OpticksBuildOptions)
 
 find_package(CUDAToolkit REQUIRED)
 
-set(INSTALLED_SCRIPTS
-    GXTestRunner.sh 
-)
-install(PROGRAMS ${INSTALLED_SCRIPTS} DESTINATION bin)
-
 #[=[
 Promote to ctests by moving between the lists 
 Issues preventing them being ctests are:
@@ -42,7 +37,6 @@ foreach(SRC ${SINGLE_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} G4CX CUDA::cudart)
-    install(TARGETS ${TGT} DESTINATION lib)
 endforeach()
 
 
@@ -53,13 +47,11 @@ foreach(SRC ${TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} G4CX CUDA::cudart)
-    install(TARGETS ${TGT} DESTINATION lib)
 
     #add_test(${name}.${TGT} ${TGT})
     add_test(
        NAME ${name}.${TGT} 
-       COMMAND bash GXTestRunner.sh ${TGT}
-       #COMMAND ${BASH_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/GXTestRunner.sh ${TGT}
+       COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/GXTestRunner.sh ${CMAKE_CURRENT_BINARY_DIR}/${TGT}
     )
 endforeach()
 
