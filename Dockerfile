@@ -22,11 +22,6 @@ RUN apt update \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /opt/cmake/src && curl -sL https://github.com/Kitware/CMake/releases/download/v3.30.7/cmake-3.30.7.tar.gz | tar -xz --strip-components 1 -C /opt/cmake/src \
- && cmake -S /opt/cmake/src -B /opt/cmake/build \
- && cmake --build /opt/cmake/build --parallel --target install \
- && rm -fr /opt/cmake
-
 RUN mkdir -p /opt/geant4/src && curl -sL https://github.com/Geant4/geant4/archive/refs/tags/v11.1.2.tar.gz | tar -xz --strip-components 1 -C /opt/geant4/src \
  && cmake -S /opt/geant4/src -B /opt/geant4/build -DGEANT4_USE_OPENGL_X11=ON -DGEANT4_USE_QT=ON -DGEANT4_USE_GDML=ON -DGEANT4_INSTALL_DATA=ON -DGEANT4_BUILD_MULTITHREADED=ON \
  && cmake --build /opt/geant4/build --parallel --target install \
@@ -48,6 +43,11 @@ RUN mkdir -p /opt/plog/src && curl -sL https://github.com/SergiusTheBest/plog/ar
  && rm -fr /opt/plog
 
 RUN mkdir -p /opt/optix && curl -sL https://github.com/NVIDIA/optix-dev/archive/refs/tags/v8.1.0.tar.gz | tar -xz --strip-components 1 -C /opt/optix
+
+RUN mkdir -p /opt/cmake/src && curl -sL https://github.com/Kitware/CMake/releases/download/v3.30.7/cmake-3.30.7.tar.gz | tar -xz --strip-components 1 -C /opt/cmake/src \
+ && cmake -S /opt/cmake/src -B /opt/cmake/build \
+ && cmake --build /opt/cmake/build --parallel --target install \
+ && rm -fr /opt/cmake
 
 ENV OPTICKS_PREFIX=/opt/eic-opticks
 ENV OPTICKS_HOME=/src/eic-opticks
