@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [project.scripts]
-input_photons = "optiphy.tools.input_photons:main"
+generate_input_photons = "optiphy.tools.generate_input_photons:main"
 
 [build-system]
 requires = ["poetry-core"]

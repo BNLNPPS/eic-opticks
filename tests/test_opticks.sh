@@ -12,8 +12,8 @@ mv $HOME/.opticks/rngcache/RNG/QCurandStateMonolithic_10M_0_0.bin $HOME/.opticks
 
 install -D $OPTICKS_HOME/tests/GEOM.sh $HOME/.opticks/GEOM/GEOM.sh
 
-DTYPE=np.float32 $OPTICKS_HOME/optiphy/tools/input_photons.py
-DTYPE=np.float64 $OPTICKS_HOME/optiphy/tools/input_photons.py
+# Generate initial photons for tests
+generate_input_photons
 
 export GEOM=RaindropRockAirWater
 export G4CXOpticks__setGeometry_saveGeometry=$TMP/G4CXOpticks_setGeometry_Test/$GEOM
