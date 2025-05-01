@@ -123,8 +123,7 @@ fi
 
 
 
-tmp=/tmp/$USER/opticks
-TMP=${TMP:-$tmp}
+export TMP=$HOME/.opticks/
 export FOLD=$TMP/$bin/$GEOM
 mkdir -p $FOLD
 
