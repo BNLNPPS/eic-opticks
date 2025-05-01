@@ -52,7 +52,7 @@ RUN mkdir -p /opt/cmake/src && curl -sL https://github.com/Kitware/CMake/release
 ENV OPTICKS_PREFIX=/opt/eic-opticks
 ENV OPTICKS_HOME=/src/eic-opticks
 ENV OPTICKS_BUILD=/opt/eic-opticks/build
-ENV LD_LIBRARY_PATH=${OPTICKS_PREFIX}/lib:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH=${OPTICKS_PREFIX}/lib:/usr/local/lib:${LD_LIBRARY_PATH}
 ENV PATH=${OPTICKS_PREFIX}/bin:${PATH}
 ENV NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
 
@@ -71,3 +71,6 @@ RUN python -m pip install -e $OPTICKS_HOME
 
 RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Release \
  && cmake --build $OPTICKS_BUILD --parallel --target install
+
+# Allow tests to write to $OPTICKS_BUILD
+RUN find $OPTICKS_BUILD -name Testing -type d -exec chmod -R a+w {} \;
