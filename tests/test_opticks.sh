@@ -16,7 +16,7 @@ install -D $OPTICKS_HOME/tests/GEOM.sh $HOME/.opticks/GEOM/GEOM.sh
 generate_input_photons
 
 export GEOM=RaindropRockAirWater
-export G4CXOpticks__setGeometry_saveGeometry=$TMP/G4CXOpticks_setGeometry_Test/$GEOM
+export G4CXOpticks__setGeometry_saveGeometry=$HOME/.opticks/GEOM/$GEOM
 
 ctest --test-dir $OPTICKS_BUILD/sysrap -j -E STTFTest
 ctest --test-dir $OPTICKS_BUILD/g4cx -j -E G4CXRenderTest
