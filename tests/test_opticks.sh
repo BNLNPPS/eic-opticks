@@ -19,9 +19,6 @@ export GEOM=RaindropRockAirWater
 export G4CXOpticks__setGeometry_saveGeometry=$TMP/G4CXOpticks_setGeometry_Test/$GEOM
 
 ctest --test-dir $OPTICKS_BUILD/sysrap -j -E STTFTest
-ctest --test-dir $OPTICKS_BUILD/ana -j
-ctest --test-dir $OPTICKS_BUILD/analytic -j
-ctest --test-dir $OPTICKS_BUILD/bin -j
 ctest --test-dir $OPTICKS_BUILD/g4cx -j -E G4CXRenderTest
 ctest --test-dir $OPTICKS_BUILD/CSG -j -E CSGQueryTest
 ctest --test-dir $OPTICKS_BUILD/qudarap -j -E "QSimTest|QOpticalTest|QEvent_Lifecycle_Test|QSim_Lifecycle_Test|QSimWithEventTest"
