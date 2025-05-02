@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:latest
 
-FROM nvcr.io/nvidia/cuda:12.5.0-runtime-ubuntu22.04
+FROM nvcr.io/nvidia/cuda:12.5.0-runtime-ubuntu22.04 AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -65,12 +65,24 @@ RUN cat /etc/bash.nonint >> /etc/bash.bashrc
 
 ENV BASH_ENV=/etc/bash.nonint
 
-COPY . $OPTICKS_HOME 
+
+FROM base AS develop
+
+RUN apt update && apt install -y x11-apps mesa-utils vim
+
+WORKDIR $OPTICKS_HOME
+COPY . $OPTICKS_HOME
 
 RUN python -m pip install -e $OPTICKS_HOME
-
-RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Release \
+RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Debug \
  && cmake --build $OPTICKS_BUILD --parallel --target install
 
-# Allow tests to write to $OPTICKS_BUILD
-RUN find $OPTICKS_BUILD -name Testing -type d -exec chmod -R a+w {} \;
+
+FROM base AS release
+
+WORKDIR $OPTICKS_HOME
+COPY . $OPTICKS_HOME
+
+RUN python -m pip install -e $OPTICKS_HOME
+RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Release \
+ && cmake --build $OPTICKS_BUILD --parallel --target install
