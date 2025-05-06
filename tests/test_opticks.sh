@@ -13,7 +13,7 @@ mv $HOME/.opticks/rngcache/RNG/QCurandStateMonolithic_10M_0_0.bin $HOME/.opticks
 install -D $OPTICKS_HOME/tests/GEOM.sh $HOME/.opticks/GEOM/GEOM.sh
 
 # Generate initial photons for tests
-generate_input_photons
+generate-input-photons
 
 export GEOM=RaindropRockAirWater
 export G4CXOpticks__setGeometry_saveGeometry=$HOME/.opticks/GEOM/$GEOM

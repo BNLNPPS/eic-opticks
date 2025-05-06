@@ -10,7 +10,8 @@ app = Flask(__name__)
 def run_autoindex(path):
     AutoIndex(app, browse_root=path)
 
-if __name__ == '__main__':
+
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("path", nargs='?', default='iframe_figures/', help="A path to serve")
 
@@ -18,3 +19,7 @@ if __name__ == '__main__':
 
     run_autoindex(args.path)
     app.run(host='0.0.0.0', port=8080)
+
+
+if __name__ == '__main__':
+    main()

@@ -11,7 +11,9 @@ dependencies = [
 ]
 
 [project.scripts]
-generate_input_photons = "optiphy.tools.generate_input_photons:main"
+generate-input-photons = "optiphy.tools.generate_input_photons:main"
+plot-csg = "optiphy.tools.plot_csg:main"
+serve-path = "optiphy.tools.serve_path:main"
 
 [build-system]
 requires = ["poetry-core"]

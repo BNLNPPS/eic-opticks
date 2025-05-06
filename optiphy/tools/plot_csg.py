@@ -77,7 +77,7 @@ def read_meshgroup(path_csg: pl.Path, path_rec: pl.Path, path_out: pl.Path):
     logging.info(f'Saved image to: {html_file}')
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('path', help="A path to CSG dir with tri.npy and vtx.npy files")
     parser.add_argument('-r', '--rays', help="A path to record.npy file")
@@ -91,3 +91,7 @@ if __name__ == '__main__':
     logging.info(f'Reading data from dir: {path_csg}')
 
     read_meshgroup(path_csg, path_rec, path_out)
+
+
+if __name__ == '__main__':
+    main()
