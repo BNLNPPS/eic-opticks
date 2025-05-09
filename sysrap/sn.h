@@ -422,6 +422,7 @@ struct SYSRAP_API sn
     **/
 
     static sn* Cylinder(double radius, double z1, double z2) ;
+    static sn* Trapezoid(double z, double y, double x, double ltx);
     static sn* Cone(double r1, double z1, double r2, double z2);
     static sn* Sphere(double radius); 
     static sn* ZSphere(double radius, double z1, double z2);
@@ -2802,6 +2803,24 @@ inline sn* sn::Cylinder(double radius, double z1, double z2) // static
     nd->setBB( -radius, -radius, z1, +radius, +radius, z2 );
     return nd ;
 }
+
+/**
+ * Support right angular wedge from STEP.
+ *
+ * References:
+ *
+ *   https://geant4-userdoc.web.cern.ch/UsersGuides/ForApplicationDeveloper/html/Detector/Geometry/geomSolids.html#constructed-solid-geometry-csg-solids
+ *   https://github.com/Geant4/geant4/blob/master/source/geometry/solids/CSG/include/G4Trap.hh
+ */
+inline sn* sn::Trapezoid(double z, double y, double x, double ltx)
+{
+    assert( x > 0 && y > 0 && z > 0 && ltx > 0 && ltx < x );
+    sn* nd = Create(CSG_TRAPEZOID);
+    nd->setPA(x, y, z, 0.f, ltx, 0.f);
+    nd->setBB(-0.5*x, -0.5*y, -0.5*z, +0.5*x, +0.5*y, +0.5*z);
+    return nd;
+}
+
 inline sn* sn::Cone(double r1, double z1, double r2, double z2)  // static
 {   
     assert( z2 > z1 );
@@ -4888,6 +4907,12 @@ inline void sn::setAABB_LeafFrame()
         getParam_(px, py, a, radius, z1, z2 ) ; 
         assert( px == 0. && py == 0. && a == 0. ); 
         setBB( px-radius, py-radius, z1, px+radius, py+radius, z2 );   
+    }
+    else if( typecode == CSG_TRAPEZOID )
+    {
+        double x, y, z, unused1, ltx, unused2;
+        getParam_(x, y, z, unused1, ltx, unused2);
+        setBB(-0.5*x, -0.5*y, -0.5*z, +0.5*x, +0.5*y, +0.5*z);
     }
     else if( typecode == CSG_DISC )
     {
