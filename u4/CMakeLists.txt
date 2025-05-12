@@ -1,7 +1,5 @@
 set(name U4)
 set(desc "Geant4 Low Level Utilities")
-project(${name} VERSION 0.1.0)
-include(OpticksBuildOptions NO_POLICY_SCOPE)
 
 find_package(Geant4 REQUIRED)
 find_package(CLHEP  REQUIRED) 
@@ -124,13 +122,13 @@ set(OTHER_HEADERS
 )
 
 
-add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
+add_library(${name} ${SOURCES} ${HEADERS} )
 
 target_link_libraries( ${name} PUBLIC
-    Opticks::SysRap 
+    SysRap 
     CLHEP::CLHEP
     XercesC::XercesC
-    Opticks::GDXML
+    GDXML
     Geant4::G4persistency
 )
 
@@ -141,8 +139,6 @@ target_include_directories( ${name} PUBLIC
 )
 
 target_compile_definitions( ${name} PUBLIC OPTICKS_U4 ) # THIS MUST BE PUBLIC FOR SLOG-ING TO WORK FULLY 
-
-target_compile_definitions( ${name} PRIVATE G4USE_STD11 ) 
 target_compile_definitions( ${name} PRIVATE STANDALONE ) 
 
 
@@ -158,10 +154,12 @@ if(PMTSim_standalone_FOUND)
 endif()
 
 
-install(FILES ${HEADERS}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${name})
+
+install(TARGETS ${name}
+        EXPORT EicOpticksTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
 
 add_subdirectory(tests)
-
-
-

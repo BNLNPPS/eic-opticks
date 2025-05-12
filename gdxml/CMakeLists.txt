@@ -1,7 +1,5 @@
 set(name GDXML)
 set(desc "XML Level xercesc fixing GDML")
-project(${name} VERSION 0.1.0)
-include(OpticksBuildOptions NO_POLICY_SCOPE)
 
 find_package(XercesC REQUIRED)
 
@@ -24,7 +22,7 @@ set(HEADERS
 add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
 
 target_link_libraries( ${name} PUBLIC
-    Opticks::SysRap 
+    SysRap 
     XercesC::XercesC
 )
 
@@ -35,12 +33,13 @@ target_include_directories( ${name} PUBLIC
 )
 
 target_compile_definitions( ${name} PUBLIC OPTICKS_GDXML )
-target_compile_definitions( ${name} PUBLIC G4USE_STD11 ) 
 
-install(FILES ${HEADERS}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${name})
+
+install(TARGETS ${name}
+        EXPORT EicOpticksTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
 
 add_subdirectory(tests)
-
-
-

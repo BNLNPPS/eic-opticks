@@ -1,6 +1,4 @@
 set(name QUDARapTest)
-project(${name} VERSION 0.1.0)
-include(OpticksBuildOptions)   
 
 find_package(CUDAToolkit REQUIRED)
 
@@ -48,7 +46,6 @@ foreach(SRC ${TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} QUDARap CUDA::cudart)
-    target_include_directories(${TGT} PRIVATE $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/sysrap/inc>)
 
     add_test(
        NAME ${name}.${TGT} 
@@ -62,21 +59,6 @@ foreach(SRC ${KNOWN_FAIL_TEST_SOURCES})
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} QUDARap )
 endforeach()
-
-
-
-
-set(TEST_SOURCES_CU
-)
-
-foreach(CU ${TEST_SOURCES_CU})
-    get_filename_component(TGT ${CU} NAME_WE)
-    cuda_add_executable(${TGT} ${CU} OPTIONS)
-    add_test(${name}.${TGT} ${TGT})
-
-    target_link_libraries(${TGT} QUDARap )
-endforeach()
-
 
 
 ## HMM: switch to Custom4 (not getting that indirectly via PMTSim) 

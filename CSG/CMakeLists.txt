@@ -1,10 +1,4 @@
 set(name CSG)
-project(${name} VERSION 0.1.0)
-include(OpticksBuildOptions NO_POLICY_SCOPE)
-
-include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR} 
-)
 
 set(SOURCES)
 set(HEADERS)
@@ -119,16 +113,19 @@ target_compile_definitions( ${name} PUBLIC OPTICKS_CSG )
 target_compile_definitions( ${name} PUBLIC WITH_CONTIGUOUS )
 target_compile_definitions( ${name} PUBLIC WITH_S_BB )
 
-target_include_directories(${name}
-     PUBLIC
-           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+target_include_directories(${name} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(${name} Opticks::SysRap)
+target_link_libraries(${name} SysRap)
 
-bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${name})
 
-install(FILES ${HEADERS}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(TARGETS ${name}
+        EXPORT EicOpticksTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
 
 add_subdirectory(tests)
