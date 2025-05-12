@@ -23,7 +23,6 @@ list(APPEND SOURCES
     CSGImport.cc
     CSGTarget.cc
 
-
     CSGScan.cc
     CSGScan.cu
 
@@ -42,9 +41,6 @@ list(APPEND SOURCES
     CSG_LOG.cc
 )
     
-#    CSGGenstep.cc
-#    CSG_stree_Convert.h 
-
 list(APPEND CSG_HEADERS
     CSGNode.h 
 
@@ -77,11 +73,6 @@ list(APPEND CSG_HEADERS
     CSG_LOG.hh 
     CSG_API_EXPORT.hh 
 )
-
-
-#    CSGGenstep.h
-
-
 
 list(APPEND INTERSECT_HEADERS
     csg_intersect_leaf.h 
@@ -117,51 +108,16 @@ list(APPEND INTERSECT_HEADERS
     f4_stack.h
 )
 
-
 list(APPEND HEADERS
     ${CSG_HEADERS}
     ${INTERSECT_HEADERS}
 )
 
-
-message(STATUS "CMAKE_INSTALL_PREFIX     : ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "CMAKE_INSTALL_INCLUDEDIR : ${CMAKE_INSTALL_INCLUDEDIR}")
-message(STATUS "CMAKE_INSTALL_LIBDIR     : ${CMAKE_INSTALL_LIBDIR}")
-message(STATUS "CMAKE_BINARY_DIR         : ${CMAKE_BINARY_DIR}")
-
-
-#add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
-
 add_library( ${name} ${SOURCES} )
-
 
 target_compile_definitions( ${name} PUBLIC OPTICKS_CSG )
 target_compile_definitions( ${name} PUBLIC WITH_CONTIGUOUS )
-
-
-#[=[
-DEBUG,DEBUG_RECORD,DEBUG_CYLINDER,DEBUG_CONE preprocessor macros
--------------------------------------------------------------------
- 
-* WARNING : these DEBUG flags are exceedingly verbose 
-* note that nvcc compilation will fail when these are enabled, 
-  as they are intended for CPU debugging of GPU code. 
-  Some use std::vector for collecting CSGRecords. 
-
-* the flags effect critical parts of CSG intersection algorithm 
-* flags are intended for CPU debugging of CUDA compatible code 
-* only use them for tests of single or small numbers of intersections 
-* DO NOT COMMIT WITH THESE UNCOMMENTED
-
-#]=]
-
-#target_compile_definitions( ${name} PRIVATE DEBUG )
-#target_compile_definitions( ${name} PRIVATE DEBUG_RECORD )
-#target_compile_definitions( ${name} PRIVATE DEBUG_CYLINDER )
-#target_compile_definitions( ${name} PRIVATE DEBUG_CONE )
-
 target_compile_definitions( ${name} PUBLIC WITH_S_BB )
-
 
 target_include_directories(${name}
      PUBLIC
@@ -169,14 +125,10 @@ target_include_directories(${name}
            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-#target_link_libraries(${name} PUBLIC ${CUDA_LIBRARIES} Opticks::SysRap)
 target_link_libraries(${name} Opticks::SysRap)
-
 
 bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)
 
 install(FILES ${HEADERS}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-
 add_subdirectory(tests)
-

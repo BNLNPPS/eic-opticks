@@ -102,11 +102,6 @@ foreach(SRC ${SLOW_SOURCES})
     target_link_libraries(${TGT} U4)
 endforeach()
 
-
-
-
-
-
 #[=[
 Note that the U4AppTest executable also 
 needs the MOCK_CURAND macro in order to use CUDA 
@@ -142,6 +137,7 @@ set(PMTSim_TESTS
    U4PMTFastSimTest.cc
    U4PMTAccessorTest.cc
 )
+
 if(PMTSim_standalone_FOUND)
 
     foreach(SRC ${PMTSim_TESTS})
@@ -160,6 +156,3 @@ if(PMTSim_standalone_FOUND)
     endforeach()
 
 endif()
-
-
-

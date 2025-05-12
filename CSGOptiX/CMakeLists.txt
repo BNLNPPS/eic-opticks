@@ -5,10 +5,6 @@ include(OpticksBuildOptions)
 find_package(OptiX)
 
 get_target_property(CSG_INCLUDE_DIRS Opticks::CSG INTERFACE_INCLUDE_DIRECTORIES)
-
-message(STATUS "CSG_FOUND     : ${CSG_FOUND} ")
-message(STATUS "CSG_INCLUDE_DIRS : ${CSG_INCLUDE_DIRS} ")
-
 set(buildenvpath ${CMAKE_CURRENT_BINARY_DIR}/buildenv.sh)
 file(WRITE ${buildenvpath} "export OPTIX_VERSION=${OptiX_VERSION}\n")
 message(STATUS "write to buildenvpath ${buildenvpath} ")
@@ -18,20 +14,6 @@ include_directories(
     ${CSG_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR} 
 )
-
-
-#set(COMPUTE_CAPABILITY $ENV{OPTICKS_COMPUTE_CAPABILITY})
-#set(CUDA_NVCC_FLAGS)
-#list(APPEND CUDA_NVCC_FLAGS "-Xcompiler -fPIC")
-#list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_${COMPUTE_CAPABILITY},code=sm_${COMPUTE_CAPABILITY}")
-#list(APPEND CUDA_NVCC_FLAGS "-O2")
-#list(APPEND CUDA_NVCC_FLAGS "--use_fast_math")
-#list(APPEND CUDA_NVCC_FLAGS "-std=c++11")
-
-#[=[
-CUDA_NVCC_FLAGS are set in cmake/Modules/OpticksCUDAFlags.cmake
-its better to set them in one place
-#]=]
 
 
 set(SOURCES)
@@ -86,7 +68,6 @@ foreach(cu_src IN LISTS CU_SOURCES)
     list(APPEND _generated_PTX_files "${cu_src}.ptx")
 endforeach()
 
-message(STATUS "_generated_OBJ_files ${_generated_OBJ_files}") 
 message(STATUS "_generated_PTX_files ${_generated_PTX_files}") 
 
 add_library( ${name} SHARED ${SOURCES} ${HEADERS} )
@@ -96,9 +77,6 @@ target_compile_definitions( ${name} PUBLIC WITH_SIMULATE )
 target_compile_definitions( ${name} PUBLIC WITH_SIMTRACE )
 target_compile_definitions( ${name} PUBLIC WITH_RENDER )
 target_compile_definitions( ${name} PUBLIC OPTICKS_CSGOPTIX )
-
-# target_compile_definitions( ${name} PUBLIC DEBUG_TAG )     ## NOW FROM sysrap/CMakeLists.txt
-# target_compile_definitions( ${name} PUBLIC DEBUG_PIDXYZ )  ## NOW FROM sysrap/CMakeLists.txt Debug/Release CONTROL 
 
 #[=[
 
@@ -136,4 +114,3 @@ install(FILES ${HEADERS}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 add_subdirectory(tests)
 
 bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)
-

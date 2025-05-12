@@ -1,48 +1,14 @@
-#[=[
-U4
-===
-
-Geant4 should have found CLHEP already, but when using Randomize get 
-undefined symbols CLHEP::HepRandom::getTheEngine() so also find CLHEP.
-
-Note there there is no find_package Custom4 as that is found when 
-finding PMTSim
-
-#]=]
-
 set(name U4)
 set(desc "Geant4 Low Level Utilities")
 project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions NO_POLICY_SCOPE)
 
-
-message(STATUS "${CMAKE_CURRENT_LIST_FILE} : ====== 1 ======= find GDXML CLHEP XercesC ")
-
 find_package(Geant4 REQUIRED)
 find_package(CLHEP  REQUIRED) 
 find_package(XercesC REQUIRED)
 
-message(STATUS "${CMAKE_CURRENT_LIST_FILE} : ====== 2 =======  find Custom4 PMTSim  ")
-
 find_package(Custom4 CONFIG)  # have to be explicit as Custom4 needed without j/PMTSim
 find_package(PMTSim_standalone CONFIG)
-
-
-
-message(STATUS "${CMAKE_CURRENT_LIST_FILE} : PMTSim_standalone_FOUND       : ${PMTSim_standalone_FOUND}")
-message(STATUS "${CMAKE_CURRENT_LIST_FILE} : PMTSim_VERSION     : ${PMTSim_VERSION}")
-message(STATUS "${CMAKE_CURRENT_LIST_FILE} : Custom4_FOUND      : ${Custom4_FOUND}")
-message(STATUS "${CMAKE_CURRENT_LIST_FILE} : Custom4_VERSION    : ${Custom4_VERSION}")
-message(STATUS "${CMAKE_CURRENT_LIST_FILE} : Custom4_LIBRARY_DIR    : ${Custom4_LIBRARY_DIR}")
-message(STATUS "${CMAKE_CURRENT_LIST_FILE} : GDXML_FOUND      : ${GDXML_FOUND}")
-message(STATUS "${CMAKE_CURRENT_LIST_FILE} : GDXML_VERSION    : ${GDXML_VERSION}")
-
-
-
-
-message(STATUS "${CMAKE_CURRENT_LIST_FILE} : ====== 3 ======= completed finds " )
-
-
 
 
 set(SOURCES
@@ -154,9 +120,7 @@ set(HEADERS
 )
 
 set(OTHER_HEADERS
-
     InstrumentedG4OpBoundaryProcess.hh
-
 )
 
 

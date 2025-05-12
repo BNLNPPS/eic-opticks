@@ -3,43 +3,6 @@ set(desc "System Level Utilities depending")
 project(${name} VERSION 0.1.0)
 include(OpticksBuildOptions NO_POLICY_SCOPE)
 
-
-#[=[
-SysRap
-========
-
-The default RPATH setup from OpticksBuildOptions of 
-"set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)"
-appears to only work if your executables link to a library 
-which is in the same directory as the library you are creating.  
-Fortunately thats easy to do by linking with Opticks::OKConf.
-
-Attempting to detect the CUDA version::
-
-    message( STATUS "CMAKE_CUDA_COMPILER_VERSION  : ${CMAKE_CUDA_COMPILER_VERSION}" )
-
-Requires:
-
-* CMake 3.17
-* "LANGUAGES CUDA" on the project line
-* BUT: it messes up clang compiler detection in cmake/Modules/OpticksCXXFlags.cmake 
-* so use envvar OPTICKS_CUDA_NVCC_DIALECT detection in cmake/Modules/OpticksCXXFlags.cmake to kludge this
-
-
-OpticksCSG.py managed as source despite needing manual regeneration after OpticksCSG.h updates
--------------------------------------------------------------------------------------------------
-
-NB generation of OpticksCSG.py is not automated, unlike the generation of other things like status json.  
-This is because it is expedient for the generated python to be managed as a source file for simplicity.  
-It would be cleaner to generate json that a future OpticksCSG.py parses. 
-But as OpticksCSG.h updates are rare, For now just need to remember to generate manually with::
-
-    cd ~/opticks/sysrap
-    ../bin/c_enums_to_python.py OpticksCSG.h > OpticksCSG.py 
-   
-
-#]=]
-
 find_package(nlohmann_json REQUIRED)
 find_package(plog   REQUIRED)
 find_package(glm REQUIRED)
@@ -53,13 +16,10 @@ message(STATUS "${name} Custom4_FOUND:${Custom4_FOUND}  " )
 set(WITH_SLOG YES)
 
 
-
 set(SYSRAP_GENERATED_HEADER  "sconfig.h")
 set(SYSRAP_OPTICKS_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 configure_file( ${SYSRAP_GENERATED_HEADER}.in inc/${SYSRAP_GENERATED_HEADER} )
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/inc/${SYSRAP_GENERATED_HEADER}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/inc/${SYSRAP_GENERATED_HEADER} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 set(SOURCES
     SYSRAP_LOG.cc 
@@ -634,20 +594,9 @@ set(WITH_NP YES)
 
 add_library( ${name} ${SOURCES} )
 
-
-#add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
-#set_target_properties( ${name} 
-#                       PROPERTIES 
-#                         INTERFACE_DESCRIPTION ${desc}
-#                         INTERFACE_PKG_CONFIG_REQUIRES ${preq}
-#                     )
-
 set_property( TARGET ${name} PROPERTY INTERFACE_DESCRIPTION ${desc} )
-#set_property( TARGET ${name} PROPERTY INTERFACE_PKG_CONFIG_REQUIRES ${preq} ) 
 
-target_link_libraries( ${name} plog::plog )
-
-#Opticks::OpticksCUDA 
+target_link_libraries(${name} plog::plog)
 
 target_link_libraries(${name} nlohmann_json::nlohmann_json)
 
@@ -656,7 +605,6 @@ target_link_libraries(${name} CUDA::cudart)
 if(UNIX AND NOT APPLE)
 find_package(OpenSSL REQUIRED)
 message(STATUS "adding ssl crypto for UNIX AND NOT APPLE")
-#target_link_libraries( ${name} PUBLIC ssl crypto )
 target_link_libraries( ${name} OpenSSL::SSL OpenSSL::Crypto )
 endif()
 
@@ -741,10 +689,6 @@ if(WITH_SLOG)
 target_compile_definitions( ${name} PUBLIC WITH_SLOG)
 endif()
 
-
-
-# <findname>_targets is my convention
-
 set(PC_VERBOSE ON)
 bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)
 
@@ -752,8 +696,4 @@ install(FILES ${HEADERS}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 install(FILES ${CURANDLITE_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/curandlite)
 
-
 add_subdirectory(tests)
-
-
-
