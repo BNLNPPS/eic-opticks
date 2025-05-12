@@ -18,10 +18,4 @@ generate-input-photons
 export GEOM=RaindropRockAirWater
 export G4CXOpticks__setGeometry_saveGeometry=$HOME/.opticks/GEOM/$GEOM
 
-ctest --test-dir $OPTICKS_BUILD/sysrap -j -E STTFTest
-ctest --test-dir $OPTICKS_BUILD/g4cx -j -E G4CXRenderTest
-ctest --test-dir $OPTICKS_BUILD/CSG -j -E CSGQueryTest
-ctest --test-dir $OPTICKS_BUILD/qudarap -j -E "QSimTest|QOpticalTest|QEvent_Lifecycle_Test|QSim_Lifecycle_Test|QSimWithEventTest"
-ctest --test-dir $OPTICKS_BUILD/CSGOptiX -j -E CSGOptiXRenderTest
-ctest --test-dir $OPTICKS_BUILD/gdxml -j
-ctest --test-dir $OPTICKS_BUILD/u4 -j -E "U4GDMLReadTest|U4RandomTest|U4TraverseTest"
+ctest --test-dir $OPTICKS_BUILD -j -E "STTFTest|G4CXRenderTest|CSGOptiXRenderTest|QSimTest|QEvent_Lifecycle_Test|QSim_Lifecycle_Test|QSimWithEventTest"
