@@ -1,19 +1,8 @@
 set(name QUDARap)
-project(${name} VERSION 0.1.0)
-include(OpticksBuildOptions NO_POLICY_SCOPE)      
-
-
-set(FLAGS_VERBOSE ON)
-
-set(LIBS  )
-
-set(LIBS ${LIBS} Opticks::SysRap)  
-
 
 set(Custom4_VERBOSE ON)
 find_package(Custom4 CONFIG)
 
-message(STATUS "${name} Custom4_FOUND:${Custom4_FOUND}  " )
 set(DEV_SOURCES
     QSim_cerenkov_dev.cu
 )
@@ -144,24 +133,17 @@ SET(HEADERS
     QBuf.hh
 )
 
-
-
-if(UNIX AND NOT APPLE)
-  set(LIBS ${LIBS} ssl )  
-endif()
-
 add_library( ${name} ${SOURCES} )
 
 get_target_property(ILL ${name} INTERFACE_LINK_LIBRARIES)
 message(STATUS "${name} INTERFACE_LINK_LIBRARIES:${ILL} " )
-
 
 if(Custom4_FOUND)
    target_compile_definitions( ${name} PUBLIC WITH_CUSTOM4 )
    target_include_directories( ${name} PUBLIC ${Custom4_INCLUDE_DIR})
 endif()
 
-target_link_libraries( ${name} ${LIBS})
+target_link_libraries( ${name} SysRap ssl)
 target_compile_definitions( ${name} PUBLIC OPTICKS_QUDARAP DEBUG_TAG )
 
 
@@ -191,14 +173,18 @@ WITH_THRUST compile definition
 
 target_compile_definitions( ${name} PRIVATE WITH_THRUST )
 
-target_include_directories( ${name}
-   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-   $<INSTALL_INTERFACE:include>
-   $<INSTALL_INTERFACE:include/QUDARap>
+target_include_directories( ${name} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/sysrap/inc>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${name})
 
-bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)
+install(TARGETS ${name}
+        EXPORT EicOpticksTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
 
 add_subdirectory(tests)

@@ -1,7 +1,5 @@
 set(name SysRap)
 set(desc "System Level Utilities depending")
-project(${name} VERSION 0.1.0)
-include(OpticksBuildOptions NO_POLICY_SCOPE)
 
 find_package(nlohmann_json REQUIRED)
 find_package(plog   REQUIRED)
@@ -609,9 +607,9 @@ target_link_libraries( ${name} OpenSSL::SSL OpenSSL::Crypto )
 endif()
 
 target_include_directories( ${name} PUBLIC
-   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-   $<INSTALL_INTERFACE:include>
-   $<INSTALL_INTERFACE:include/SysRap>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/sysrap/inc>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 
@@ -689,11 +687,13 @@ if(WITH_SLOG)
 target_compile_definitions( ${name} PUBLIC WITH_SLOG)
 endif()
 
-set(PC_VERBOSE ON)
-bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)
-
-install(FILES ${HEADERS}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${name})
 install(FILES ${CURANDLITE_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/curandlite)
+
+install(TARGETS ${name}
+        EXPORT EicOpticksTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
 
 add_subdirectory(tests)

@@ -1,6 +1,4 @@
 set(name SysRapTest)
-project(${name} VERSION 0.1.0)
-include(OpticksBuildOptions)   
 
 find_package(CUDAToolkit REQUIRED)
 
@@ -181,10 +179,6 @@ foreach(SRC ${TEST_SOURCES})
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} SysRap CUDA::cudart)
 
-    target_include_directories( ${TGT} PRIVATE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../inc>
-    )    
 
     add_test(${name}.${TGT} ${TGT})
 endforeach()

@@ -1,7 +1,4 @@
 set(name G4CX)
-set(desc "Top Level")
-project(${name} VERSION 0.1.0)
-include(OpticksBuildOptions NO_POLICY_SCOPE)
 
 set(SOURCES
     G4CX_LOG.cc 
@@ -14,13 +11,9 @@ set(HEADERS
     G4CXOpticks.hh
 )
 
+add_library(${name} SHARED ${SOURCES} ${HEADERS})
 
-add_library( ${name}  SHARED ${SOURCES} ${HEADERS} )
-
-target_link_libraries( ${name} PUBLIC
-    Opticks::U4
-    Opticks::CSGOptiX
-)
+target_link_libraries(${name} PUBLIC U4 CSGOptiX)
 
 target_include_directories( ${name} PUBLIC 
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> 
@@ -28,9 +21,13 @@ target_include_directories( ${name} PUBLIC
 )
 
 target_compile_definitions( ${name} PUBLIC OPTICKS_G4CX )
-target_compile_definitions( ${name} PUBLIC G4USE_STD11 ) 
 
-install(FILES ${HEADERS}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${name})
+
+install(TARGETS ${name}
+        EXPORT EicOpticksTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
 
 add_subdirectory(tests)

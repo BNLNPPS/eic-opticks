@@ -1,20 +1,10 @@
 set(name CSGOptiX)
-project(${name} VERSION 0.1.0)
-include(OpticksBuildOptions)
 
 find_package(OptiX)
 
-get_target_property(CSG_INCLUDE_DIRS Opticks::CSG INTERFACE_INCLUDE_DIRECTORIES)
 set(buildenvpath ${CMAKE_CURRENT_BINARY_DIR}/buildenv.sh)
 file(WRITE ${buildenvpath} "export OPTIX_VERSION=${OptiX_VERSION}\n")
 message(STATUS "write to buildenvpath ${buildenvpath} ")
-
-
-include_directories(
-    ${CSG_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR} 
-)
-
 
 set(SOURCES)
 set(CU_SOURCES)
@@ -58,6 +48,7 @@ foreach(cu_src IN LISTS CU_SOURCES)
     add_library(${cu_src} OBJECT ${cu_src})
     set_target_properties(${cu_src} PROPERTIES CUDA_PTX_COMPILATION ON)
     target_include_directories(${cu_src} PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/CSG>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/sysrap>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/qudarap>)
     target_compile_definitions(${cu_src} PUBLIC WITH_PRD WITH_SIMULATE WITH_SIMTRACE WITH_RENDER
@@ -94,23 +85,19 @@ WITH_THRUST compile definition
 target_compile_definitions( ${name} PRIVATE WITH_THRUST )
 
 target_include_directories( ${name} PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/sysrap/inc>
-    $<INSTALL_INTERFACE:include>
-    $<INSTALL_INTERFACE:include/CSGOptiX>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/CSGOptiX>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(${name} 
-     PUBLIC 
-         OptiX::OptiX
-         Opticks::CSG
-         Opticks::QUDARap
-)
-
-# Opticks::OpticksCore
+target_link_libraries(${name} PUBLIC OptiX::OptiX CSG QUDARap SysRap)
 
 install(FILES $<TARGET_OBJECTS:CSGOptiX7.cu> DESTINATION ptx RENAME CSGOptiX_generated_CSGOptiX7.cu.ptx)
-install(FILES ${HEADERS}  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${name})
+
+install(TARGETS ${name}
+        EXPORT EicOpticksTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
 
 add_subdirectory(tests)
-
-bcm_deploy(TARGETS ${name} NAMESPACE Opticks:: SKIP_HEADER_INSTALL)

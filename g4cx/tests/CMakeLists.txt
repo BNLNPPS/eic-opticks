@@ -1,6 +1,4 @@
 set(name G4CXTest)
-project(${name} VERSION 0.1.0)
-include(OpticksBuildOptions)   
 
 find_package(CUDAToolkit REQUIRED)
 

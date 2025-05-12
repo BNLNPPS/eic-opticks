@@ -1,6 +1,4 @@
 set(name U4Test)
-project(${name} VERSION 0.1.0)
-include(OpticksBuildOptions)   
 
 find_package(CUDAToolkit REQUIRED)
 
@@ -125,7 +123,7 @@ set(U4HitTest_SOURCES
 
 set(TGT U4HitTest)
 add_executable(${TGT} ${U4HitTest_SOURCES})
-target_link_libraries(${TGT} U4 Opticks::CSG CUDA::cudart)
+target_link_libraries(${TGT} U4 CSG CUDA::cudart)
 
 message(STATUS "${CMAKE_CURRENT_LIST_FILE} : PMTSim_standalone_FOUND     : ${PMTSim_standalone_FOUND}")
 message(STATUS "${CMAKE_CURRENT_LIST_FILE} : Custom4_FOUND    : ${Custom4_FOUND}")
@@ -147,11 +145,11 @@ if(PMTSim_standalone_FOUND)
         target_compile_definitions( ${TGT} PRIVATE WITH_NP )    ## for _PMTSimParamData 
         target_compile_definitions( ${TGT} PRIVATE POM_DEBUG )   
 
-        target_link_libraries(${TGT} U4 Opticks::SysRap)
+        target_link_libraries(${TGT} U4 SysRap)
 
            target_compile_definitions( ${TGT} PRIVATE WITH_PMTSIM )   
            target_compile_definitions( ${TGT} PRIVATE PMTSIM_STANDALONE )   
-           target_link_libraries(${TGT} Opticks::PMTSim_standalone)
+           target_link_libraries(${TGT} PMTSim_standalone)
 
     endforeach()
 
