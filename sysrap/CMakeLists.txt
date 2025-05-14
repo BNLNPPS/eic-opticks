@@ -597,11 +597,10 @@ add_library( ${name} ${SOURCES} )
 
 set_property( TARGET ${name} PROPERTY INTERFACE_DESCRIPTION ${desc} )
 
-target_link_libraries(${name} plog::plog)
-
-target_link_libraries(${name} nlohmann_json::nlohmann_json)
-
-target_link_libraries(${name} CUDA::cudart
+target_link_libraries(${name}
+    plog::plog
+    nlohmann_json::nlohmann_json
+    CUDA::cudart
     GLEW::glew
     glm::glm
     glfw
