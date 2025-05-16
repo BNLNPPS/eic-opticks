@@ -182,7 +182,7 @@ target_include_directories( ${name} PUBLIC
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${name})
 
 install(TARGETS ${name}
-        EXPORT EicOpticksTargets
+        EXPORT ${PROJECT_NAME}Targets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
