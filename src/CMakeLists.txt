@@ -1,4 +1,4 @@
-find_package(Geant4 REQUIRED)
+find_package(Geant4 REQUIRED ui_all vis_all)
 
 # consgeo is a tool for converting GDML into CSG
 add_executable(consgeo consgeo.cc)
