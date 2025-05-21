@@ -25,3 +25,15 @@ target_include_directories(simg4ox PRIVATE
 )
 
 install(TARGETS simg4ox RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# simtox creates a numpy file with initial photons for simulation
+add_executable(simtox simtox.cpp)
+
+target_link_libraries(simtox SysRap)
+
+target_include_directories(simtox PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+)
+
+install(TARGETS simtox RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
