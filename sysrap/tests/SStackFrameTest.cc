@@ -68,13 +68,8 @@ int main(int  argc, char** argv )
 {
     OPTICKS_LOG(argc, argv); 
 
-#ifdef __APPLE__
-    const char* lines = macOS.c_str(); 
-#else
     const char* lines = Linux.c_str(); 
-#endif
     LOG(info) << std::endl << lines  ; 
-
 
     std::istringstream iss(lines);
     std::string line ;

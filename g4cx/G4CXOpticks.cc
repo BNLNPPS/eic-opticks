@@ -125,11 +125,7 @@ void G4CXOpticks::Finalize() // static
     LOG(LEVEL); 
 }
 
-#ifdef __APPLE__
-bool G4CXOpticks::NoGPU = true ; 
-#else
 bool G4CXOpticks::NoGPU = false ; 
-#endif
 void G4CXOpticks::SetNoGPU(bool no_gpu){ NoGPU = no_gpu ; }  
 bool G4CXOpticks::IsNoGPU(){  return NoGPU ; }  
 

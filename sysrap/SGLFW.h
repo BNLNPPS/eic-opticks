@@ -927,25 +927,12 @@ inline void SGLFW::init()
 
     gleqInit();
 
-#if defined __APPLE__
-    glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 3);  // version specifies the minimum, not what will get on mac
-    glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 2); 
-    glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#elif defined _MSC_VER
-    glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 4); 
-    glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 1); 
- 
-#elif __linux
     glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 4); 
     glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 1);  // also used 6 here 
     //glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);  // remove stuff deprecated in requested release
     glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);   
     // https://learnopengl.com/In-Practice/Debugging Debug output is core since OpenGL version 4.3,   
-#endif
-
 
     // HMM: using fullscreen mode with resolution less than display changes display resolution 
     GLFWmonitor* monitor = gm.fullscreen ? glfwGetPrimaryMonitor() : nullptr ;   // nullptr for windowed mode
