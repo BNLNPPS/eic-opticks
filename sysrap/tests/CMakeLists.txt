@@ -78,6 +78,7 @@ set(TEST_SOURCES
 
    CheckGeoTest.cc
 
+   SGLFW_tests.cc
    SGLMTest.cc
 
    SConstantTest.cc
@@ -178,7 +179,6 @@ foreach(SRC ${TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} SysRap CUDA::cudart)
-
 
     add_test(${name}.${TGT} ${TGT})
 endforeach()
