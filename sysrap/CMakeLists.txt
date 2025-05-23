@@ -2,7 +2,9 @@ set(name SysRap)
 set(desc "System Level Utilities depending")
 
 find_package(nlohmann_json REQUIRED)
-find_package(plog   REQUIRED)
+find_package(plog REQUIRED)
+find_package(glew REQUIRED)
+find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
@@ -598,7 +600,11 @@ target_link_libraries(${name} plog::plog)
 
 target_link_libraries(${name} nlohmann_json::nlohmann_json)
 
-target_link_libraries(${name} CUDA::cudart)
+target_link_libraries(${name} CUDA::cudart
+    GLEW::glew
+    glm::glm
+    glfw
+)
 
 if(UNIX AND NOT APPLE)
 find_package(OpenSSL REQUIRED)
