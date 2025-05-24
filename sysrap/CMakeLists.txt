@@ -7,6 +7,7 @@ find_package(glew REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
 find_package(CUDAToolkit REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 set(Custom4_VERBOSE ON) 
 find_package(Custom4 CONFIG)
@@ -604,13 +605,9 @@ target_link_libraries(${name} CUDA::cudart
     GLEW::glew
     glm::glm
     glfw
+    OpenSSL::SSL
+    OpenSSL::Crypto
 )
-
-if(UNIX AND NOT APPLE)
-find_package(OpenSSL REQUIRED)
-message(STATUS "adding ssl crypto for UNIX AND NOT APPLE")
-target_link_libraries( ${name} OpenSSL::SSL OpenSSL::Crypto )
-endif()
 
 target_include_directories( ${name} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>

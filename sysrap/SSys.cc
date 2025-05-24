@@ -37,34 +37,14 @@
 #include "SStr.hh"
 #include "SLOG.hh"
 
-
 #include "scuda.h"
 
 
-
-/*
-simon:optixrap blyth$ python -c 'import sys, os, numpy as np ; sys.exit(214) '
-simon:optixrap blyth$ echo $?
-214
-*/
-
 extern char **environ;
-
-
 
 const plog::Severity SSys::LEVEL = SLOG::EnvLevel("SSys", "DEBUG")  ; 
 
-
-#ifdef __APPLE__
-const char* SSys::OS = "Darwin"  ; 
-#else
 const char* SSys::OS = "Linux"  ; 
-#endif
-
-
-
-
-
 
 
 void SSys::DumpEnv(const char* pfx ) // static

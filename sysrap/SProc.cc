@@ -19,79 +19,6 @@
 
 #include "SProc.hh"
 #include "SLOG.hh"   // needed for plog::info enum etc..
-
-
-#ifdef _MSC_VER
-float SProc::VirtualMemoryUsageMB()
-{
-    return 0 ; 
-}
-
-#elif defined(__APPLE__)
-
-#include<mach/mach.h>
-
-/**
-
-https://developer.apple.com/forums/thread/105088
-
-**/
-
-
-float SProc::VirtualMemoryUsageKB()
-{
-    struct mach_task_basic_info info;
-    mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
-    kern_return_t kerr = task_info(mach_task_self(),
-                                   MACH_TASK_BASIC_INFO,
-                                   (task_info_t)&info,
-                                   &size);
-
-    if( kerr == KERN_SUCCESS ) 
-    {
-        vm_size_t vsize_ = info.virtual_size  ;  
-        unsigned long long vsize(vsize_); 
-        unsigned long long KB = 1000 ; 
-        float usage = float(vsize/KB) ; 
-        return usage  ;
-    }
-
-    LOG(error) << mach_error_string(kerr)   ; 
-
-    return 0 ;   
-}
-
-
-
-float SProc::ResidentSetSizeKB()
-{
-    struct mach_task_basic_info info;
-    mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
-    kern_return_t kerr = task_info(mach_task_self(),
-                                   MACH_TASK_BASIC_INFO,
-                                   (task_info_t)&info,
-                                   &size);
-
-    if( kerr == KERN_SUCCESS ) 
-    {
-        vm_size_t rsize_ = info.resident_size  ;  
-        unsigned long long rsize(rsize_); 
-        unsigned long long KB = 1000 ; 
-        float usage = float(rsize/KB) ; 
-        return usage  ;
-    }
-
-    LOG(error) << mach_error_string(kerr)   ; 
-
-    return 0 ;   
-}
-
-
-
-
-
-
-#else
     
 // https://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
 
@@ -152,8 +79,6 @@ float SProc::ResidentSetSizeKB()
 }
 
 
-#endif
-
 float SProc::VirtualMemoryUsageMB()
 {
     float result = VirtualMemoryUsageKB() ; 
@@ -167,10 +92,6 @@ float SProc::ResidentSetSizeMB()
 }
 
 
-
-
-
-
 /**
 SProc::ExecutablePath
 -----------------------
@@ -178,35 +99,6 @@ SProc::ExecutablePath
 * https://stackoverflow.com/questions/799679/programmatically-retrieving-the-absolute-path-of-an-os-x-command-line-app/1024933#1024933
 
 **/
-
-
-#ifdef _MSC_VER
-const char* SProc::ExecutablePath(bool basename)
-{
-    return NULL ; 
-}
-#elif defined(__APPLE__)
-
-#include <mach-o/dyld.h>
-
-const char* SProc::ExecutablePath(bool basename)
-{
-    char buf[PATH_MAX];
-    uint32_t size = sizeof(buf);
-    bool ok = _NSGetExecutablePath(buf, &size) == 0 ; 
-
-    LOG_IF(fatal, !ok) 
-           << "_NSGetExecutablePath FAIL " 
-           << " size " << size 
-           << " buf " << buf 
-           ;
-
-    assert(ok); 
-    const char* s = basename ? strrchr(buf, '/') : NULL ;  
-    return s ? strdup(s+1) : strdup(buf) ; 
-}
-#else
-
 
 #include <unistd.h>
 #include <limits.h>
@@ -221,13 +113,9 @@ const char* SProc::ExecutablePath(bool basename)
     return s ? strdup(s+1) : strdup(buf) ; 
 }
 
-#endif
-
 
 const char* SProc::ExecutableName()
 {
     bool basename = true ; 
     return ExecutablePath(basename); 
 }
-
-
