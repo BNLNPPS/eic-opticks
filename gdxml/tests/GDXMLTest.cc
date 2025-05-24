@@ -1,14 +1,5 @@
 #include <iostream>
 
-
-/*
-#include <xercesc/util/PlatformUtils.hpp>
-#include <xercesc/parsers/XercesDOMParser.hpp>
-#include <xercesc/sax/HandlerBase.hpp>
-#include <xercesc/util/XMLUni.hpp>
-#include <xercesc/dom/DOM.hpp>
-*/
-
 #include "OPTICKS_LOG.hh"
 #include "spath.h"
 #include "GDXML.hh"
@@ -26,8 +17,6 @@ int main(int argc, char** argv)
         std::cout << "when issues are detected with the GDML a kludge fixed version is written to /path/to/name_GDXML.gdml " << std::endl ;   
         return 0 ; 
     }
-
-    //xercesc::XMLPlatformUtils::Initialize();
 
     GDXML::Fix(dstpath, srcpath) ; 
 
