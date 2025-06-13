@@ -36,13 +36,13 @@ list(APPEND SOURCES
 )
     
 list(APPEND CSG_HEADERS
-    CSGNode.h 
+    CSGNode.h
 
     CU.h
     CSGPrim.h
     CSGSolid.h
 
-    CSGParams.h 
+    CSGParams.h
 
     CSGFoundry.h
 
@@ -64,14 +64,14 @@ list(APPEND CSG_HEADERS
     CSGSimtrace.hh
     CSGDebug_Cylinder.hh
 
-    CSG_LOG.hh 
-    CSG_API_EXPORT.hh 
+    CSG_LOG.hh
+    CSG_API_EXPORT.hh
 )
 
 list(APPEND INTERSECT_HEADERS
-    csg_intersect_leaf.h 
-    csg_intersect_node.h 
-    csg_intersect_tree.h 
+    csg_intersect_leaf.h
+    csg_intersect_node.h
+    csg_intersect_tree.h
 
     csg_intersect_leaf_box3.h
     csg_intersect_leaf_convexpolyhedron.h

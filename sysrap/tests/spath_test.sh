@@ -5,6 +5,9 @@ spath_test.sh
 
 TEST=Resolve3 ~/opticks/sysrap/tests/spath_test.sh
 
+UNSET=1 TEST=CFBaseFromGEOM ~/opticks/sysrap/tests/spath_test.sh
+
+
 EOU
 } 
 
@@ -22,12 +25,31 @@ bin=$FOLD/$name
 mkdir -p $FOLD
 
 #test=Filesize
-test=ALL
+#test=ALL
+test=last_write_time
+
 export TEST=${TEST:-$test}
 
 export EXECUTABLE=$bin
 
 source $HOME/.opticks/GEOM/GEOM.sh 
+
+# could do the below in GEOM.sh but leave here in repo to be more explicit 
+if [ -n "$GEOM" -a -z "${GEOM}_CFBaseFromGEOM" ]; then
+    if [ -f "$HOME/.opticks/GEOM/$GEOM/CSGFoundry/prim.npy" ]; then
+        export ${GEOM}_CFBaseFromGEOM=$HOME/.opticks/GEOM/$GEOM
+    fi 
+fi
+
+
+if [ -n "$UNSET" ]; then
+  unset ${GEOM}_CFBaseFromGEOM 
+  unset GEOM
+fi 
+
+
+export hello_GEOMSub="yep"
+
 
 
 defarg=info_build_run
