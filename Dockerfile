@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:latest
 
-FROM nvcr.io/nvidia/cuda:12.5.0-runtime-ubuntu22.04 AS base
+FROM nvcr.io/nvidia/cuda:12.4.0-runtime-ubuntu22.04 AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -10,7 +10,7 @@ RUN apt update \
  && rm -rf /var/lib/apt/lists/*
 
 RUN apt update \
- && apt install -y curl cuda-nvcc-12-5 libcurand-dev-12-5 \
+ && apt install -y curl cuda-nvcc-12-4 libcurand-dev-12-4 \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
 
@@ -47,7 +47,7 @@ RUN mkdir -p /opt/plog/src && curl -sL https://github.com/SergiusTheBest/plog/ar
  && cmake --build /opt/plog/build --parallel --target install \
  && rm -fr /opt/plog
 
-RUN mkdir -p /opt/optix && curl -sL https://github.com/NVIDIA/optix-dev/archive/refs/tags/v8.1.0.tar.gz | tar -xz --strip-components 1 -C /opt/optix
+RUN mkdir -p /opt/optix && curl -sL https://github.com/NVIDIA/optix-dev/archive/refs/tags/v7.7.0.tar.gz | tar -xz --strip-components 1 -C /opt/optix
 
 RUN mkdir -p /opt/cmake/src && curl -sL https://github.com/Kitware/CMake/releases/download/v3.30.7/cmake-3.30.7.tar.gz | tar -xz --strip-components 1 -C /opt/cmake/src \
  && cmake -S /opt/cmake/src -B /opt/cmake/build \
