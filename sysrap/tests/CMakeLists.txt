@@ -29,26 +29,26 @@ set(TEST_SOURCES
 
    SCFTest.cc
 
-   
-   PLogTest.cc 
-   SLOG_Test.cc 
-   SLOGTest.cc 
-   SYSRAP_LOG_Test.cc 
+
+   PLogTest.cc
+   SLOG_Test.cc
+   SLOGTest.cc
+   SYSRAP_LOG_Test.cc
    SYSRAP_LOG_FileAppenderTest.cc
 
    SYSRAP_OPTICKS_LOG_Test.cc
-   SYSRAP_OPTICKS_LOG_NULL_Test.cc 
-   SOPTICKS_LOG_Test.cc 
+   SYSRAP_OPTICKS_LOG_NULL_Test.cc
+   SOPTICKS_LOG_Test.cc
 
    OPTICKS_LOG_Test.cc
    sLOG_MACRO_Test.cc
    SLOG_exename_Test.cc
-   SLOG_Banner_Test.cc 
-    
+   SLOG_Banner_Test.cc
+
    reallocTest.cc
    OpticksCSGTest.cc
    hash_define_without_value.cc
-   SDirectTest.cc 
+   SDirectTest.cc
    S_freopen_redirect_test.cc
    S_get_option_Test.cc
 
@@ -65,7 +65,7 @@ set(TEST_SOURCES
    SAbbrevTest.cc
    SPPMTest.cc
    SColorTest.cc
-   SPackTest.cc 
+   SPackTest.cc
    SBitTest.cc
    SBitSetTest.cc
    SEnabledTest.cc
@@ -74,7 +74,6 @@ set(TEST_SOURCES
    SOpticksTest.cc
    SOpticksKeyTest.cc
 
-   SRngSpecTest.cc 
 
    CheckGeoTest.cc
 
@@ -99,7 +98,7 @@ set(TEST_SOURCES
    SEventTest.cc
    SThetaCutTest.cc
    SPhiCutTest.cc
-   scanvasTest.cc 
+   scanvasTest.cc
 
    OpticksPhotonTest.cc
    SUTest.cc
@@ -113,12 +112,11 @@ set(TEST_SOURCES
    SEvt__UU_BURN_Test.cc
 
    SEvt_Lifecycle_Test.cc
-   SEvt__HasInputPhoton_Test.cc 
+   SEvt__HasInputPhoton_Test.cc
    SEvt_AddEnvMeta_Test.cc
 
    SNameTest.cc
 
-   scontext_test.cc
    SProfTest.cc
 
    SEvt_test.cc
@@ -182,6 +180,48 @@ foreach(SRC ${TEST_SOURCES})
 
     add_test(${name}.${TGT} ${TGT})
 endforeach()
+
+foreach(SRC ${CUDART_TEST_SOURCES})
+    get_filename_component(TGT ${SRC} NAME_WE)
+    add_executable(${TGT} ${SRC})
+    target_link_libraries(${TGT} SysRap CUDA::cudart)
+
+
+    target_include_directories( ${TGT} PRIVATE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../inc>
+    )
+
+    install(TARGETS ${TGT} DESTINATION lib)
+    add_test(${name}.${TGT} ${TGT})
+endforeach()
+
+
+
+find_package(OpticksGLEW REQUIRED MODULE)
+find_package(OpticksGLFW REQUIRED MODULE)
+
+
+foreach(SRC ${OPTIX_TEST_SOURCES})
+    get_filename_component(TGT ${SRC} NAME_WE)
+    add_executable(${TGT} ${SRC})
+    target_link_libraries(${TGT}
+        SysRap
+        CUDA::cudart
+        Opticks::OpticksGLEW
+        Opticks::OpticksGLFW
+    )
+
+    target_include_directories( ${TGT} PRIVATE
+        ${OpticksOptiX_INCLUDE}
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../inc>
+    )
+
+    install(TARGETS ${TGT} DESTINATION lib)
+    add_test(${name}.${TGT} ${TGT})
+endforeach()
+
 
 
 foreach(SRC ${REPORT_SOURCES})

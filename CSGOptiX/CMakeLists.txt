@@ -1,20 +1,24 @@
 set(name CSGOptiX)
 
 find_package(OptiX)
-
-set(buildenvpath ${CMAKE_CURRENT_BINARY_DIR}/buildenv.sh)
-file(WRITE ${buildenvpath} "export OPTIX_VERSION=${OptiX_VERSION}\n")
-message(STATUS "write to buildenvpath ${buildenvpath} ")
-
 set(SOURCES)
-set(CU_SOURCES)
+set(OPTIX_SOURCES)
 
 
 list(APPEND SOURCES
-    Params.cc 
+    Params.cc
     CSGOptiX.cc
-    Frame.cc 
+    Frame.cc
     CSGOPTIX_LOG.cc
+
+    Ctx.cc
+    Properties.cc
+    GAS.cc
+    GAS_Builder.cc
+    PIP.cc
+    IAS.cc
+    IAS_Builder.cc
+    SBT.cc
 )
 
 list(APPEND HEADERS
@@ -39,7 +43,6 @@ list(APPEND SOURCES
      SBT.cc 
 )
 
-message(STATUS "CU_SOURCES : ${CU_SOURCES} ")
 
 set(_generated_PTX_files "")
 
@@ -63,26 +66,76 @@ message(STATUS "_generated_PTX_files ${_generated_PTX_files}")
 
 add_library( ${name} SHARED ${SOURCES} ${HEADERS} )
 
-target_compile_definitions( ${name} PRIVATE WITH_PRD )  # using Pointer trick means can reduce attrib and payload to 2 
-target_compile_definitions( ${name} PUBLIC WITH_SIMULATE )
-target_compile_definitions( ${name} PUBLIC WITH_SIMTRACE )
-target_compile_definitions( ${name} PUBLIC WITH_RENDER )
-target_compile_definitions( ${name} PUBLIC OPTICKS_CSGOPTIX )
+target_compile_options( ${name}_OPTIX
+   PRIVATE
+        $<$<COMPILE_LANGUAGE:CUDA>:-O2 --use_fast_math -Xcompiler -fPIC>
+)
 
 #[=[
 
-WITH_THRUST compile definition
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CUDA_ARCHITECTURES
+--------------------
 
-* WITH_THRUST is needed for Custom4 on GPU complex math functions used by qpmt.h 
+Note that for ptx generation must specify a single GPU architecture otherwise::
 
-* However Custom4 also used on CPU without WITH_THRUST (eg by junosw), so 
+    nvcc fatal   : Option '--ptx (-ptx)' is not allowed when compiling for multiple GPU architectures
+
+Compile Definition Notes
+----------------------------
+
+
+WITH_PRD
+~~~~~~~~~
+
+using Pointer trick means can reduce attrib and payload to 2
+
+
+WITH_THRUST
+~~~~~~~~~~~~
+
+* WITH_THRUST is needed for Custom4 on GPU complex math functions used by qpmt.h
+
+* However Custom4 also used on CPU without WITH_THRUST (eg by junosw), so
   the WITH_THRUST definition must be PRIVATE to avoid interference with other
   Custom4 usage
 
 #]=]
 
-target_compile_definitions( ${name} PRIVATE WITH_THRUST )
+
+
+#[=[
+      ${CSG_INCLUDE_DIRS}
+/usr/local/cuda-12.4/include;/data1/blyth/local/opticks_Debug/include/CSG;/data1/blyth/local/opticks_Debug/externals/glm/glm;/data1/blyth/local/opticks_Debug/include/CSG
+
+      $<BUILD_INTERFACE:/dummy/cx/begin/build>
+      $<INSTALL_INTERFACE:/dummy/cx/begin/install>
+
+      $<BUILD_INTERFACE:/dummy/cx/end/build>
+      $<INSTALL_INTERFACE:/dummy/cx/end/install>
+      ${CUDA_INCLUDE_DIRS}
+#]=]
+
+
+target_include_directories(${name}
+   PUBLIC
+      $<BUILD_INTERFACE:${OPTICKS_PREFIX}/externals/glm/glm>
+      $<INSTALL_INTERFACE:externals/glm/glm>
+      ${OpticksOptiX_INCLUDE}
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
+
+target_include_directories(${name}_OPTIX
+   PUBLIC
+      ${OpticksOptiX_INCLUDE}
+      $<BUILD_INTERFACE:${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}>
+      $<BUILD_INTERFACE:${OPTICKS_PREFIX}/include/SysRap>
+      $<BUILD_INTERFACE:${OPTICKS_PREFIX}/include/CSG>
+      $<BUILD_INTERFACE:${OPTICKS_PREFIX}/include/QUDARap>
+)
+
+if(Custom4_FOUND)
+   target_include_directories( ${name}_OPTIX PUBLIC ${Custom4_INCLUDE_DIR})
+endif()
 
 target_include_directories( ${name} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/CSGOptiX>

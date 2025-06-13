@@ -4,25 +4,18 @@ find_package(CUDAToolkit REQUIRED)
 
 set(TEST_SOURCES
 
-   QTexRotateTest.cc
 
    QRngTest.cc
    QScintTest.cc
    QCerenkovIntegralTest.cc
    QPolyTest.cc
-   QSimTest.cc
    QSimDescTest.cc
-   QOpticalTest.cc 
-   QPropTest.cc 
-   QEventTest.cc 
+   QPropTest.cc
    QEvent_Lifecycle_Test.cc
-   QSim_Lifecycle_Test.cc
-   QSimWithEventTest.cc 
-   QSimCreateTest.cc 
+   QSimCreateTest.cc
    QUTest.cc
    QTexMakerTest.cc
    QTexLookupTest.cc
-   QBufTest.cc
    QMultiFilmTest.cc
 
    QCurandStateMonolithicTest.cc
@@ -30,11 +23,22 @@ set(TEST_SOURCES
    qrng_test.cc
 )
 
+set(CUDART_TEST_SOURCES
+
+   QTexRotateTest.cc
+   QBufTest.cc
+   QOpticalTest.cc
+   QSimWithEventTest.cc
+   QSimTest.cc
+   QEventTest.cc
+   QPMTTest.cc
+
+)
 
 ## THESE NEED REJIG : THEY FAIL FOR LACK OF DEPENDENCIES 
 set(KNOWN_FAIL_TEST_SOURCES
    QCerenkovTest.cc
-   QBndTest.cc 
+   QBndTest.cc
 )
 
 set(OTHER_TEST_SOURCES
@@ -67,7 +71,7 @@ find_package(PMTSim_standalone CONFIG)
 if(PMTSim_standalone_FOUND)
 
     set(PMTSIM_TEST_SOURCES
-        QPMTTest.cc 
+        QPMTTest.cc
     )
 
     foreach(SRC ${PMTSIM_TEST_SOURCES})

@@ -1,4 +1,4 @@
-#!/bin/bash -l 
+#!/bin/bash
 usage(){ cat << EOU
 gxt.sh : G4CXSimtraceTest 
 =============================================================================================================
@@ -130,6 +130,8 @@ analog timings : showing log lines taking more than 2 percent of total time
 EOU
 }
 
+cd $(dirname $(realpath $BASH_SOURCE))
+
 msg="=== $BASH_SOURCE :"
 
 case $(uname) in 
@@ -148,7 +150,7 @@ bin=G4CXSimtraceTest
 log=$bin.log
 home=$(dirname $BASH_SOURCE)/..
 
-source $home/bin/GEOM_.sh   # use geom_ bash function to edit 
+source $HOME/.opticks/GEOM/GEOM.sh 
 
 if [ -n "$OPTICKS_INPUT_PHOTON" ]; then 
    echo $msg WARNING : simtrace running and input photons cannot be used together  : unset OPTICKS_INPUT_PHOTON
@@ -169,6 +171,8 @@ T_FOLD=$FOLD
 A_FOLD=$($home/g4cx/gxs.sh fold)
 B_FOLD=$($home/u4/u4s.sh fold)
 
+
+source $home/bin/upfind_cfbase.sh
 T_CFBASE=$(upfind_cfbase $T_FOLD)
 A_CFBASE=$(upfind_cfbase $A_FOLD)  
 B_CFBASE=$(upfind_cfbase $B_FOLD)  
@@ -311,10 +315,8 @@ if [ "analog" == "$arg" ]; then
 fi 
 
 if [ "${arg/dbg}" != "$arg" ]; then 
-    case $(uname) in
-        Linux) gdb__ $bin -ex r  ;;
-        Darwin) lldb__ $bin ;; 
-    esac
+    source ../bin/dbg__.sh
+    dbg__ $bin 
     [ $? -ne 0 ] && echo $BASH_SOURCE dbg $bin error && exit 2 
 fi
 

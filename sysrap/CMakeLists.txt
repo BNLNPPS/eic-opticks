@@ -9,7 +9,10 @@ find_package(glm REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 find_package(OpenSSL REQUIRED)
 
-set(Custom4_VERBOSE ON) 
+find_package(CUDAToolkit)   ## for CUDA::cudart
+
+
+set(Custom4_VERBOSE ON)
 find_package(Custom4 CONFIG)
 
 message(STATUS "${name} Custom4_FOUND:${Custom4_FOUND}  " )
@@ -23,8 +26,8 @@ configure_file( ${SYSRAP_GENERATED_HEADER}.in inc/${SYSRAP_GENERATED_HEADER} )
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/inc/${SYSRAP_GENERATED_HEADER} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 set(SOURCES
-    SYSRAP_LOG.cc 
-    SLOG.cc 
+    SYSRAP_LOG.cc
+    SLOG.cc
 
     SCurandStateMonolithic.cc
     SSys.cc
@@ -99,14 +102,14 @@ set(SOURCES
     SOpticks.cc
     SOpticksResource.cc
     SOpticksKey.cc
-    SThetaCut.cc 
-    SPhiCut.cc 
+    SThetaCut.cc
+    SPhiCut.cc
 
     SCenterExtentGenstep.cc
 
     OpticksPhoton.cc
 
-    SU.cu 
+    SU.cu
 
     SEventConfig.cc
     SFrameConfig.cc
@@ -119,12 +122,18 @@ set(SOURCES
     SFastSimOpticalModel.cc
 
     SOpBoundaryProcess.cc
-) 
-    
+)
+
+
+
+
+
+
+
 
 set(CURANDLITE_HEADERS
     curandlite/curandStatePhilox4_32_10_OpticksLite.h
-) 
+)
 
 
 set(HEADERS
@@ -135,12 +144,12 @@ set(HEADERS
     SYSRAP_HEAD.hh
     SYSRAP_TAIL.hh
     SLOG.hh
-    slog.h 
+    slog.h
 
     PLOG.hh
-    SLOG_INIT.hh  
+    SLOG_INIT.hh
 
-    SLaunchSequence.h 
+    SLaunchSequence.h
 
 
     SCurandSpec.h
@@ -158,7 +167,7 @@ set(HEADERS
 
     SBacktrace.h
     SStackFrame.h
-    SProfile.h 
+    SProfile.h
 
     ssys.h
     SSys.hh
@@ -168,13 +177,13 @@ set(HEADERS
 
     schrono.h
     stimer.h
-    sstamp.h 
+    sstamp.h
 
     SBnd.h
     SPrd.h
 
     SPath.hh
-    spath.h 
+    spath.h
     sdirectory.h
 
     sdevice.h
@@ -191,21 +200,21 @@ set(HEADERS
     SCount.hh
 
     slist.h
-    sfreq.h 
+    sfreq.h
     snode.h
-    stree.h 
-    suniquename.h 
+    stree.h
+    suniquename.h
 
     sstandard.h
-    sprop.h 
-    sproplist.h 
-    sidxname.h 
+    sprop.h
+    sproplist.h
+    sidxname.h
 
-    snam.h 
-    smatsur.h 
+    snam.h
+    smatsur.h
 
 
-    strid.h 
+    strid.h
     sfactor.h
 
     snd.hh
@@ -215,23 +224,23 @@ set(HEADERS
 
     s_pool.h
     s_csg.h
-    sn.h 
-    s_pa.h 
-    s_bb.h 
-    s_tv.h 
+    sn.h
+    s_pa.h
+    s_bb.h
+    s_tv.h
 
-    st.h 
-    stra.h 
+    st.h
+    stra.h
     sgeomtools.h
- 
+
     spa.h
     sxf.h
     sbb.h
-    
+
     sdigest.h
     SDigest.hh
 
-    
+
 
     SDigestNP.hh
     SDirect.hh
@@ -268,7 +277,7 @@ set(HEADERS
     s_time.h
 
     SPPM.hh
-    sppm.h 
+    sppm.h
 
     SColor.hh
     SId.hh
@@ -290,22 +299,22 @@ set(HEADERS
     SRng.hh
     SBuf.hh
 
-    SName.h 
-    SLabel.h 
+    SName.h
+    SLabel.h
 
-    smath.h 
+    smath.h
     sblackbody.h
     tcomplex.h
 
     srng.h
     sbuild.h
     srngcpu.h
-    scurand.h  
+    scurand.h
 
     s_mock_texture.h
-    stexture.h  
+    stexture.h
 
-    njuffa_erfcinvf.h 
+    njuffa_erfcinvf.h
     s_mock_erfcinvf.h
 
 
@@ -313,21 +322,21 @@ set(HEADERS
     squadx.h
 
     sphoton.h
-    sphit.h 
+    sphit.h
     spho.h
-    sgs.h 
-    srec.h 
-    srec.h 
-    sseq.h 
+    sgs.h
+    srec.h
+    srec.h
+    sseq.h
     sseq_index.h
 
     sframe.h
     sfr.h
-    SCE.h 
-    SCSGOptiX.h 
+    SCE.h
+    SCSGOptiX.h
 
-    SPMT.h 
-    SPMTAccessor.h 
+    SPMT.h
+    SPMTAccessor.h
 
     storchtype.h
 
@@ -336,17 +345,17 @@ set(HEADERS
     scerenkov.h
     sscint.h
     sevent.h
-    sstate.h 
+    sstate.h
     sctx.h
     salloc.h
 
     SGenerate.h
-    
+
     sflow.h
     sqat4.h
     saabb.h
     stran.h
-    stmm.h 
+    stmm.h
 
     SPlace.h
     SPlaceSphere.h
@@ -357,14 +366,14 @@ set(HEADERS
     ssincos.h
     sxyz.h
     sc4u.h
-    stag.h 
+    stag.h
 
     sbit_.h
     sbibit.h
 
     sview.h
-    strided_range.h 
-    iexpand.h 
+    strided_range.h
+    iexpand.h
 
 
     SOpticks.hh
@@ -376,6 +385,7 @@ set(HEADERS
 
     SCMD.h
 
+    SRecordInfo.h
     SGLM.h
     SGLM_Parse.h
     SGLM_Modifiers.h
@@ -383,7 +393,7 @@ set(HEADERS
 
     GL_CHECK.h
 
-    SScene.h 
+    SScene.h
     SMesh.h
     SMeshGroup.h
 
@@ -393,15 +403,17 @@ set(HEADERS
     SGLFW_Program.h
     SGLFW_Mesh.h
     SGLFW_Scene.h
+    SGLFW_Record.h
+    SGLFW_Evt.h
     SGLFW_GLEQ.h
 
     SGLDisplay.h
-    SCUDA_OutputBuffer.h 
+    SCUDA_OutputBuffer.h
     SGLFW_CUDA.h
 
-    SCUDA_Mesh.h 
-    SCU_BufferView.h 
-    SCUDA_MeshGroup.h 
+    SCUDA_Mesh.h
+    SCU_BufferView.h
+    SCUDA_MeshGroup.h
     SCSGPrimSpec.h
 
     scuda.h
@@ -421,12 +433,12 @@ set(HEADERS
     SOPTIX_Pipeline.h
     SOPTIX_SBT.h
     SOPTIX_Scene.h
-    
+
     SOPTIX_BuildInput.h
     SOPTIX_BuildInput_Mesh.h
     SOPTIX_BuildInput_CPA.h
     SOPTIX_BuildInput_IA.h
-    
+
     gleq.h
 
     SDir.h
@@ -434,14 +446,14 @@ set(HEADERS
     SCAM.h
     SBAS.h
 
-    SEvt.hh 
+    SEvt.hh
 
     SOpticksKey.hh
     SMath.hh
 
     SEvent.hh
     SGenstep.h
-    sslice.h 
+    sslice.h
 
     SFrameGenstep.hh
 
@@ -452,7 +464,7 @@ set(HEADERS
     SCenterExtentFrame.h
     SPresent.h
 
-    SCenterExtentGenstep.hh 
+    SCenterExtentGenstep.hh
     scanvas.h
 
     OpticksGenstep.h
@@ -460,25 +472,25 @@ set(HEADERS
     OpticksPhoton.hh
 
     CUDA_CHECK.h
-    SCU.h 
-    SCU_.h 
+    SCU.h
+    SCU_.h
     OPTIX_CHECK.h
- 
+
 
     SU.hh
-    SComponent_OLD.hh 
-    SComp.h 
+    SComponent_OLD.hh
+    SComp.h
 
     SEventConfig.hh
-    SRM.h 
+    SRM.h
     SFrameConfig.hh
     SGeoConfig.hh
 
     np.h
-    NP.hh  
-    NPU.hh 
-    NPX.h 
-    NPFold.h 
+    NP.hh
+    NPU.hh
+    NPX.h
+    NPFold.h
     SSim.hh
     SPropMockup.h
 
@@ -486,13 +498,14 @@ set(HEADERS
     S4MaterialPropertyVector.h
 
     SNameOrder.h
-    S4.h 
-    S4Surface.h 
+    S4.h
+    S4Surface.h
     S4TreeBorder.h
 
     S4RandomMonitor.h
     S4RandomArray.h
 
+    SProcessHits_EPH.h
 
     SFastSim_Debug.hh
     SFastSimOpticalModel.hh
@@ -501,7 +514,7 @@ set(HEADERS
     SPhoton_Debug.h
     SUniformRand.h
 
-    sgeomdefs.h 
+    sgeomdefs.h
     sfmt.h
     ssolid.h
     SIntersect.h
@@ -522,34 +535,34 @@ message(STATUS "ANADIR : ${ANADIR}")
 set(HGS ${CMAKE_CURRENT_SOURCE_DIR}/OpticksGenstep.h)
 set(IGS ${CMAKE_CURRENT_BINARY_DIR}/OpticksGenstep_Enum.ini)
 add_custom_command(
-   OUTPUT 
+   OUTPUT
          ${IGS}
-   COMMAND 
+   COMMAND
           ${ANADIR}/enum_.py ${HGS} --quiet --simple --inipath ${IGS}
-   DEPENDS 
+   DEPENDS
          ${HGS}
 )
 add_custom_target(PythonGS ALL DEPENDS ${IGS} )
 
 #[=[
 
-   cd ~/opticks/sysrap ; ../ana/enum_.py OpticksGenstep.h --quiet --simple --inipath /tmp/OpticksGenstep_Enum.ini && cat /tmp/OpticksGenstep_Enum.ini 
+   cd ~/opticks/sysrap ; ../ana/enum_.py OpticksGenstep.h --quiet --simple --inipath /tmp/OpticksGenstep_Enum.ini && cat /tmp/OpticksGenstep_Enum.ini
 #]=]
 
 
-## HMM:the flags change very infrequently : easier to code generate into source directories for discoverability 
+## HMM:the flags change very infrequently : easier to code generate into source directories for discoverability
 set(HPH ${CMAKE_CURRENT_SOURCE_DIR}/OpticksPhoton.h)
 set(IPH ${CMAKE_CURRENT_BINARY_DIR}/OpticksPhoton_Enum.ini)
 add_custom_command(
-   OUTPUT 
+   OUTPUT
          ${IPH}
-   COMMAND 
+   COMMAND
           ${ANADIR}/enum_.py ${HPH} --quiet --inipath ${IPH}
-   DEPENDS 
+   DEPENDS
          ${HPH}
 )
 add_custom_target(PythonPH ALL DEPENDS ${IPH} )
-# ALL : Indicates that this custom target should be added to the 
+# ALL : Indicates that this custom target should be added to the
 # default build target so that it will be run every time.
 
 
@@ -558,35 +571,35 @@ set(CCFL ${CMAKE_CURRENT_SOURCE_DIR}/OpticksPhoton.hh)
 set(PYJS ${CMAKE_CURRENT_BINARY_DIR}/OpticksPhoton_Abbrev.json)
 
 add_custom_command(
-   OUTPUT 
+   OUTPUT
          ${PYJS}
-   COMMAND 
+   COMMAND
          ${ANADIR}/OpticksPhoton.py ${CCFL} --quiet --jsonpath ${PYJS}
-   DEPENDS 
+   DEPENDS
          ${CCFL}
 )
 add_custom_target(PythonJSON ALL DEPENDS ${PYJS} )
 
 
-list(APPEND HEADERS 
-  ${IGS} 
-  ${IPH} 
+list(APPEND HEADERS
+  ${IGS}
+  ${IPH}
   ${PYJS}
-) 
+)
 
 
 set(WITH_SIMG YES)
 if(WITH_SIMG)
-    list(APPEND HEADERS   stb_image.h  stb_image_write.h)   
-    list(APPEND HEADERS   SIMG.h  )   
-    list(APPEND HEADERS   SIMG_Frame.h  )   
+    list(APPEND HEADERS   stb_image.h  stb_image_write.h)
+    list(APPEND HEADERS   SIMG.h  )
+    list(APPEND HEADERS   SIMG_Frame.h  )
 endif()
 
 
 set(WITH_STTF YES)
 if(WITH_STTF)
     list(APPEND HEADERS stb_truetype.h)
-    list(APPEND HEADERS STTF.h)    
+    list(APPEND HEADERS STTF.h)
 endif()
 
 
@@ -615,43 +628,51 @@ target_include_directories( ${name} PUBLIC
 )
 
 
+
 #[=[
 SysRap Compile Definitions
 ----------------------------
 
 former  WITH..SND
-   switched the below to use the old inflexible snd.hh CSG node impl, 
+   switched the below to use the old inflexible snd.hh CSG node impl,
    instead of the default more flexible sn.h impl:
 
    sysrap/stree.h
-       WITH..SND saves CSG nodes in CSGFoundry/SSim/stree/csg 
-       NOT:WITH..SND saves CSG nodes in CSGFoundry/SSim/stree/_csg 
+       WITH..SND saves CSG nodes in CSGFoundry/SSim/stree/csg
+       NOT:WITH..SND saves CSG nodes in CSGFoundry/SSim/stree/_csg
 
-   u4/U4Tree.h u4/U4Solid.h u4/U4Polycone.h 
+   u4/U4Tree.h u4/U4Solid.h u4/U4Polycone.h
        WITH..SND uses snd.hh idx int as CSG root
-       NOT:WITH..SND uses sn.h sn* pointer as CSG root 
-    
+       NOT:WITH..SND uses sn.h sn* pointer as CSG root
+
 WITH_CHILD
    sysrap/sn.h uses child vector of sn pointers supporting n-ary trees
 
 NOT:WITH_CHILD
    sysrap/sn.h uses left, right sn pointers supporting only binary trees
 
-DEBUG_TAG 
-   needed for random aligned running in multiple pkgs: sysrap, qudarap, u4  
-   however making this PUBLIC makes rebuilding real heavy 
-   so must rely on making coordinated switches when doing random aligned running  
+DEBUG_TAG
+
+   $<$<CONFIG:Debug>:DEBUG_TAG>
+
+   ONLY LEAVE ENABLED WHEN DOING RANDOM ALIGNED RUNNING TESTS
+
+   needed for random aligned running in multiple pkgs: sysrap, qudarap, u4
+   however making this PUBLIC makes rebuilding real heavy
+   so must rely on making coordinated switches when doing random aligned running
+
+
 
 PLOG_LOCAL
    changes visibility of plog external symbols, allowing better
-   integration with packages (like junosw) that do not hide 
-   symbols by default  
+   integration with packages (like junosw) that do not hide
+   symbols by default
 
 RNG_XORWOW/RNG_PHILOX/RNG_PHILITEOX
    Use one of these to pick the curandState implementation, in srng.h
    picking RNG_XORWOW requires curandState files which slows
-   down initialization greatly when simulating many millions 
-   of photons 
+   down initialization greatly when simulating many millions
+   of photons
 
 #]=]
 
@@ -661,24 +682,28 @@ if(Custom4_FOUND)
    target_include_directories( ${name} PUBLIC ${Custom4_INCLUDE_DIR})
 endif()
 
-target_compile_definitions( ${name}
-    PUBLIC
+
+set(SYSRAP_COMPILE_DEFINITIONS
       $<$<CONFIG:Debug>:CONFIG_Debug>
       $<$<CONFIG:RelWithDebInfo>:CONFIG_RelWithDebInfo>
       $<$<CONFIG:Release>:CONFIG_Release>
       $<$<CONFIG:MinSizeRel>:CONFIG_MinSizeRel>
 
-      OPTICKS_SYSRAP 
+      OPTICKS_SYSRAP
       WITH_CHILD
       PLOG_LOCAL
       RNG_PHILOX
 
-      $<$<CONFIG:Debug>:DEBUG_TAG>
       $<$<CONFIG:Debug>:DEBUG_PIDX>
       $<$<CONFIG:Debug>:DEBUG_PIDXYZ>
       $<$<CONFIG:Release>:PRODUCTION>
 )
 
+
+target_compile_definitions( ${name}
+    PUBLIC
+           ${SYSRAP_COMPILE_DEFINITIONS}
+)
 
 
 
