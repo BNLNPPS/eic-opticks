@@ -15,7 +15,7 @@ install(TARGETS consgeo EXPORT ${PROJECT_NAME}Targets
 )
 
 # simg4ox runs Geant4 and OptiX simulations
-add_executable(simg4ox simg4ox.cpp g4app.h)
+add_executable(simg4ox simg4ox.cpp g4app.h torch.cpp)
 
 target_link_libraries(simg4ox ${Geant4_LIBRARIES} G4CX)
 
