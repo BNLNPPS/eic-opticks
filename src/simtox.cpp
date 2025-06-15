@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "sysrap/NP.hh"
 #include "sysrap/SEvent.hh"
@@ -7,6 +8,8 @@
 #include "sysrap/srng.h"
 #include "sysrap/storch.h"
 #include "sysrap/storchtype.h"
+
+#include "torch.h"
 
 #include <curand_kernel.h>
 
@@ -46,20 +49,13 @@ int main(int argc, char **argv)
 
     cout << torch.desc() << endl;
 
-    NP *photons = NP::Make<float>(n_photons, 4, 4);
+    vector<sphoton> phs = generate_photons(torch, n_photons);
 
-    const quad6 &qtorch = *reinterpret_cast<quad6 *>(&torch);
-    sphoton *qphotons = reinterpret_cast<sphoton *>(photons->bytes());
-    int unused = -1;
+    size_t num_floats = phs.size()*4*4;
+    float* data = reinterpret_cast<float*>(phs.data());
+    NP* photons = NP::MakeFromValues<float>(data, num_floats);
 
-    curandStatePhilox4_32_10 rng;
-
-    for (unsigned photon_id = 0; photon_id < n_photons; photon_id++)
-    {
-        storch::generate(qphotons[photon_id], rng, qtorch, unused, unused);
-    }
-
-    photons->set_meta({"my photon meta info 1", "additional meta info"});
+    photons->reshape({ static_cast<int64_t>(phs.size()), 4, 4});
     photons->dump();
     photons->save("out/photons.npy");
 
