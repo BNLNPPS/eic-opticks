@@ -90,11 +90,15 @@ MaxRecord
     step record buffer, full recording requires a value of one greater 
     than the MaxBounce configured  (typically up to 16) 
 
-MaxExtent (mm)
+MaxExtentDomain (mm)
+    only relevant to the domain compression of the compressed step records
+
+MaxTimeDomain (ns)
     only relevant to the domain compression of the compressed step records
 
 MaxTime (ns)
-    only relevant to the domain compression of the compressed step records
+    truncation to simulation in addition to MaxBounce
+
 
 
 +-------------------------------+-----------------------------------------+---------------------------------------+
@@ -117,10 +121,12 @@ struct SYSRAP_API SEventConfig
     static const plog::Severity LEVEL ;  
     static constexpr const int MISSING_INDEX = std::numeric_limits<int>::max() ; 
 
-    static const int LIMIT ; 
-    static void LIMIT_Check(); 
-    static std::string Desc(); 
-    static std::string HitMaskLabel(); 
+    static int  RecordLimit(); // sseq::SLOTS typically 32
+    static void LIMIT_Check();
+    static std::string Desc();
+
+    //static std::string DescHitMask();
+    static std::string HitMaskLabel();
 
 
     // [TODO : RECONSIDER OUTDIR OUTNAME MECHANICS FOLLOWING SEVT LAYOUT 
@@ -155,18 +161,20 @@ struct SYSRAP_API SEventConfig
     static constexpr const char* kMaxPhoton    = "OPTICKS_MAX_PHOTON" ; 
     static constexpr const char* kMaxSimtrace  = "OPTICKS_MAX_SIMTRACE" ; 
 
-    static constexpr const char* kMaxBounce    = "OPTICKS_MAX_BOUNCE" ; 
-    static constexpr const char* kMaxRecord    = "OPTICKS_MAX_RECORD" ; 
-    static constexpr const char* kMaxRec       = "OPTICKS_MAX_REC" ; 
-    static constexpr const char* kMaxAux       = "OPTICKS_MAX_AUX" ; 
-    static constexpr const char* kMaxSup       = "OPTICKS_MAX_SUP" ; 
-    static constexpr const char* kMaxSeq       = "OPTICKS_MAX_SEQ" ; 
-    static constexpr const char* kMaxPrd       = "OPTICKS_MAX_PRD" ; 
-    static constexpr const char* kMaxTag       = "OPTICKS_MAX_TAG" ; 
-    static constexpr const char* kMaxFlat      = "OPTICKS_MAX_FLAT" ; 
+    static constexpr const char* kMaxBounce    = "OPTICKS_MAX_BOUNCE" ;
+    static constexpr const char* kMaxTime      = "OPTICKS_MAX_TIME" ;
 
-    static constexpr const char* kMaxExtent    = "OPTICKS_MAX_EXTENT" ; 
-    static constexpr const char* kMaxTime      = "OPTICKS_MAX_TIME" ; 
+    static constexpr const char* kMaxRecord    = "OPTICKS_MAX_RECORD" ;
+    static constexpr const char* kMaxRec       = "OPTICKS_MAX_REC" ;
+    static constexpr const char* kMaxAux       = "OPTICKS_MAX_AUX" ;
+    static constexpr const char* kMaxSup       = "OPTICKS_MAX_SUP" ;
+    static constexpr const char* kMaxSeq       = "OPTICKS_MAX_SEQ" ;
+    static constexpr const char* kMaxPrd       = "OPTICKS_MAX_PRD" ;
+    static constexpr const char* kMaxTag       = "OPTICKS_MAX_TAG" ;
+    static constexpr const char* kMaxFlat      = "OPTICKS_MAX_FLAT" ;
+
+    static constexpr const char* kMaxExtentDomain    = "OPTICKS_MAX_EXTENT_DOMAIN" ;
+    static constexpr const char* kMaxTimeDomain      = "OPTICKS_MAX_TIME_DOMAIN" ;
 
     static constexpr const char* kOutPrefix    = "OPTICKS_OUT_PREFIX" ; 
     static constexpr const char* kOutFold      = "OPTICKS_OUT_FOLD" ; 
@@ -179,10 +187,14 @@ struct SYSRAP_API SEventConfig
     static constexpr const char* kGatherComp   = "OPTICKS_GATHER_COMP" ; 
     static constexpr const char* kSaveComp     = "OPTICKS_SAVE_COMP" ; 
 
-    static constexpr const char* kPropagateEpsilon = "OPTICKS_PROPAGATE_EPSILON" ; 
-    static constexpr const char* kInputGenstep     = "OPTICKS_INPUT_GENSTEP" ; 
-    static constexpr const char* kInputPhoton      = "OPTICKS_INPUT_PHOTON" ; 
-    static constexpr const char* kInputPhotonFrame = "OPTICKS_INPUT_PHOTON_FRAME" ; 
+    static constexpr const char* kPropagateEpsilon = "OPTICKS_PROPAGATE_EPSILON" ;
+    static constexpr const char* kPropagateEpsilon0 = "OPTICKS_PROPAGATE_EPSILON0" ;
+    static constexpr const char* kPropagateEpsilon0Mask = "OPTICKS_PROPAGATE_EPSILON0_MASK" ;
+
+    static constexpr const char* kInputGenstep     = "OPTICKS_INPUT_GENSTEP" ;
+    static constexpr const char* kInputGenstepSelection  = "OPTICKS_INPUT_GENSTEP_SELECTION" ;
+    static constexpr const char* kInputPhoton      = "OPTICKS_INPUT_PHOTON" ;
+    static constexpr const char* kInputPhotonFrame = "OPTICKS_INPUT_PHOTON_FRAME" ;
 
 
     static int         IntegrationMode(); 
@@ -210,30 +222,37 @@ struct SYSRAP_API SEventConfig
     static int MaxCurand();  
     static int MaxSlot();  
 
-    static int MaxGenstep(); 
-    static int MaxPhoton(); 
-    static int MaxSimtrace(); 
+    static int MaxGenstep();
+    static int MaxPhoton();
+    static int MaxSimtrace();
 
-    static int MaxBounce(); 
-    static int MaxRecord();  // full photon step record  
+    static int MaxBounce();
+    static float MaxTime();
+
+    static int MaxRecord();  // full photon step record
     static int MaxRec();     // compressed photon step record
     static int MaxAux();     // auxiliary photon step record, used for debug 
     static int MaxSup();     // supplementry photon level info
     static int MaxSeq();     // seqhis slots
-    static int MaxPrd();    
-    static int MaxTag();    
-    static int MaxFlat();    
-    static float MaxExtent() ; 
-    static float MaxTime() ; 
-    static const char* OutFold(); 
-    static const char* OutName(); 
-    static const char* EventReldir(); 
-    static unsigned HitMask(); 
+    static int MaxPrd();
+    static int MaxTag();
+    static int MaxFlat();
+
+    static float MaxExtentDomain() ;
+    static float MaxTimeDomain() ;
+
+    static const char* OutFold();
+    static const char* OutName();
+    static const char* EventReldir();
+    static unsigned HitMask();
 
     static unsigned GatherComp(); 
     static unsigned SaveComp(); 
 
-    static float PropagateEpsilon(); 
+    static float PropagateEpsilon();
+    static float PropagateEpsilon0();
+    static unsigned PropagateEpsilon0Mask();
+    static std::string PropagateEpsilon0MaskLabel();
 
     static const char* _InputGenstepPath(int idx=-1); 
     static const char* InputGenstep(int idx=-1); 
@@ -312,18 +331,20 @@ struct SYSRAP_API SEventConfig
     static void SetMaxPhoton( int max_photon); 
     static void SetMaxSimtrace( int max_simtrace); 
 
-    static void SetMaxBounce( int max_bounce); 
-    static void SetMaxRecord( int max_record); 
-    static void SetMaxRec(    int max_rec); 
-    static void SetMaxAux(    int max_aux); 
-    static void SetMaxSup(    int max_sup); 
-    static void SetMaxSeq(    int max_seq); 
-    static void SetMaxPrd(    int max_prd); 
-    static void SetMaxTag(    int max_tag); 
-    static void SetMaxFlat(    int max_flat); 
+    static void SetMaxBounce( int max_bounce);
+    static void SetMaxTime(   float max_time );
 
-    static void SetMaxExtent( float max_extent); 
-    static void SetMaxTime(   float max_time ); 
+    static void SetMaxRecord( int max_record);
+    static void SetMaxRec(    int max_rec);
+    static void SetMaxAux(    int max_aux);
+    static void SetMaxSup(    int max_sup);
+    static void SetMaxSeq(    int max_seq);
+    static void SetMaxPrd(    int max_prd);
+    static void SetMaxTag(    int max_tag);
+    static void SetMaxFlat(    int max_flat);
+
+    static void SetMaxExtentDomain( float max_extent);
+    static void SetMaxTimeDomain(   float max_time );
 
     static void SetOutFold( const char* out_fold); 
     static void SetOutName( const char* out_name); 
@@ -336,10 +357,14 @@ struct SYSRAP_API SEventConfig
     static void SetRGModeRender() ; 
     static void SetRGModeTest() ; 
 
-    static void SetPropagateEpsilon( float eps) ; 
-    static void SetInputGenstep(const char* input_genstep); 
-    static void SetInputPhoton(const char* input_photon); 
-    static void SetInputPhotonFrame(const char* input_photon_frame); 
+    static void SetPropagateEpsilon( float eps) ;
+    static void SetPropagateEpsilon0( float eps) ;
+    static void SetPropagateEpsilon0Mask( const char* abrseq, char delim=',' ) ;
+
+    static void SetInputGenstep(const char* input_genstep);
+    static void SetInputGenstepSelection(const char* input_genstep_selection);
+    static void SetInputPhoton(const char* input_photon);
+    static void SetInputPhotonFrame(const char* input_photon_frame);
 
     static void SetGatherComp_(unsigned mask); 
     static void SetGatherComp(const char* names, char delim=',') ; 
@@ -359,11 +384,13 @@ struct SYSRAP_API SEventConfig
     static const char* _NumPhotonDefault ; 
     static const char* _NumGenstepDefault ; 
 
-    static int         _EventSkipaheadDefault ; 
-    static const char* _G4StateSpecDefault ; 
-    static const char* _G4StateSpecNotes ; 
-    static int         _G4StateRerunDefault ; 
-    static const char* _MaxBounceNotes ; 
+    static int         _EventSkipaheadDefault ;
+    static const char* _G4StateSpecDefault ;
+    static const char* _G4StateSpecNotes ;
+    static int         _G4StateRerunDefault ;
+
+    static const char* _MaxBounceNotes ;
+    static const char* _MaxTimeNotes ;
 
     static const char* _MaxCurandDefault ; 
     static const char* _MaxSlotDefault ; 
@@ -372,30 +399,39 @@ struct SYSRAP_API SEventConfig
     static const char* _MaxPhotonDefault ; 
     static const char* _MaxSimtraceDefault ; 
 
-    static int _MaxBounceDefault ; 
-    static int _MaxRecordDefault ; 
-    static int _MaxRecDefault ; 
-    static int _MaxAuxDefault ; 
-    static int _MaxSupDefault ; 
-    static int _MaxSeqDefault ; 
-    static int _MaxPrdDefault ; 
-    static int _MaxTagDefault ; 
-    static int _MaxFlatDefault ; 
-    static float _MaxExtentDefault ; 
-    static float _MaxTimeDefault  ; 
-    static const char* _OutFoldDefault ; 
-    static const char* _OutNameDefault ; 
-    static const char* _EventReldirDefault ; 
-    static const char* _HitMaskDefault ; 
-    static const char* _RGModeDefault ; 
+    static int _MaxBounceDefault ;
+    static float _MaxTimeDefault  ;
+
+    static int _MaxRecordDefault ;
+    static int _MaxRecDefault ;
+    static int _MaxAuxDefault ;
+    static int _MaxSupDefault ;
+    static int _MaxSeqDefault ;
+    static int _MaxPrdDefault ;
+    static int _MaxTagDefault ;
+    static int _MaxFlatDefault ;
+
+    static float _MaxExtentDomainDefault ;
+    static float _MaxTimeDomainDefault  ;
+
+    static const char* _OutFoldDefault ;
+    static const char* _OutNameDefault ;
+    static const char* _EventReldirDefault ;
+    static const char* _HitMaskDefault ;
+
+    static const char* _RGModeDefault ;
 
     static const char* _GatherCompDefault ; 
     static const char* _SaveCompDefault ; 
 
-    static float _PropagateEpsilonDefault  ; 
-    static const char* _InputGenstepDefault ; 
-    static const char* _InputPhotonDefault ; 
-    static const char* _InputPhotonFrameDefault ; 
+    static float       _PropagateEpsilonDefault  ;
+    static float       _PropagateEpsilon0Default  ;
+    static const char* _PropagateEpsilon0MaskDefault ;
+
+    static const char* _InputGenstepDefault ;
+    static const char* _InputGenstepSelectionDefault ;
+    static const char* _InputPhotonDefault ;
+    static const char* _InputPhotonFrameDefault ;
 
 
     static int         _IntegrationMode ; 
@@ -435,32 +471,38 @@ struct SYSRAP_API SEventConfig
     static int _MaxPhoton ; 
     static int _MaxSimtrace ; 
 
-    static int _MaxBounce ; 
-    static int _MaxRecord ; 
-    static int _MaxRec ; 
-    static int _MaxAux ; 
-    static int _MaxSup ; 
-    static int _MaxSeq ; 
-    static int _MaxPrd ; 
-    static int _MaxTag ; 
-    static int _MaxFlat ; 
-    static float _MaxExtent ; 
-    static float _MaxTime  ; 
-    static const char* _OutFold ; 
-    static const char* _OutName ; 
-    static const char* _EventReldir ; 
-    static unsigned _HitMask ; 
-    static int _RGMode ; 
+    static int _MaxBounce ;
+    static float _MaxTime  ;
+
+    static int _MaxRecord ;
+    static int _MaxRec ;
+    static int _MaxAux ;
+    static int _MaxSup ;
+    static int _MaxSeq ;
+    static int _MaxPrd ;
+    static int _MaxTag ;
+    static int _MaxFlat ;
+
+    static float _MaxExtentDomain ;
+    static float _MaxTimeDomain  ;
+
+    static const char* _OutFold ;
+    static const char* _OutName ;
+    static const char* _EventReldir ;
+    static unsigned _HitMask ;
+    static int _RGMode ;
 
     static unsigned _GatherComp ; 
     static unsigned _SaveComp ; 
 
     static float _PropagateEpsilon ;
-    static const char* _InputGenstep ; 
-    static const char* _InputPhoton ; 
-    static const char* _InputPhotonFrame ; 
+    static float _PropagateEpsilon0 ;
+    static unsigned _PropagateEpsilon0Mask ;
 
-
+    static const char* _InputGenstep ;
+    static const char* _InputGenstepSelection ;
+    static const char* _InputPhoton ;
+    static const char* _InputPhotonFrame ;
 
     static scontext* CONTEXT ; 
     static salloc*   ALLOC ; 

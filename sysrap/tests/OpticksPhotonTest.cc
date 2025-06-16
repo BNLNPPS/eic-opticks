@@ -42,14 +42,15 @@ void test_FlagMask_0()
         std::cout  
                   << " ( 0x1 << " << std::setw(2) << i << " ) "  
                   << " (i+1) " << std::setw(2) << std::hex << (i + 1) << std::dec
-                  << " " << std::setw(2)  << OpticksPhoton::FlagMask(msk, true) 
-                  << " " << std::setw(20) << OpticksPhoton::FlagMask(msk, false)
-                  << " " << std::setw(6) << std::hex << msk << std::dec 
-                  << " " << std::setw(6) << std::dec << msk << std::dec 
-                  << std::endl 
-                  ;   
- 
-    }   
+                  << " " << std::setw(2)  << OpticksPhoton::FlagMaskLabel(msk, true)
+                  << " " << std::setw(20) << OpticksPhoton::FlagMaskLabel(msk, false)
+                  << " " << std::setw(6) << std::hex << msk << std::dec
+                  << " " << std::setw(6) << std::dec << msk << std::dec
+                  << std::endl
+                  ;
+
+    }
+    return 0 ;
 }
 
 void test_FlagMask_1()
@@ -58,20 +59,47 @@ void test_FlagMask_1()
     std::vector<unsigned> vmsk = { 0x5840, 0x5850, 0x5c40, 0x5940, 0x5860,  } ; 
 
     for(unsigned i=0 ; i < vmsk.size() ; i++)
-    { 
-        unsigned msk = vmsk[i] ;  
-        std::cout 
-            << std::setw(10) << std::hex << msk << std::dec 
-            << " flagmask(abbrev) " << std::setw(20) << OpticksPhoton::FlagMask(msk, true) 
-            << " flagmask " << OpticksPhoton::FlagMask(msk, false)
+    {
+        unsigned msk = vmsk[i] ;
+        std::cout
+            << std::setw(10) << std::hex << msk << std::dec
+            << " flagmask(abbrev) " << std::setw(20) << OpticksPhoton::FlagMaskLabel(msk, true)
+            << " flagmask " << OpticksPhoton::FlagMaskLabel(msk, false)
             << std::endl
             ; 
     }
 }
 
-void test_AbbrevToFlag()
+int test_GetFlagMask()
 {
-    LOG(info); 
+    std::cout << "[GetFlagMask\n" ;
+
+    char delim = ',' ;
+    std::vector<std::string> msks = { "SD", "EC", "EX", "EC,SD", "EX,SD", "EC,SA" } ;
+
+    int num_msk = msks.size();
+    for(int i=0 ; i < num_msk ; i++)
+    {
+        const char* _msk = msks[i].c_str();
+        unsigned msk = OpticksPhoton::GetFlagMask(_msk, delim);
+
+        std::cout
+            << " _msk " << std::setw(10) << _msk
+            << " msk  " << std::setw(10) << std::hex << msk << std::dec
+            << " " << OpticksPhoton::FlagMaskLabel(msk, true )
+            << " " << OpticksPhoton::FlagMaskLabel(msk, false )
+            << "\n"
+            ;
+    }
+    std::cout << "]GetFlagMask\n" ;
+    return 0 ;
+}
+
+
+
+int test_AbbrevToFlag()
+{
+    LOG(info);
     for(unsigned f=0 ; f < 32 ; f++ )
     {
         unsigned flag = OpticksPhoton::EnumFlag(f); 
@@ -281,6 +309,18 @@ int main(int argc, char** argv)
 
     test_load_seq(); 
 
+    if(ALL||0==strcmp(TEST, "FlagAbbrevPairs"))         rc += test_FlagAbbrevPairs() ;
+    if(ALL||0==strcmp(TEST, "FlagMask_0"))              rc += test_FlagMask_0() ;
+    if(ALL||0==strcmp(TEST, "FlagMask_1"))              rc += test_FlagMask_1() ;
+    if(ALL||0==strcmp(TEST, "GetFlagMask"))             rc += test_GetFlagMask() ;
+    if(ALL||0==strcmp(TEST, "AbbrevToFlag"))            rc += test_AbbrevToFlag() ;
+    if(ALL||0==strcmp(TEST, "AbbrevToFlagSequence"))    rc += test_AbbrevToFlagSequence() ;
+    if(ALL||0==strcmp(TEST, "AbbrevToFlagValSequence")) rc += test_AbbrevToFlagValSequence() ;
+    if(ALL||0==strcmp(TEST, "PointAbbrev"))             rc += test_PointAbbrev() ;
+    if(ALL||0==strcmp(TEST, "PointVal1"))               rc += test_PointVal1() ;
+    if(ALL||0==strcmp(TEST, "AbbrevSequenceToMask"))    rc += test_AbbrevSequenceToMask() ;
+    if(ALL||0==strcmp(TEST, "Abbrev_Flag"))             rc += test_Abbrev_Flag() ;
+    if(ALL||0==strcmp(TEST, "load_seq"))                rc += test_load_seq() ;
 
     return 0 ; 
 }

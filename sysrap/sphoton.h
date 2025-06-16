@@ -329,14 +329,28 @@ SPHOTON_METHOD std::string sphoton::descDigest() const
 
 SPHOTON_METHOD std::string sphoton::descFlag() const 
 {
-    std::stringstream ss ; 
-    ss 
-       << " sphoton idx " << idx() 
-       << " flag " << OpticksPhoton::Flag(flag())
-       << " flagmask " << OpticksPhoton::FlagMask(flagmask)
-       ; 
-    std::string s = ss.str(); 
-    return s ; 
+    return OpticksPhoton::Flag(flag()) ;
+}
+
+SPHOTON_METHOD const char* sphoton::abbrev_() const
+{
+    return OpticksPhoton::Abbrev(flag()) ;
+}
+SPHOTON_METHOD std::string sphoton::flagmask_() const
+{
+    return OpticksPhoton::FlagMaskLabel(flagmask) ;
+}
+
+SPHOTON_METHOD std::string sphoton::descFlag() const
+{
+    std::stringstream ss ;
+    ss
+       << " sphoton idx " << idx()
+       << " flag " << flag_()
+       << " flagmask " << flagmask_()
+       ;
+    std::string s = ss.str();
+    return s ;
 }
 
 
