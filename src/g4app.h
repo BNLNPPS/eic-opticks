@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <vector>
 
 #include "G4BooleanSolid.hh"
 #include "G4Event.hh"
@@ -33,6 +34,8 @@
 #include "u4/U4StepPoint.hh"
 #include "u4/U4Touchable.h"
 #include "u4/U4Track.h"
+
+#include "torch.h"
 
 bool IsSubtractionSolid(G4VSolid *solid)
 {
@@ -232,17 +235,16 @@ struct PrimaryGenerator : G4VUserPrimaryGeneratorAction
 
     void GeneratePrimaries(G4Event *event) override
     {
-        NP *photons = NP::Make<float>(0, 4, 4);
+        std::vector<sphoton> sphotons = generate_photons();
 
-        photons->load("out/photons.npy");
+        size_t num_floats = sphotons.size()*4*4;
+        float* data = reinterpret_cast<float*>(sphotons.data());
+        NP* photons = NP::MakeFromValues<float>(data, num_floats);
 
-        size_t n_photons = photons->num_items();
-        sphoton *sphotons = reinterpret_cast<sphoton *>(photons->bytes());
+        photons->reshape({ static_cast<int64_t>(sphotons.size()), 4, 4});
 
-        for (int i = 0; i < n_photons; i++)
+        for (const sphoton& p : sphotons)
         {
-            sphoton &p = sphotons[i];
-
             G4ThreeVector position_mm(p.pos.x, p.pos.y, p.pos.z);
             G4double time_ns = p.time;
             G4ThreeVector direction(p.mom.x, p.mom.y, p.mom.z);
