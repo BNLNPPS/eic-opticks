@@ -45,6 +45,7 @@ enum
 #if defined(__CUDACC__) || defined(__CUDABE__)
 #else
 #include <cstring>
+#include <string>
 #include "OpticksPhoton.h"
 
 struct OpticksGenstep_
@@ -71,6 +72,7 @@ struct OpticksGenstep_
     static constexpr const char* INPUT_PHOTON_            = "INPUT_PHOTON" ;
 
     static unsigned Type(const char* name); 
+    static unsigned Type(const std::string& name); 
     static const char* Name(unsigned type); 
 
     static bool IsValid(int gentype);
@@ -112,6 +114,11 @@ inline unsigned OpticksGenstep_::Type(const char* name)
     if(strcmp(name,FRAME_)==0)                    type = OpticksGenstep_FRAME ;
     if(strcmp(name,INPUT_PHOTON_)==0)             type = OpticksGenstep_INPUT_PHOTON ;
     return type ; 
+}
+
+inline unsigned OpticksGenstep_::Type(const std::string& name) 
+{
+    return Type(name.c_str());
 }
 
 inline const char* OpticksGenstep_::Name(unsigned type)
