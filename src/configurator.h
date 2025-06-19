@@ -4,23 +4,10 @@
 #include <string>
 #include <vector>
 
-namespace xpload {
+#include "sysrap/srng.h"
+#include "sysrap/storch.h"
 
-struct DbConfig
-{
-  std::string host{"localhost"};
-  std::string port{"8080"};
-  std::string apiroot{"/api/cdb_rest"};
-  std::string apiver{""};
-  std::vector<std::filesystem::path> path{"/path/to/payload/data"};
-  bool use_cache{false};
-  bool dry_run{false};
-  int verbosity{0};
-  int retry_times{5};
-  int retry_max_delay{60};
-
-  std::string url() const { return "http://" + host + ':' + port + apiroot; }
-};
+namespace gphox {
 
 
 /**
@@ -30,12 +17,12 @@ class Configurator
 {
  public:
 
-  Configurator(std::string config_name = "prod");
+  Configurator(std::string config_name = "dev");
 
   /// A unique name associated with this Configurator
   std::string name;
 
-  DbConfig db;
+  storch torch;
 
  private:
 

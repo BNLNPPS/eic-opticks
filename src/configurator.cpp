@@ -7,15 +7,17 @@
 #include <vector>
 
 #include <nlohmann/json.hpp>
+#include <cuda_runtime.h>
 
-#include "xpload/configurator.h"
+#include "configurator.h"
 #include "config.h"
 
-namespace xpload {
+namespace gphox {
 
+using namespace std;
 
 Configurator::Configurator(std::string config_name) :
-  name{std::getenv("XPLOAD_CONFIG") ? std::getenv("XPLOAD_CONFIG") : config_name}
+  name{std::getenv("GPHOX_CONFIG") ? std::getenv("GPHOX_CONFIG") : config_name}
 {
   ReadConfig(Locate(name + ".json"));
 }
@@ -25,11 +27,11 @@ std::string Configurator::Locate(std::string filename) const
 {
   std::vector<std::string> search_paths;
 
-  const std::string user_dir{std::getenv("XPLOAD_CONFIG_DIR") ? std::getenv("XPLOAD_CONFIG_DIR") : ""};
+  const std::string user_dir{std::getenv("GPHOX_CONFIG_DIR") ? std::getenv("GPHOX_CONFIG_DIR") : ""};
 
   if (user_dir.empty())
   {
-    std::string paths(XPLOAD_CONFIG_SEARCH_PATHS);
+    std::string paths(GPHOX_CONFIG_SEARCH_PATHS);
 
     size_t last = 0;
     size_t next = 0;
@@ -80,27 +82,31 @@ void Configurator::ReadConfig(std::string filepath)
     std::ifstream ifs(filepath);
     ifs >> json;
 
-    db = {
-      json["host"], json["port"],
-      json["apiroot"], json["apiver"],
-      json["path"],
-      json["use_cache"],
-      json["dry_run"],
-      json["verbosity"],
-      json["retry_times"],
-      json["retry_max_delay"]
+    nlohmann::json torch_ = json["torch"];
+
+    torch = {
+      .gentype = OpticksGenstep_::Type(torch_["gentype"]),
+      .trackid = torch_["trackid"],
+      .matline = torch_["matline"],
+      .numphoton = torch_["numphoton"],
+      .pos = make_float3(torch_["pos"][0], torch_["pos"][1], torch_["pos"][2]),
+      .time = torch_["time"],
+      .mom = normalize(make_float3(torch_["mom"][0], torch_["mom"][1], torch_["mom"][2])),
+      .weight = torch_["weight"],
+      .pol = make_float3(torch_["pol"][0], torch_["pol"][1], torch_["pol"][2]),
+      .wavelength = torch_["wavelength"],
+      .zenith = make_float2(torch_["zenith"][0], torch_["zenith"][1]),
+      .azimuth = make_float2(torch_["azimuth"][0], torch_["azimuth"][1]),
+      .radius = torch_["radius"],
+      .distance = torch_["distance"],
+      .mode = torch_["mode"],
+      .type = storchtype::Type(torch_["type"])
     };
   }
   catch (nlohmann::json::exception& e) {
     std::string errmsg{"Failed reading config parameters from " + filepath + "\n" + e.what()};
     throw std::runtime_error{errmsg};
   }
-
-  if (db.retry_times < 0)   db.retry_times = 0;
-  if (db.retry_times > 100) db.retry_times = 100;
-
-  if (db.retry_max_delay < 1)   db.retry_max_delay = 1;
-  if (db.retry_max_delay > 100) db.retry_max_delay = 100;
 }
 
 }
