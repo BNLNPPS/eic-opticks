@@ -22,6 +22,7 @@ enum {
 #if defined(__CUDACC__) || defined(__CUDABE__)
 #else
 #include <cstring>
+#include <string>
 
 struct storchtype
 {
@@ -35,6 +36,7 @@ struct storchtype
     static constexpr const char* T_SPHERE_  = "sphere" ;
 
     static unsigned Type(const char* name); 
+    static unsigned Type(const std::string& name); 
     static const char* Name(unsigned type); 
     static bool     IsValid(unsigned type); 
 }; 
@@ -50,6 +52,11 @@ inline unsigned storchtype::Type(const char* name)
     if(strcmp(name,T_SPHERE_MARSAGLIA_)==0) type = T_SPHERE_MARSAGLIA ; 
     if(strcmp(name,T_SPHERE_)==0) type = T_SPHERE ; 
     return type ; 
+}
+
+inline unsigned storchtype::Type(const std::string& name) 
+{
+    return Type(name.c_str());
 }
 
 inline const char* storchtype::Name(unsigned type)
