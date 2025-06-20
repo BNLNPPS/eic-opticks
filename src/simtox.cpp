@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 
     cout << torch.desc() << endl;
 
-    vector<sphoton> phs = generate_photons(torch, n_photons);
+    vector<sphoton> phs = generate_photons(torch);
 
     size_t num_floats = phs.size()*4*4;
     float* data = reinterpret_cast<float*>(phs.data());
