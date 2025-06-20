@@ -1,0 +1,3 @@
+#pragma once
+
+#define GPHOX_CONFIG_SEARCH_PATHS ".:config:@GPHOX_INSTALL_FULL_DATADIR@/config"

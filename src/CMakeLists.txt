@@ -1,5 +1,19 @@
 find_package(Geant4 REQUIRED ui_all vis_all)
 
+set(GPHOX_INSTALL_FULL_DATADIR "${CMAKE_INSTALL_FULL_DATADIR}/${PROJECT_NAME}")
+
+configure_file(config.h.in config.h @ONLY)
+
+# gphox is the primary library
+add_library(gphox configurator.cpp torch.cpp)
+target_link_libraries(gphox PUBLIC ${Geant4_LIBRARIES} G4CX SysRap)
+target_include_directories(gphox
+    INTERFACE $<INSTALL_INTERFACE:include>
+    PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+)
+
 # consgeo is a tool for converting GDML into CSG
 add_executable(consgeo consgeo.cc)
 
@@ -15,9 +29,9 @@ install(TARGETS consgeo EXPORT ${PROJECT_NAME}Targets
 )
 
 # simg4ox runs Geant4 and OptiX simulations
-add_executable(simg4ox simg4ox.cpp g4app.h torch.cpp)
+add_executable(simg4ox simg4ox.cpp g4app.h)
 
-target_link_libraries(simg4ox ${Geant4_LIBRARIES} G4CX)
+target_link_libraries(simg4ox gphox)
 
 target_include_directories(simg4ox PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
@@ -27,9 +41,9 @@ target_include_directories(simg4ox PRIVATE
 install(TARGETS simg4ox RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # simtox creates a numpy file with initial photons for simulation
-add_executable(simtox simtox.cpp torch.cpp)
+add_executable(simtox simtox.cpp)
 
-target_link_libraries(simtox SysRap)
+target_link_libraries(simtox gphox)
 
 target_include_directories(simtox PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
@@ -37,3 +51,4 @@ target_include_directories(simtox PRIVATE
 )
 
 install(TARGETS simtox RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS gphox LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
