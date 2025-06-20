@@ -5,10 +5,15 @@
 using namespace std;
 
 
-vector<sphoton> generate_photons(const storch& torch, int num_photons, unsigned int seed)
+vector<sphoton> generate_photons(const storch& torch, unsigned int num_photons, unsigned int seed)
 {
     curandStatePhilox4_32_10 rng;
     curand_init(seed, 0, 0, &rng);
+
+    if (num_photons == 0)
+    {
+        num_photons = torch.numphoton;
+    }
 
     vector<sphoton> photons;
     int unused = -1;

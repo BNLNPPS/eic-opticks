@@ -33,4 +33,4 @@ constexpr storch default_torch{
 };
 
 
-std::vector<sphoton> generate_photons(const storch& torch = default_torch, int num_photons = 100, unsigned int seed = 0);
+std::vector<sphoton> generate_photons(const storch& torch = default_torch, unsigned int num_photons = 0, unsigned int seed = 0);
