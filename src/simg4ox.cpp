@@ -13,6 +13,7 @@
 
 #include "sysrap/OPTICKS_LOG.hh"
 
+#include "configurator.h"
 #include "g4app.h"
 
 using namespace std;
@@ -54,6 +55,8 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    gphox::Configurator cfg("dev");
+
     // Configure Geant4
     // The physics list must be instantiated before other user actions
     G4VModularPhysicsList *physics = new FTFP_BERT;
@@ -62,7 +65,7 @@ int main(int argc, char **argv)
     G4RunManager run_mgr;
     run_mgr.SetUserInitialization(physics);
 
-    G4App *g4app = new G4App(gdml_file);
+    G4App *g4app = new G4App(cfg, gdml_file);
     run_mgr.SetUserInitialization(g4app->det_cons_);
     run_mgr.SetUserAction(g4app->prim_gen_);
     run_mgr.SetUserAction(g4app->event_act_);
