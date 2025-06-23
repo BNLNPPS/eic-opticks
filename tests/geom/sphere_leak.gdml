@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="">
+
+  <!-- 1) Define any matrices, etc. (optional) -->
+  <define>
+    <matrix coldim="2" name="REFLECTIVITY_MIRROR" values="1.55e-06 1.  11.6*eV 1." />
+    <matrix coldim="2" name="REFLECTIVITYMAX"     values="1.55e-06 1.0  1.55e-05 1.0" />
+    <matrix coldim="2" name="RINDEX_MIRROR"       values="1.55e-06 1.0 1.55e-05 1.0" />
+    <matrix coldim="2" name="RINDEX_WATER"        values="1.55e-06 1.333 1.55e-05 1.333" />
+    <matrix coldim="2" name="ABSLENGTH_WATER"     values="1.55e-06 100.0*m 1.55e-05 100.0*m" />
+    <matrix coldim="2" name="SCATTERLENGTH_WATER" values="1.55e-06 1*m 1.55e-05 1*m" />
+    <matrix coldim="2" name="RINDEX_GLASS"        values="1.55e-06 1.5  1.55e-05 1.5" />
+    <matrix coldim="2" name="EFFICIENCYDET"       values="2.034*eV 1 2.068*eV 1 2.103*eV 1 2.139*eV 1 2.177*eV 1 2.216*eV 1 2.256*eV 1 2.298*eV 1 2.341*eV 1 2.386*eV 1 2.433*eV 1 2.481*eV 1 2.532*eV 1 2.585*eV 1 2.64*eV 1 2.697*eV 1 2.757*eV 1 2.82*eV 1 2.885*eV 1 2.954*eV 1 3.026*eV 1 3.102*eV 1 3.181*eV  1 3.265*eV 1 3.353*eV 1 3.446*eV 1 3.545*eV 1 3.649*eV 1 3.76*eV 1 3.877*eV 1 4.002*eV 1 4.136*eV 1 5.0*eV 1 6.0*eV 1 7.0*eV 1 8.0*eV 1 9.0*eV 1 9.0*eV 1 10.0*eV 1 11.0*eV 1 11.6*eV 1" />
+  </define>
+
+  <!-- 2) Materials -->
+  <materials>
+    <element name="H" formula="H" Z="1">
+      <atom value="1.0079" unit="g/mole"/>
+    </element>
+
+    <element name="O" formula="O" Z="8">
+      <atom value="15.999" unit="g/mole"/>
+    </element>
+
+    <material name="WaterMaterial" state="liquid">
+      <D value="1.0" unit="g/cm3"/>
+      <fraction n="0.1119" ref="H"/>
+      <fraction n="0.8881" ref="O"/>
+      <property name="RINDEX"     ref="RINDEX_WATER"/>
+      <property name="ABSLENGTH"  ref="ABSLENGTH_WATER"/>
+      <property name="RAYLEIGH"   ref="SCATTERLENGTH_WATER"/>
+    </material>
+
+    <material name="MirrorMaterial" state="solid">
+      <D value="2.7" unit="g/cm3"/>
+      <fraction n="1.0" ref="O"/>
+      <property name="RINDEX" ref="RINDEX_GLASS"/>
+    </material>
+
+    <material name="GlassMaterial" state="solid">
+      <D value="2.5" unit="g/cm3"/>
+      <fraction n="1.0" ref="O"/>
+      <property name="RINDEX" ref="RINDEX_GLASS"/>
+    </material>
+  </materials>
+
+  <!-- 3) Solids: geometry -->
+  <solids>
+    <!-- World sphere: radius chosen so its diameter (100 mm) matches the old 100 mm cube -->
+    <sphere name="WorldBox" rmin="0" rmax="50" deltaphi="6.28318530718"
+            deltatheta="3.14159265359" aunit="rad" lunit="mm"/>
+
+    <!-- Mirror shells: outer and inner spheres replace cubes of 60 mm and 50 mm side -->
+    <sphere name="MirrorOuter" rmin="0" rmax="30" deltaphi="6.28318530718"
+            deltatheta="3.14159265359" aunit="rad" lunit="mm"/>
+
+    <sphere name="MirrorInner" rmin="0" rmax="25" deltaphi="6.28318530718"
+            deltatheta="3.14159265359" aunit="rad" lunit="mm"/>
+
+    <!-- Keep the subtraction to form the thin-shell mirror -->
+    <subtraction name="MirrorSphere">
+      <first  ref="MirrorOuter"/>
+      <second ref="MirrorInner"/>
+    </subtraction>
+
+    <!-- Glass sphere: radius 15 mm replaces the previous 30 mm cube -->
+    <sphere name="GlassSphere" rmin="0" rmax="15" deltaphi="6.28318530718"
+            deltatheta="3.14159265359" aunit="rad" lunit="mm"/>
+
+    <!-- 4) Optical Surfaces -->
+    <opticalsurface name="MirrorSurface" type="0" model="1" finish="0" value="0">
+      <property name="REFLECTIVITY" ref="REFLECTIVITY_MIRROR" />
+    </opticalsurface>
+
+    <opticalsurface finish="0" model="1" name="Det_optical" type="0" value="0">
+      <property name="EFFICIENCY" ref="EFFICIENCYDET"/>
+    </opticalsurface>
+  </solids>
+
+  <!-- 5) Structure -->
+  <structure>
+    <volume name="Mirror_logical">
+      <materialref ref="MirrorMaterial"/>
+      <solidref   ref="MirrorSphere"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
+    </volume>
+
+    <volume name="Glass_logical">
+      <materialref ref="WaterMaterial"/>
+      <solidref   ref="GlassSphere"/>
+    </volume>
+
+    <volume name="World_logical">
+      <materialref ref="WaterMaterial"/>
+      <solidref   ref="WorldBox"/>
+
+      <physvol name="Mirror_phys">
+        <volumeref ref="Mirror_logical"/>
+        <position name="Mirrorpos" unit="mm" x="0" y="0" z="0"/>
+      </physvol>
+
+      <physvol name="Glass_phys">
+        <volumeref ref="Glass_logical"/>
+        <position name="Glasspos" unit="mm" x="0" y="0" z="0"/>
+      </physvol>
+    </volume>
+
+    <skinsurface name="MirrorSkinSurface" surfaceproperty="Det_optical">
+      <volumeref ref="Mirror_logical"/>
+    </skinsurface>
+
+    <bordersurface name="GlassToMirror" surfaceproperty="MirrorSurface">
+      <physvolref ref="Glass_phys"/>
+      <physvolref ref="Mirror_phys"/>
+    </bordersurface>
+
+    <skinsurface name="GlassSkinSurface" surfaceproperty="MirrorSurface">
+      <volumeref ref="Glass_logical"/>
+    </skinsurface>
+  </structure>
+
+  <!-- 6) Setup -->
+  <setup name="Default" version="1.0">
+    <world ref="World_logical"/>
+  </setup>
+</gdml>
+
