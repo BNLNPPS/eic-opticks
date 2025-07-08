@@ -119,6 +119,7 @@ set(TEST_SOURCES
    SNameTest.cc
 
    scontext_test.cc
+   sdevice_test.cc
    SProfTest.cc
 
    SEvt_test.cc
