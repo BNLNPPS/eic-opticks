@@ -9,6 +9,8 @@
 #include <nlohmann/json.hpp>
 #include <cuda_runtime.h>
 
+#include "sysrap/SEventConfig.hh"
+
 #include "configurator.h"
 #include "config.h"
 
@@ -102,6 +104,11 @@ void Configurator::ReadConfig(std::string filepath)
       .mode = torch_["mode"],
       .type = storchtype::Type(torch_["type"])
     };
+
+    nlohmann::json event_ = json["event"];
+
+    SEventConfig::SetEventMode( string(event_["mode"]).c_str() );
+    SEventConfig::SetMaxSlot( event_["maxslot"] );
   }
   catch (nlohmann::json::exception& e) {
     std::string errmsg{"Failed reading config parameters from " + filepath + "\n" + e.what()};
