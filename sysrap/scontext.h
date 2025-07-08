@@ -92,12 +92,12 @@ inline void scontext::initConfig()
     {
         std::cerr << "scontext::initConfig : ZERO VISIBLE DEVICES - CHECK CUDA_VISIBLE_DEVICES envvar \n" ; 
     }
-    else if(numdev > 1)
+    else if(numdev >= 1)
     {
-        std::cerr << "scontext::initConfig : MORE THAN ONE VISIBLE DEVICES - CHECK CUDA_VISIBLE_DEVICES envvar \n" ; 
-    }
-    else if(numdev == 1)
-    {
+        if(numdev > 1)
+            std::cerr << "scontext::initConfig : MORE THAN ONE VISIBLE DEVICES - CHECK CUDA_VISIBLE_DEVICES envvar \n"
+                      << "scontext::initConfig : Defaulting to the first device\n";
+
         int idev = 0 ; 
         std::string name = device_name(idev); 
         size_t vram = totalGlobalMem_bytes(idev);
