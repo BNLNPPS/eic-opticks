@@ -21,5 +21,10 @@
     "distance": 0.0,
     "mode": 255,
     "type": "disc"
+  },
+
+  "event": {
+    "mode": "DebugLite",
+    "maxslot": 1000000
   }
 }
