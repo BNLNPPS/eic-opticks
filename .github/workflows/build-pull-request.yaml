@@ -24,8 +24,7 @@ jobs:
           style: microsoft
           ignore: |
             include/argparse
-          files: |
-            src/
+          lines-changed-only: true
           thread-comments: true
           format-review: true
           tidy-checks: '-*'
