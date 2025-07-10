@@ -95,14 +95,17 @@ unsigned long long OpticksPhoton::AbbrevToFlagSequence( const char* abbseq, char
 
 
 /**
-OpticksPhoton::GetHitMask
-------------------------
+OpticksPhoton::GetFlagMask (formerly GetHitMask)
+----------------------------------------------------
 
-Used by SEventConfig::HitMask() 
+Used by SEventConfig::HitMask()
+
+   GetFlagMask("SD,EC",',')
+
 
 **/
 
-unsigned OpticksPhoton::GetHitMask(const char* abbrseq, char delim) // static 
+unsigned OpticksPhoton::GetFlagMask(const char* abbrseq, char delim) // static
 {
     return AbbrevSequenceToMask( abbrseq, delim ); 
 }
