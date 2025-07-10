@@ -24,6 +24,9 @@ jobs:
           style: microsoft
           ignore: |
             include/argparse
+            CSGOptiX/
+            sysrap/
+            qudarap/
           lines-changed-only: true
           thread-comments: true
           format-review: true
