@@ -1,7 +1,7 @@
 import numpy as np
 
-a = np.load("/tmp/fakeuser/opticks/GEOM/fakegeom/simg4ox/ALL0_none/A000/record.npy")
-b = np.load("/tmp/fakeuser/opticks/GEOM/fakegeom/simg4ox/ALL0_none/B000/f000/record.npy")
+a = np.load("/tmp/fakeuser/opticks/GEOM/fakegeom/simg4ox/ALL0_no_opticks_event_name/A000/record.npy")
+b = np.load("/tmp/fakeuser/opticks/GEOM/fakegeom/simg4ox/ALL0_no_opticks_event_name/B000/f000/record.npy")
 
 print(a.shape)
 print(b.shape)
