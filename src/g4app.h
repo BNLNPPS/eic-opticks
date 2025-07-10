@@ -333,9 +333,6 @@ struct SteppingAction : G4UserSteppingAction
         const G4StepPoint *pre = step->GetPreStepPoint();
         const G4StepPoint *post = step->GetPostStepPoint();
 
-        G4ThreeVector delta = step->GetDeltaPosition();
-        double step_mm = delta.mag() / mm;
-
         sev->checkPhotonLineage(ulabel);
 
         sphoton &current_photon = sev->current_ctx.p;
