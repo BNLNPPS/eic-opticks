@@ -333,7 +333,7 @@ inline void SMesh::import_original(const NPFold* fold, const glm::tmat4x4<double
 }
 
 
-NPFold* SMesh::serialize() const 
+inline NPFold* SMesh::serialize() const 
 {
     NPFold* fold = new NPFold ; 
     fold->add("tri", tri); 
@@ -343,7 +343,7 @@ NPFold* SMesh::serialize() const
     fold->set_meta<int>("lvid", lvid) ; 
     return fold ; 
 }
-void SMesh::save(const char* dir) const 
+inline void SMesh::save(const char* dir) const 
 {
     NPFold* fold = serialize(); 
     fold->save(dir); 
