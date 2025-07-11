@@ -32,7 +32,7 @@ list(APPEND HEADERS
     CSGOPTIX_LOG.hh
 )
 
-list(APPEND OPTIX_SOURCES
+list(APPEND OPTIX_SOURCES 
      CSGOptiX7.cu
      Check.cu
 )
