@@ -7,7 +7,7 @@ file(WRITE ${buildenvpath} "export OPTIX_VERSION=${OptiX_VERSION}\n")
 message(STATUS "write to buildenvpath ${buildenvpath} ")
 
 set(SOURCES)
-set(CU_SOURCES)
+set(OPTIX_SOURCES)
 
 
 list(APPEND SOURCES
@@ -15,6 +15,15 @@ list(APPEND SOURCES
     CSGOptiX.cc
     Frame.cc 
     CSGOPTIX_LOG.cc
+
+    Ctx.cc
+    Properties.cc
+    GAS.cc
+    GAS_Builder.cc
+    PIP.cc
+    IAS.cc
+    IAS_Builder.cc
+    SBT.cc
 )
 
 list(APPEND HEADERS
@@ -23,27 +32,17 @@ list(APPEND HEADERS
     CSGOPTIX_LOG.hh
 )
 
-list(APPEND CU_SOURCES 
+list(APPEND OPTIX_SOURCES
      CSGOptiX7.cu
      Check.cu
 )
 
-list(APPEND SOURCES  
-     Ctx.cc 
-     Properties.cc 
-     GAS.cc 
-     GAS_Builder.cc 
-     PIP.cc 
-     IAS.cc 
-     IAS_Builder.cc 
-     SBT.cc 
-)
 
-message(STATUS "CU_SOURCES : ${CU_SOURCES} ")
+message(STATUS "OPTIX_SOURCES : ${OPTIX_SOURCES} ")
 
 set(_generated_PTX_files "")
 
-foreach(cu_src IN LISTS CU_SOURCES)
+foreach(cu_src IN LISTS OPTIX_SOURCES)
     message(STATUS "Processing ${cu_src}")
     add_library(${cu_src} OBJECT ${cu_src})
     set_target_properties(${cu_src} PROPERTIES CUDA_PTX_COMPILATION ON)
