@@ -22,8 +22,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           style: microsoft
-          ignore: |
-            include/argparse
+          ignore: include/argparse
+          lines-changed-only: true
           thread-comments: true
           format-review: true
           tidy-checks: '-*'
