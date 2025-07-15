@@ -22,7 +22,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           style: microsoft
-          ignore: include/argparse|CSGOptiX|sysrap|qudarap
+          ignore: include/argparse
           lines-changed-only: true
           thread-comments: true
           format-review: true
