@@ -20,7 +20,7 @@ docker run --rm -it -v $HOME/.Xauthority:/root/.Xauthority -e DISPLAY=$DISPLAY -
 
 docker run --rm -it -v $HOME:/esi -v $HOME/eic-opticks:/src/eic-opticks -e DISPLAY=$DISPLAY -e HOME=/esi --net=host ghcr.io/bnlnpps/eic-opticks:develop
 
-docker run ghcr.io/bnlnpps/eic-opticks bash -c 'OPTICKS_MAX_SLOT=1000000 simg4ox -g tests/geom/sphere_leak.gdml -m tests/run.mac -c sphere_leak'
+docker run ghcr.io/bnlnpps/eic-opticks bash -c 'simg4ox -g tests/geom/sphere_leak.gdml -m tests/run.mac -c sphere_leak'
 ```
 
 
@@ -55,7 +55,7 @@ sbatch scripts/submit.sh
 
 # Path to your image on Perlmutter
 IMAGE="docker:bnlnpps/eic-opticks:develop"
-CMD='cd /src/eic-opticks && OPTICKS_MAX_SLOT=1000000 simg4ox -g $OPTICKS_HOME/tests/geom/sphere_leak.gdml -m $OPTICKS_HOME/tests/run.mac -c sphere_leak'
+CMD='cd /src/eic-opticks && simg4ox -g $OPTICKS_HOME/tests/geom/sphere_leak.gdml -m $OPTICKS_HOME/tests/run.mac -c sphere_leak'
 
 # Launch the container using Shifter
 srun -n 1 -c 8 --cpu_bind=cores -G 1 --gpu-bind=single:1 shifter --image=$IMAGE /bin/bash -l -c "$CMD"
