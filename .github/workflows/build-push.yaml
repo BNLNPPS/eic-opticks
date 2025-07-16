@@ -35,17 +35,15 @@ jobs:
 
       - name: Define image tags
         run: |
-          echo "IMAGE_NAME_LOWER=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-          echo "GHCR_TAG=ghcr.io/${IMAGE_NAME_LOWER}:develop" >> $GITHUB_ENV
-          echo "DOCKERHUB_TAG=docker.io/${{ secrets.DOCKERHUB_USERNAME }}/$(basename $IMAGE_NAME_LOWER):develop" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Build and push to registries
         uses: docker/build-push-action@v6
         with:
           push: true
           tags: |
-            ${{ env.GHCR_TAG }}
-            ${{ env.DOCKERHUB_TAG }}
+           ghcr.io/${{ env.IMAGE_NAME }}:develop
+           docker.io/${{ env.IMAGE_NAME }}:develop
           target: develop
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
