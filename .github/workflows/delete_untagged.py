@@ -10,9 +10,9 @@ parser.add_argument("token", help="GitHub token")
 args = parser.parse_args()
 
 domain = "api.github.com"
-org = "star-bnl"
+org = "bnlnpps"
 package_type = "container"
-package_name = "star-sw"
+package_name = "eic-opticks"
 
 api_url = f"https://{domain}/orgs/{org}/packages/{package_type}/{package_name}/versions"
 
