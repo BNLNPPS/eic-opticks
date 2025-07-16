@@ -52,6 +52,6 @@ jobs:
           tags: |
            ghcr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
            docker.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          target: develop
+          target: ${{ matrix.target }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
