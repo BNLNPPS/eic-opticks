@@ -53,8 +53,8 @@ jobs:
            ghcr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
            docker.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           target: ${{ matrix.target }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          cache-from: type=local,src=/home/runner/.buildx-cache
+          cache-to: type=local,dest=/home/runner/.buildx-cache,mode=max
 
   build-push-cleanup:
     runs-on: ubuntu-latest
