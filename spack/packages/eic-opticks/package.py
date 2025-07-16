@@ -9,13 +9,11 @@ class EicOpticks(CMakePackage, CudaPackage):
     """EIC Opticks package for GPU simulation"""
 
     homepage = "https://github.com/bnlnpps/eic-opticks"
-    url      = "https://github.com/bnlnpps/eic-opticks/archive/tags/1.0.0-rc1.tar.gz"
     git      = "https://github.com/bnlnpps/eic-opticks.git"
 
     maintainers("plexoos")
 
     version("main", branch="main")
-    version("1.0.0-rc1", sha256="fd5a7c7848a3c1211a203d7223f4eff2da810fb7dd3d10d1ea0edff451f966c8")
 
     depends_on("cxx", type="build")
     depends_on("cmake@3.10:", type="build")
