@@ -13,7 +13,19 @@ jobs:
   build-push:
     runs-on: [gpu]
 
+    strategy:
+      matrix:
+        target: [release, develop]
+
     steps:
+      - name: Define environment variables
+        run: |
+          echo IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+          echo IMAGE_TAG=$(echo ${{ matrix.target }}) >> $GITHUB_ENV
+          if [ "${{ matrix.target }}" = "release" ]; then
+            echo IMAGE_TAG=latest >> $GITHUB_ENV
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -33,17 +45,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Define image tags
-        run: |
-          echo "IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
       - name: Build and push to registries
         uses: docker/build-push-action@v6
         with:
           push: true
           tags: |
-           ghcr.io/${{ env.IMAGE_NAME }}:develop
-           docker.io/${{ env.IMAGE_NAME }}:develop
+           ghcr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+           docker.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           target: develop
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
