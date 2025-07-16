@@ -1,5 +1,38 @@
+This simulation package interfaces NVIDIA OptiX with Geant4 to accelerate
+optical photon transport for physics experiments. It supports detector
+geometries defined in the GDML format and is based on the work by Simon Blyth,
+whose original Opticks framework can be found
+[here](https://simoncblyth.bitbucket.io/opticks/).
 
-# Docker
+
+## Prerequisites
+
+Before building or running this package, ensure that your system meets both the
+hardware and software requirements listed below.
+
+* A CUDA-capable NVIDIA GPU
+
+* CUDA 12+
+* NVIDIA OptiX 7+
+* Geant4 11+
+* CMake 3.18+
+* Python 3.8+
+
+Optionally, if you plan to develop or run the simulation in a containerized
+environment, ensure that your system has the following tools installed:
+
+* [Docker Engine](https://docs.docker.com/engine/install/)
+* NVIDIA container toolkit ([installation guide](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html))
+
+## Build
+
+```shell
+git clone https://github.com/BNLNPPS/eic-opticks.git
+cmake -S eic-opticks -B build
+cmake --build build
+```
+
+## Docker
 
 Build latest `eic-opticks` image by hand:
 
