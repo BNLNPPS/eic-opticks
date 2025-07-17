@@ -55,8 +55,8 @@ jobs:
           load: true
           tags: ${{ env.IMAGE_NAME }}:${{ env.TAG }}
           target: develop
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          cache-from: type=local,src=/home/runner/.buildx-cache
+          cache-to: type=local,dest=/home/runner/.buildx-cache,mode=max
 
       - name: Run tests
         run: |
