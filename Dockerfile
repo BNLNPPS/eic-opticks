@@ -70,24 +70,26 @@ RUN cat /etc/bash.nonint >> /etc/bash.bashrc
 
 ENV BASH_ENV=/etc/bash.nonint
 
+# Install Python dependencies
+WORKDIR $OPTICKS_HOME
+COPY pyproject.toml $OPTICKS_HOME/
+COPY optiphy $OPTICKS_HOME/optiphy
+RUN python -m pip install --upgrade pip && pip install -e .
+
 
 FROM base AS develop
 
 RUN apt update && apt install -y x11-apps mesa-utils vim
 
-WORKDIR $OPTICKS_HOME
 COPY . $OPTICKS_HOME
 
-RUN python -m pip install -e $OPTICKS_HOME
 RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Debug \
  && cmake --build $OPTICKS_BUILD --parallel --target install
 
 
 FROM base AS release
 
-WORKDIR $OPTICKS_HOME
 COPY . $OPTICKS_HOME
 
-RUN python -m pip install -e $OPTICKS_HOME
 RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Release \
  && cmake --build $OPTICKS_BUILD --parallel --target install
