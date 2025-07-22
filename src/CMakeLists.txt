@@ -1,7 +1,5 @@
 find_package(Geant4 REQUIRED ui_all vis_all)
 
-set(GPHOX_INSTALL_FULL_DATADIR "${CMAKE_INSTALL_FULL_DATADIR}/${PROJECT_NAME}")
-
 configure_file(config.h.in config.h @ONLY)
 
 # gphox is the primary library

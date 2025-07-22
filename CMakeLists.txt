@@ -17,6 +17,9 @@ set(BUILD_SHARED_LIBS ON)
 include(GNUInstallDirs)
 include(CTest)
 
+# used by src/config.h.in
+set(GPHOX_INSTALL_FULL_DATADIR "${CMAKE_INSTALL_FULL_DATADIR}/${PROJECT_NAME}")
+
 add_subdirectory(sysrap)
 add_subdirectory(CSG)
 add_subdirectory(qudarap)
@@ -52,4 +55,9 @@ install(
     EXPORT ${PROJECT_NAME}Targets
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
     NAMESPACE ${PROJECT_NAME}::
+)
+
+install(
+    DIRECTORY ./config
+    DESTINATION ${GPHOX_INSTALL_FULL_DATADIR}
 )
