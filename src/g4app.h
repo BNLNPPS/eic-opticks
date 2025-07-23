@@ -87,28 +87,6 @@ struct PhotonHit : public G4VHit
         photon.wavelength = h_Planck * c_light / (energy * CLHEP::eV);
     }
 
-    // Copy constructor
-    PhotonHit(const PhotonHit &right) : G4VHit(right), photon(right.photon)
-    {
-    }
-
-    // Assignment operator
-    const PhotonHit &operator=(const PhotonHit &right)
-    {
-        if (this != &right)
-        {
-            G4VHit::operator=(right);
-            photon = right.photon;
-        }
-        return *this;
-    }
-
-    // Equality operator
-    G4bool operator==(const PhotonHit &right) const
-    {
-        return (this == &right);
-    }
-
     // Print method
     void Print() override
     {
@@ -354,9 +332,6 @@ struct SteppingAction : G4UserSteppingAction
 
         const G4StepPoint *pre = step->GetPreStepPoint();
         const G4StepPoint *post = step->GetPostStepPoint();
-
-        G4ThreeVector delta = step->GetDeltaPosition();
-        double step_mm = delta.mag() / mm;
 
         sev->checkPhotonLineage(ulabel);
 
