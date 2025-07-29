@@ -100,7 +100,7 @@ srun -n 1 -c 8 --cpu_bind=cores -G 1 --gpu-bind=single:1 shifter --image=$IMAGE 
 In Geant4, optical surface properties such as **finish**, **model**, and **type** are defined using enums in the
 `G4OpticalSurface` and `G4SurfaceProperty` header files:
 
-- [`G4OpticalSurface.hh`](https://github.com/Geant4/geant4/blob/geant4-11.3-release/source/materials/include/G4OpticalSurface.hh#L52-L99)
+- [`G4OpticalSurface.hh`](https://github.com/Geant4/geant4/blob/geant4-11.3-release/source/materials/include/G4OpticalSurface.hh#L52-L113)
 - [`G4SurfaceProperty.hh`](https://github.com/Geant4/geant4/blob/geant4-11.3-release/source/materials/include/G4SurfaceProperty.hh#L58-L68)
 
 These enums allow users to configure how optical photons interact with surfaces, controlling behaviors like reflection,
