@@ -93,3 +93,35 @@ CMD='cd /src/eic-opticks && simg4ox -g $OPTICKS_HOME/tests/geom/sphere_leak.gdml
 # Launch the container using Shifter
 srun -n 1 -c 8 --cpu_bind=cores -G 1 --gpu-bind=single:1 shifter --image=$IMAGE /bin/bash -l -c "$CMD"
 ```
+
+
+## Optical Surface Models in Geant4
+
+In Geant4, optical surface properties such as **finish**, **model**, and **type** are defined using enums in the
+`G4OpticalSurface` and `G4SurfaceProperty` header files:
+
+- [`G4OpticalSurface.hh`](https://github.com/Geant4/geant4/blob/geant4-11.3-release/source/materials/include/G4OpticalSurface.hh#L52-L99)
+- [`G4SurfaceProperty.hh`](https://github.com/Geant4/geant4/blob/geant4-11.3-release/source/materials/include/G4SurfaceProperty.hh#L58-L68)
+
+These enums allow users to configure how optical photons interact with surfaces, controlling behaviors like reflection,
+transmission, and absorption based on physical models and surface qualities. The string values corresponding to these
+enums (e.g. `"ground"`, `"glisur"`, `"dielectric_dielectric"`) can also be used directly in **GDML** files when defining
+`<opticalsurface>` elements for geometry. Geant4 will parse these attributes and apply the corresponding surface
+behavior.
+
+For a physics-motivated explanation of how Geant4 handles optical photon boundary interactions, refer to the [Geant4
+Application Developer Guide — Boundary
+Process](https://geant4-userdoc.web.cern.ch/UsersGuides/ForApplicationDeveloper/html/TrackingAndPhysics/physicsProcess.html#boundary-process).
+
+```gdml
+<gdml>
+  ...
+  <solids>
+    <opticalsurface finish="ground" model="glisur" name="medium_surface" type="dielectric_dielectric" value="1">
+      <property name="EFFICIENCY" ref="EFFICIENCY_DEF"/>
+      <property name="REFLECTIVITY" ref="REFLECTIVITY_DEF"/>
+    </opticalsurface>
+  </solids>
+  ...
+</gdml>
+```
