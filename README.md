@@ -125,3 +125,12 @@ Process](https://geant4-userdoc.web.cern.ch/UsersGuides/ForApplicationDeveloper/
   ...
 </gdml>
 ```
+
+
+## Performance studies
+
+```
+docker run --rm -it -v $HOME:/esi -v $HOME/eic-opticks:/src/eic-opticks -e DISPLAY=$DISPLAY -e HOME=/esi --net=host ghcr.io/bnlnpps/eic-opticks:develop
+cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Debug
+cmake --build $OPTICKS_BUILD --parallel --target install
+```
