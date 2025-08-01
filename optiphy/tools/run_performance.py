@@ -37,7 +37,7 @@ with open(timings_file, "w") as tf, open(opticks_file, "w") as of:
                 rm.write(run_mac_template.format(threads=threads, flag=flag))
             # Run with time in bash to capture real/user/sys
             result = subprocess.run(
-                ["bash", "-c", "time ./build/src/simg4ox -g esi-g4ox/geom/pfrich_min_FINAL.gdml -m run.mac"],
+                ["bash", "-c", "time simg4oxmt -g tests/geom/pfrich_min_FINAL.gdml -m run.mac"],
                 capture_output=True, text=True
             )
             stdout = result.stdout
