@@ -10,9 +10,9 @@
 #include "G4UImanager.hh"
 #include "G4VisExecutive.hh"
 
-#include "SysRap/OPTICKS_LOG.hh"
+#include "sysrap/OPTICKS_LOG.hh"
 
-#include "g4app.h"
+#include "g4appmt.h"
 
 #include "G4VUserActionInitialization.hh"
 #include "G4RunManagerFactory.hh"
