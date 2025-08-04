@@ -378,7 +378,8 @@ struct SteppingAction : G4UserSteppingAction
         G4StepPoint *preStep = aStep->GetPostStepPoint();
         G4VPhysicalVolume *volume = preStep->GetPhysicalVolume();
 
-        if ( aStep->GetTrack()->GetDefinition() == G4OpticalPhoton::OpticalPhotonDefinition()) {
+        if (aStep->GetTrack()->GetDefinition() == G4OpticalPhoton::OpticalPhotonDefinition())
+        {
             // Kill if step count exceeds 10000 to avoid reflection forever
             if (aStep->GetTrack()->GetCurrentStepNumber() > 10000)
             {
@@ -416,14 +417,15 @@ struct SteppingAction : G4UserSteppingAction
                     G4MaterialPropertyVector *Rindex = MPT->GetProperty(kRINDEX);
                     if (!Rindex || Rindex->GetVectorLength() == 0)
                     {
-                        G4cout << "WARNING: Material has no valid RINDEX data. Skipping Cerenkov calculation." << G4endl;
+                        G4cout << "WARNING: Material has no valid RINDEX data. Skipping Cerenkov calculation."
+                               << G4endl;
                         return;
                     }
 
                     G4Cerenkov *proc = (G4Cerenkov *)(*procPost)[i3];
                     fNumPhotons = proc->GetNumPhotons();
 
-                    G4AutoLock lock(&genstep_mutex);   // <-- Mutex is locked here
+                    G4AutoLock lock(&genstep_mutex); // <-- Mutex is locked here
 
                     if (fNumPhotons > 0)
                     {
