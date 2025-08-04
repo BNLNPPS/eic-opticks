@@ -14,29 +14,26 @@
 
 #include "g4appmt.h"
 
-#include "G4VUserActionInitialization.hh"
-#include "G4RunManagerFactory.hh"
 #include "G4RunManager.hh"
-
+#include "G4RunManagerFactory.hh"
+#include "G4VUserActionInitialization.hh"
 
 using namespace std;
 
-
 struct ActionInitialization : public G4VUserActionInitialization
 {
-private:
-    G4App* fG4App; // Store the pointer to G4App
+  private:
+    G4App *fG4App; // Store the pointer to G4App
 
-public:
+  public:
     // Note the signature: now we take a pointer to the G4App itself
-    ActionInitialization(G4App* app)
-        : G4VUserActionInitialization(), fG4App(app)
+    ActionInitialization(G4App *app) : G4VUserActionInitialization(), fG4App(app)
     {
     }
 
     virtual void BuildForMaster() const override
     {
-       SetUserAction(fG4App->run_act_);
+        SetUserAction(fG4App->run_act_);
     }
 
     virtual void Build() const override
@@ -51,10 +48,10 @@ public:
 
 int main(int argc, char **argv)
 {
-    
-   long seed = static_cast<long>(time(nullptr));
+
+    long seed = static_cast<long>(time(nullptr));
     CLHEP::HepRandom::setTheSeed(seed);
-    G4cout << "Random seed set to: " << seed << G4endl; 
+    G4cout << "Random seed set to: " << seed << G4endl;
     OPTICKS_LOG(argc, argv);
 
     argparse::ArgumentParser program("simg4ox", "0.0.0");
@@ -98,13 +95,12 @@ int main(int argc, char **argv)
     auto *run_mgr = G4RunManagerFactory::CreateRunManager();
     run_mgr->SetUserInitialization(physics);
 
-
     G4App *g4app = new G4App(gdml_file);
 
-    ActionInitialization* ActionInit = new ActionInitialization(g4app);
+    ActionInitialization *ActionInit = new ActionInitialization(g4app);
     run_mgr->SetUserInitialization(ActionInit);
     run_mgr->SetUserInitialization(g4app->det_cons_);
-    //run_mgr->Initialize();
+    // run_mgr->Initialize();
 
     G4UIExecutive *uix = nullptr;
     G4VisManager *vis = nullptr;
