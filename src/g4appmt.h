@@ -1,11 +1,10 @@
-#include "G4Cerenkov.hh"
-#include "G4Scintillation.hh"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 
+#include "G4AutoLock.hh"
 #include "G4BooleanSolid.hh"
-#include "g4cx/G4CXOpticks.hh"
+#include "G4Cerenkov.hh"
 #include "G4Electron.hh"
 #include "G4Event.hh"
 #include "G4GDMLParser.hh"
@@ -15,7 +14,10 @@
 #include "G4PhysicalConstants.hh"
 #include "G4PrimaryParticle.hh"
 #include "G4PrimaryVertex.hh"
+#include "G4RunManager.hh"
+#include "G4RunManagerFactory.hh"
 #include "G4SDManager.hh"
+#include "G4Scintillation.hh"
 #include "G4SubtractionSolid.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4ThreeVector.hh"
@@ -27,9 +29,10 @@
 #include "G4UserTrackingAction.hh"
 #include "G4VPhysicalVolume.hh"
 #include "G4VProcess.hh"
-#include "G4RunManager.hh"
 #include "G4VUserDetectorConstruction.hh"
 #include "G4VUserPrimaryGeneratorAction.hh"
+
+#include "g4cx/G4CXOpticks.hh"
 #include "sysrap/NP.hh"
 #include "sysrap/SEvt.hh"
 #include "sysrap/STrackInfo.h"
@@ -40,8 +43,6 @@
 #include "u4/U4StepPoint.hh"
 #include "u4/U4Touchable.h"
 #include "u4/U4Track.h"
-#include "G4RunManagerFactory.hh"
-#include "G4AutoLock.hh"
 
 
 namespace { G4Mutex genstep_mutex = G4MUTEX_INITIALIZER; }
