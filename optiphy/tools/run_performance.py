@@ -1,8 +1,8 @@
 import subprocess
 import re
 
-timings_file = "timings.txt"
-opticks_file = "Opticks.txt"
+timings_file = "/tmp/timings.txt"
+opticks_file = "/tmp/Opticks.txt"
 
 run_mac_template = """
 /run/numberOfThreads {threads}
