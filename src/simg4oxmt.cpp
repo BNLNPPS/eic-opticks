@@ -18,9 +18,7 @@
 #include "G4RunManagerFactory.hh"
 #include "G4VUserActionInitialization.hh"
 
-
 using namespace std;
-
 
 struct ActionInitialization : public G4VUserActionInitialization
 {
@@ -47,7 +45,6 @@ struct ActionInitialization : public G4VUserActionInitialization
         SetUserAction(fG4App->stepping_);
     }
 };
-
 
 int main(int argc, char **argv)
 {

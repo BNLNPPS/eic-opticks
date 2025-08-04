@@ -297,7 +297,7 @@ struct PrimaryGenerator : G4VUserPrimaryGeneratorAction
     void GeneratePrimaries(G4Event *event) override
     {
         G4ThreeVector position_mm(-0.4 * m, -0.3 * m, -0.3 * m);
-	G4double time_ns = 0;
+        G4double time_ns = 0;
         G4ThreeVector direction(0, 0.2, 0.8);
         G4double wavelength_nm = 0.1;
 
@@ -339,70 +339,28 @@ struct RunAction : G4UserRunAction
 
     void EndOfRunAction(const G4Run *run) override
     {
-
-     if (G4Threading::IsMasterThread()) 
-	{
-        G4CXOpticks *gx = G4CXOpticks::Get();
-        
-	auto start = std::chrono::high_resolution_clock::now();
-	gx->simulate(0, false);
-        cudaDeviceSynchronize();
-	auto end = std::chrono::high_resolution_clock::now();
-        // Compute duration
-        std::chrono::duration<double> elapsed = end - start;
-        std::cout << "Simulation time: " << elapsed.count() << " seconds" << std::endl;
-
-
-        // unsigned int num_hits = SEvt::GetNumHit(EGPU);
-        SEvt *sev = SEvt::Get_EGPU();
-        unsigned int num_hits = sev->GetNumHit(0);
-        std::cout << "Opticks: NumCollected:  " << sev->GetNumGenstepFromGenstep(0) << std::endl;
-
-        std::cout << "Opticks: NumCollected:  " << sev->GetNumPhotonCollected(0) << std::endl;
-
-        std::cout << "Opticks: NumHits:  " << num_hits << std::endl;
-
-        /*
-        std::ofstream outFile("opticks_hits_output.txt");
-        if (!outFile.is_open())
+        if (G4Threading::IsMasterThread())
         {
-            std::cerr << "Error opening output file!" << std::endl;
-            return;
-        }
+            G4CXOpticks *gx = G4CXOpticks::Get();
 
-        for (int idx = 0; idx < int(num_hits); idx++)
-        {
-            sphoton hit;
-            sev->getHit(hit, idx);
-            G4ThreeVector position = G4ThreeVector(hit.pos.x, hit.pos.y, hit.pos.z);
-            G4ThreeVector direction = G4ThreeVector(hit.mom.x, hit.mom.y, hit.mom.z);
-            G4ThreeVector polarization = G4ThreeVector(hit.pol.x, hit.pol.y, hit.pol.z);
-            int theCreationProcessid;
-            if (OpticksPhoton::HasCerenkovFlag(hit.flagmask))
-            {
-                theCreationProcessid = 0;
-            }
-            else if (OpticksPhoton::HasScintillationFlag(hit.flagmask))
-            {
-                theCreationProcessid = 1;
-            }
-            else
-            {
-                theCreationProcessid = -1;
-            }
-            //    std::cout << "Adding hit from Opticks:" << hit.wavelength << " " << position << " " << direction << "
-            //    "
-            //              << polarization << std::endl;
-            outFile << hit.wavelength << "  "
-                    << "(" << position.x() << ", " << position.y() << ", " << position.z() << ")  "
-                    << "(" << direction.x() << ", " << direction.y() << ", " << direction.z() << ")  "
-                    << "(" << polarization.x() << ", " << polarization.y() << ", " << polarization.z() << ")  "
-                    << "CreationProcessID=" << theCreationProcessid << std::endl;
-        }
+            auto start = std::chrono::high_resolution_clock::now();
+            gx->simulate(0, false);
+            cudaDeviceSynchronize();
+            auto end = std::chrono::high_resolution_clock::now();
+            // Compute duration
+            std::chrono::duration<double> elapsed = end - start;
+            std::cout << "Simulation time: " << elapsed.count() << " seconds" << std::endl;
 
-        outFile.close();
-	*/	
-    	}
+
+            // unsigned int num_hits = SEvt::GetNumHit(EGPU);
+            SEvt *sev = SEvt::Get_EGPU();
+            unsigned int num_hits = sev->GetNumHit(0);
+            std::cout << "Opticks: NumCollected:  " << sev->GetNumGenstepFromGenstep(0) << std::endl;
+
+            std::cout << "Opticks: NumCollected:  " << sev->GetNumPhotonCollected(0) << std::endl;
+
+            std::cout << "Opticks: NumHits:  " << num_hits << std::endl;
+        }
     }
 };
 
@@ -419,26 +377,26 @@ struct SteppingAction : G4UserSteppingAction
 
         G4Track *aTrack;
         G4int fNumPhotons = 0;
-        
-        G4StepPoint *preStep = aStep->GetPostStepPoint();
-        G4VPhysicalVolume *volume = preStep->GetPhysicalVolume();	
 
-	if ( aStep->GetTrack()->GetDefinition() == G4OpticalPhoton::OpticalPhotonDefinition()) {
+        G4StepPoint *preStep = aStep->GetPostStepPoint();
+        G4VPhysicalVolume *volume = preStep->GetPhysicalVolume();
+
+        if ( aStep->GetTrack()->GetDefinition() == G4OpticalPhoton::OpticalPhotonDefinition()) {
         // Kill if step count exceeds 10000 to avoid reflection forever
         if (aStep->GetTrack()->GetCurrentStepNumber() > 10000) {
         aStep->GetTrack()->SetTrackStatus(fStopAndKill);
         }}
 
-	    
-	if (volume && volume->GetName() == "MirrorPyramid")
+
+        if (volume && volume->GetName() == "MirrorPyramid")
         {
-		aTrack = aStep->GetTrack();
+                aTrack = aStep->GetTrack();
             if (aTrack->GetDefinition() != G4OpticalPhoton::OpticalPhotonDefinition())
             {
                 aTrack->SetTrackStatus(fStopAndKill);
             }}
-	
-	G4SteppingManager *fpSteppingManager =
+
+        G4SteppingManager *fpSteppingManager =
             G4EventManager::GetEventManager()->GetTrackingManager()->GetSteppingManager();
         G4StepStatus stepStatus = fpSteppingManager->GetfStepStatus();
         if (stepStatus != fAtRestDoItProc)
@@ -454,16 +412,16 @@ struct SteppingAction : G4UserSteppingAction
                     G4double charge = aParticle->GetDefinition()->GetPDGCharge();
                     const G4Material *aMaterial = aTrack->GetMaterial();
                     G4MaterialPropertiesTable *MPT = aMaterial->GetMaterialPropertiesTable();
-		    
-		    G4MaterialPropertyVector *Rindex = MPT->GetProperty(kRINDEX);
+
+                    G4MaterialPropertyVector *Rindex = MPT->GetProperty(kRINDEX);
                                         if (!Rindex || Rindex->GetVectorLength() == 0)
                         {
                         G4cout << "WARNING: Material has no valid RINDEX data. Skipping Cerenkov calculation." << G4endl;
                         return;
                         }
 
-		    
-		    G4Cerenkov *proc = (G4Cerenkov *)(*procPost)[i3];
+
+                    G4Cerenkov *proc = (G4Cerenkov *)(*procPost)[i3];
                     fNumPhotons = proc->GetNumPhotons();
 
     G4AutoLock lock(&genstep_mutex);   // <-- Mutex is locked here
@@ -484,11 +442,11 @@ struct SteppingAction : G4UserSteppingAction
                             proc->GetAverageNumberOfPhotons(charge, beta1, aMaterial, Rindex);
                         G4double MeanNumberOfPhotons2 =
                             proc->GetAverageNumberOfPhotons(charge, beta2, aMaterial, Rindex);
-                        
-			
-			
-			
-			U4::CollectGenstep_G4Cerenkov_modified(aTrack, aStep, fNumPhotons, BetaInverse, Pmin, Pmax,
+
+
+
+
+                        U4::CollectGenstep_G4Cerenkov_modified(aTrack, aStep, fNumPhotons, BetaInverse, Pmin, Pmax,
                                                                maxCos, maxSin2, MeanNumberOfPhotons1,
                                                                MeanNumberOfPhotons2);
                         //std::cout << "MeanNumberOfPhotons1" << MeanNumberOfPhotons1 << std::endl;
