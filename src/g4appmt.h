@@ -493,9 +493,10 @@ struct SteppingAction : G4UserSteppingAction
                                                                MeanNumberOfPhotons2);
                         //std::cout << "MeanNumberOfPhotons1" << MeanNumberOfPhotons1 << std::endl;
 
-			const G4Event* event = G4EventManager::GetEventManager()->GetConstCurrentEvent();
-			if (!event) return;  // Always check for null
-			G4int eventid = event->GetEventID();
+                        const G4Event *event = G4EventManager::GetEventManager()->GetConstCurrentEvent();
+                        if (!event)
+                            return; // Always check for null
+                        G4int eventid = event->GetEventID();
 
                         // G4CXOpticks::Get()->simulate(eventid, false);
                         // cudaDeviceSynchronize();
