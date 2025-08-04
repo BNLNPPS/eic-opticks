@@ -98,7 +98,7 @@ void intersect_leaf_newcone( bool& valid_isect, float4& isect, const quad& q0, c
     t_far  = z_far  > z1 && z_far  < z2  && t_far  > t_min ? t_far  : RT_DEFAULT_MAX ; 
 
     const float4 roots = make_float4( t_near, t_far, t_cap1, t_cap2 );
-    const float t_cand = fminf(roots) ;
+    const float t_cand = fminf(roots);
 
     float3 intersection_point = make_float3(o.x + t_cand * d.x, o.y + t_cand * d.y, o.z + t_cand * d.z);
     float3 n = normalize(make_float3(intersection_point.x, intersection_point.y, (z0 - intersection_point.z) * tth2));
