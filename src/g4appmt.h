@@ -44,9 +44,10 @@
 #include "u4/U4Touchable.h"
 #include "u4/U4Track.h"
 
-
-namespace { G4Mutex genstep_mutex = G4MUTEX_INITIALIZER; }
-
+namespace
+{
+G4Mutex genstep_mutex = G4MUTEX_INITIALIZER;
+}
 
 bool IsSubtractionSolid(G4VSolid *solid)
 {
@@ -152,7 +153,7 @@ struct PhotonSD : public G4VSensitiveDetector
         fPhotonHitsCollection = new PhotonHitsCollection(SensitiveDetectorName, collectionName[0]);
         if (fHCID < 0)
         {
-            //G4cout << "PhotonSD::Initialize:  " << SensitiveDetectorName << "   " << collectionName[0] << G4endl;
+            // G4cout << "PhotonSD::Initialize:  " << SensitiveDetectorName << "   " << collectionName[0] << G4endl;
             fHCID = G4SDManager::GetSDMpointer()->GetCollectionID(collectionName[0]);
         }
         hce->AddHitsCollection(fHCID, fPhotonHitsCollection);
@@ -180,8 +181,8 @@ struct PhotonSD : public G4VSensitiveDetector
     void EndOfEvent(G4HCofThisEvent *) override
     {
 
-	G4int NbHits = fPhotonHitsCollection->entries();
-        //G4cout << "PhotonSD::EndOfEvent Number of PhotonHits: " << NbHits << G4endl;
+        G4int NbHits = fPhotonHitsCollection->entries();
+        // G4cout << "PhotonSD::EndOfEvent Number of PhotonHits: " << NbHits << G4endl;
 
         // Open an output file (text mode)
 
