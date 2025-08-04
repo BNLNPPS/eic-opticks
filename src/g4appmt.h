@@ -180,50 +180,7 @@ struct PhotonSD : public G4VSensitiveDetector
 
     void EndOfEvent(G4HCofThisEvent *) override
     {
-
         G4int NbHits = fPhotonHitsCollection->entries();
-        // G4cout << "PhotonSD::EndOfEvent Number of PhotonHits: " << NbHits << G4endl;
-
-        // Open an output file (text mode)
-
-	/*    
-        int tid = G4Threading::G4GetThreadId();
-	std::ostringstream fname;
-	fname << "g4_photon_hits_thread" << tid << ".txt";
-	std::ofstream outFile(fname.str().c_str(), std::ios::app);
-
-	
-	if (!outFile.is_open())
-        {
-            G4cerr << "Error opening output file g4_photon_hits.txt!" << G4endl;
-            return;
-        }
-
-        // Loop over all recorded hits TOBEDONE: move this to endofrunaction
-        for (G4int i = 0; i < NbHits; i++)
-        {
-            PhotonHit *hit = (*fPhotonHitsCollection)[i];
-
-            G4int id = hit->fid;
-            G4double energy = hit->fenergy;
-            G4double time = hit->ftime;
-            G4ThreeVector position = hit->fposition;
-            G4ThreeVector direction = hit->fdirection;
-            G4ThreeVector pol = hit->fpolarization;
-
-            // Write out info in a style similar to Opticks hits
-            
-	    outFile << "Adding hit from Geant4: " << energy << " eV  "
-                    << "(" << position.x() << ", " << position.y() << ", " << position.z() << ")  "
-                    << "(" << direction.x() << ", " << direction.y() << ", " << direction.z() << ")  "
-                    << "(" << pol.x() << ", " << pol.y() << ", " << pol.z() << ")  "
-                    << "Time=" << time << " "
-                    << "ID=" << id << G4endl;
-	    
-        }
-
-        // Close the file
-        outFile.close(); */
     }
 
     void AddOpticksHits()

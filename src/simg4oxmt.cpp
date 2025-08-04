@@ -14,9 +14,9 @@
 
 #include "g4appmt.h"
 
-#include "G4VUserActionInitialization.hh"
-#include "G4RunManagerFactory.hh"
 #include "G4RunManager.hh"
+#include "G4RunManagerFactory.hh"
+#include "G4VUserActionInitialization.hh"
 
 
 using namespace std;
@@ -47,6 +47,7 @@ struct ActionInitialization : public G4VUserActionInitialization
         SetUserAction(fG4App->stepping_);
     }
 };
+
 
 int main(int argc, char **argv)
 {
@@ -96,7 +97,6 @@ int main(int argc, char **argv)
 
     auto *run_mgr = G4RunManagerFactory::CreateRunManager();
     run_mgr->SetUserInitialization(physics);
-
 
     G4App *g4app = new G4App(gdml_file);
 
