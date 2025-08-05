@@ -1,8 +1,8 @@
+import argparse
 import subprocess
 import re
 
-timings_file = "/tmp/timings.txt"
-opticks_file = "/tmp/Opticks.txt"
+from pathlib import Path
 
 run_mac_template = """
 /run/numberOfThreads {threads}
@@ -29,8 +29,17 @@ def parse_sim_time(output):
 
 
 def main():
-    with open(timings_file, "w") as tf, open(opticks_file, "w") as of:
-        for threads in range(1, 21):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-g', '--gdml', type=Path, default=Path('tests/geom/pfrich_min_FINAL.gdml'), help="Path to a custom GDML geometry file")
+    parser.add_argument('-o', '--outpath', type=Path, default=Path('./'), help="Path where the output file will be saved")
+
+    args = parser.parse_args()
+
+    geant_file = args.outpath/"timing_geant.txt"
+    optix_file = args.outpath/"timing_optix.txt"
+
+    with open(geant_file, "w") as gfile, open(optix_file, "w") as ofile:
+        for threads in range(50, 0, -1):
             times = {}
             sim_time_true = None
             for flag in ['true', 'false']:
@@ -38,8 +47,10 @@ def main():
                 with open("run.mac", "w") as rm:
                     rm.write(run_mac_template.format(threads=threads, flag=flag))
                 # Run with time in bash to capture real/user/sys
+                cmd = f"time simg4oxmt -g {args.gdml} -m run.mac"
+                print(f"Running {threads} threads: {cmd}")
                 result = subprocess.run(
-                    ["bash", "-c", "time simg4oxmt -g tests/geom/pfrich_min_FINAL.gdml -m run.mac"],
+                    ["bash", "-c", cmd],
                     capture_output=True, text=True
                 )
                 stdout = result.stdout
@@ -49,8 +60,8 @@ def main():
                 if flag == 'true':
                     sim_time_true = parse_sim_time(stdout + stderr)
                     if sim_time_true is not None:
-                        of.write(f"{threads} {sim_time_true}\n")
-                        of.flush()
+                        ofile.write(f"{threads} {sim_time_true}\n")
+                        ofile.flush()
 
                 # Extract real time
                 real_match = re.search(r"real\s+\d+m[\d.]+s", stderr)
@@ -60,11 +71,11 @@ def main():
                 else:
                     print(f"[!] Could not find 'real' time for threads={threads} flag={flag}")
 
-            # Write the difference to timings.txt (true - false)
+            # Write the difference to timing_geant.txt (true - false)
             if 'true' in times and 'false' in times:
                 diff = times['true'] - times['false']
-                tf.write(f"{threads} {diff}\n")
-                tf.flush()
+                gfile.write(f"{threads} {diff}\n")
+                gfile.flush()
             else:
                 print(f"[!] Missing times for threads={threads}")
 
