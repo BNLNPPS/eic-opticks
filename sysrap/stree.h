@@ -268,7 +268,7 @@ struct stree
     // subtree digests with less repeats than FREQ_CUT within the entire geometry
     // are not regarded as repeats for instancing factorization purposes
 
-    static constexpr const char* BASE = "$HOME/.opticks/GEOM/$GEOM/CSGFoundry/SSim" ;  // default
+    static constexpr const char* BASE = "$CFBaseFromGEOM/CSGFoundry/SSim" ;
     static constexpr const char* RELDIR = "stree" ;
 
     static constexpr const char* NDS = "nds.npy" ;
@@ -475,11 +475,13 @@ struct stree
 
     sfr  get_frame_moi() const ;
     sfr  get_frame(const char* q_spec) const ;
+    int  get_frame_from_triplet(sfr& f, const char* q_spec ) const ;
+    int  get_frame_from_coords( sfr& f, const char* q_spec ) const ;
+
     bool has_frame(const char* q_spec) const ;
 
 
     int get_frame_instanced(  sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const ;
-
     int get_frame_remainder(  sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const ;
     int get_frame_triangulate(sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const ;
     int get_frame_global(     sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const ;
@@ -492,7 +494,7 @@ struct stree
     void get_sub_sonames( std::vector<std::string>& sonames ) const ;
     const char* get_sub_soname(const char* sub) const ;
 
-    static std::string Name( const std::string& name, bool strip );
+    static std::string Name( const std::string& name, bool strip_tail );
     std::string get_lvid_soname(int lvid, bool strip ) const ;
     const std::string& get_lvid_soname_(int lvid) const ;
 
@@ -594,7 +596,7 @@ struct stree
 
     int load( const char* base, const char* reldir=RELDIR );
     int load_( const char* fold );
-    void import(const NPFold* fold);
+    void import_(const NPFold* fold);
 
 
     static int Compare( const std::vector<int>& a, const std::vector<int>& b ) ;
@@ -877,6 +879,7 @@ inline std::string stree::desc() const
     std::string str = ss.str();
     return str ;
 }
+
 
 
 inline std::string stree::desc_soname() const
@@ -1936,9 +1939,39 @@ Q: An instance may encompasses multiple lv (and multiple snode)
 
 A: By observation the outer instance node is collected into inst_nidx
 
+TODO: AVOID DUPLICATION BETWEEN THIS AND CSGFoundry::getFrame
+
 **/
 
 inline sfr stree::get_frame(const char* q_spec ) const
+{
+    sfr f ;
+    f.set_name(q_spec);
+
+    bool looks_like_triplet = sstr::StartsWithLetterAZaz(q_spec) || strstr(q_spec, ":") || strcmp(q_spec,"-1") == 0 ;
+    bool looks_like_coords  = !looks_like_triplet && strstr(q_spec,",") ;
+
+    int rc = 0 ;
+    if( looks_like_triplet )
+    {
+        rc = get_frame_from_triplet(f, q_spec);
+    }
+    else if (looks_like_coords)
+    {
+        rc = get_frame_from_coords(f, q_spec);
+    }
+    if(rc != 0) std::cerr
+        << "stree::get_frame FAIL "
+        << " q_spec[" << ( q_spec ? q_spec : "-" ) << "]"
+        << " rc " << rc
+        << "\n"
+        ;
+
+    return f ;
+}
+
+
+inline int stree::get_frame_from_triplet(sfr& f, const char* q_spec ) const
 {
     int lvid ;
     int lvid_ordinal ;
@@ -1953,9 +1986,6 @@ inline sfr stree::get_frame(const char* q_spec ) const
         << "\n"
         ;
     assert( parse_rc == 0 );
-
-    sfr f ;
-    f.set_name(q_spec);
 
 
     [[maybe_unused]] int get_rc = 0 ;
@@ -1975,8 +2005,56 @@ inline sfr stree::get_frame(const char* q_spec ) const
         ;
 
     assert( get_rc == 0 );
-    return f ;
+    return get_rc ;
 }
+
+/**
+stree::get_frame_from_coords
+------------------------------
+
+HMM: perhaps move into sfr.h
+
+This enables manual targetting some position::
+
+     MOI=3345.569,20623.73,21000,1000 ssst.sh
+
+**/
+
+
+inline int stree::get_frame_from_coords(sfr& f, const char* q_spec ) const
+{
+    char delim = ',' ;
+    std::vector<double> elem ;
+    sstr::split<double>( elem, q_spec, delim );
+    int num_elem = elem.size();
+    bool expect_elem = num_elem == 4 || num_elem == 3 || num_elem == 2 || num_elem == 1 ;
+    std::cout
+        << "stree::get_frame_from_coords"
+        << " num_elem " << num_elem
+        << " expect_elem " << ( expect_elem ? "YES" : "NO " )
+        << " elem " << sstr::desc<double>(elem)
+        << "\n"
+        ;
+    if(!expect_elem) return 1 ;
+
+    std::array<double,4> ce = {} ;
+    ce[0] = num_elem > 0 ? elem[0] : 0. ;
+    ce[1] = num_elem > 1 ? elem[1] : 0. ;
+    ce[2] = num_elem > 2 ? elem[2] : 0. ;
+    ce[3] = num_elem > 3 ? elem[3] : 1000. ;
+
+    f.set_ce(ce.data() );
+
+    bool rtp_tangential = false ;
+    bool extent_scale = false ;
+    SCenterExtentFrame<double> cef(ce[0], ce[1], ce[2], ce[3], rtp_tangential, extent_scale ) ;
+    f.m2w = cef.model2world ;
+    f.w2m = cef.world2model ;
+
+    return 0;
+}
+
+
 
 
 /**
@@ -2374,9 +2452,9 @@ stree::Name
 HMM: tail stripping now done at collection with sstr::StripTail_Unique
 
 **/
-inline std::string stree::Name( const std::string& name, bool strip ) // static
+inline std::string stree::Name( const std::string& name, bool strip_tail ) // static
 {
-    return strip ? sstr::StripTail(name, "0x") : name ;
+    return strip_tail ? sstr::StripTail(name, "0x") : name ;
 }
 inline std::string stree::get_lvid_soname(int lvid, bool strip) const
 {
@@ -2391,11 +2469,22 @@ inline const std::string& stree::get_lvid_soname_(int lvid) const
 }
 
 
+/**
+stree::get_meshname
+---------------------
+
+Same names everywhere::
+
+     (ok) A[blyth@localhost CSGFoundry]$ diff meshname.txt SSim/stree/soname_names.txt
+     (ok) A[blyth@localhost CSGFoundry]$ diff meshname.txt SSim/scene/soname_names.txt
+
+**/
 
 inline void stree::get_meshname( std::vector<std::string>& names) const
 {
+    bool strip_tail = true ;    // suspect does nothing, as already done when this called
     assert( names.size() == 0 );
-    for(unsigned i=0 ; i < soname.size() ; i++) names.push_back( Name(soname[i],true) );
+    for(unsigned i=0 ; i < soname.size() ; i++) names.push_back( Name(soname[i],strip_tail) );
 }
 
 inline void stree::get_mmlabel( std::vector<std::string>& names) const
@@ -3361,20 +3450,22 @@ inline void stree::ImportNames( std::vector<std::string>& names, const NP* a, co
     if( a == nullptr )
     {
         std::cerr << "stree::ImportNames array is null, label[" << ( label ? label : "-" ) << "]\n" ;
-        std::cerr << "(typically means the stree.h serialization code has changed compared to the version used for saving the tree)\n" ;
+        std::cerr << "(typically this means the stree.h serialization code has changed compared to the version used for saving the tree)\n" ;
         return ;
     }
     a->get_names(names);
 }
 
 
-
-
-
-inline stree* stree::Load(const char* base, const char* reldir ) // static
+inline stree* stree::Load(const char* _base, const char* reldir ) // static
 {
-    stree* st = new stree ;
-    st->load(base, reldir);
+    const char* base = spath::ResolveTopLevel(_base) ;
+    stree* st = nullptr ;
+    if(base)
+    {
+        st = new stree ;
+        st->load(base, reldir);
+    }
     return st ;
 }
 inline int stree::load( const char* base, const char* reldir )
@@ -3388,19 +3479,19 @@ inline int stree::load_( const char* dir )
 {
     if(level > 0) std::cerr << "stree::load_ " << ( dir ? dir : "-" ) << std::endl ;
     NPFold* fold = NPFold::Load(dir) ;
-    import(fold);
+    import_(fold);
     return 0 ;
 }
 
 
 
 
-inline void stree::import(const NPFold* fold)
+inline void stree::import_(const NPFold* fold)
 {
     if( fold == nullptr )
     {
         std::cerr
-            << "stree::import"
+            << "stree::import_"
             << " : ERROR : null fold "
             << std::endl ;
         return ;
@@ -3431,7 +3522,7 @@ inline void stree::import(const NPFold* fold)
     if(f_standard->is_empty())
     {
         std::cerr
-            << "stree::import skip asserts for empty f_standard : assuming trivial test geometry "
+            << "stree::import_ skip asserts for empty f_standard : assuming trivial test geometry "
             << std::endl
             ;
     }

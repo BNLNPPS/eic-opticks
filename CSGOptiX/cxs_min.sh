@@ -192,8 +192,11 @@ vars="$vars version VERSION"
 #test=input_photon_nnvt
 #test=input_photon_target
 #test=input_photon_wp_pmt
+#test=input_photon_wp_pmt_side
+#test=input_photon_wp_pmt_semi
 #test=input_photon_s_pmt
-test=input_photon_poolcover
+#test=input_photon_poolcover
+test=input_photon_poolcover_refine
 
 #test=large_evt
 #test=vlarge_evt
@@ -442,16 +445,38 @@ elif [ "${TEST:0:12}" == "input_photon" ]; then
 
       #export PIDX=99999
 
-   elif [ "${TEST:12}" == "_poolcover" ]; then
+   elif [ "${TEST:12}" == "_wp_pmt_side" ]; then
 
       sevt__input_photon_dir=$HOME/.opticks/InputPhotons
-      opticks_input_photon=UpXZ1000_f8.npy
-      opticks_input_photon_frame=3345.569,20623.73,21500
+      opticks_input_photon=SideZX_X300_100k_f8.npy
+      opticks_input_photon_frame=PMT_20inch_veto:0:1000
+
+   elif [ "${TEST:12}" == "_wp_pmt_semi" ]; then
+
+      sevt__input_photon_dir=$HOME/.opticks/InputPhotons
+      opticks_input_photon=SemiCircleXZ_R-500_100k_f8.npy
+      opticks_input_photon_frame=PMT_20inch_veto:0:1000
+
+   elif [ "${TEST:12}" == "_poolcover" -o "${TEST:12}" == "_poolcover_refine" ]; then
+
+      sevt__input_photon_dir=$HOME/.opticks/InputPhotons
+      #opticks_input_photon=UpXZ1000_f8.npy
+      opticks_input_photon=CircleXZ_R500_100k_f8.npy
+      #opticks_input_photon=CircleXZ_R10_361_f8.npy
+      #opticks_input_photon_frame=3345.569,20623.73,21500
+      opticks_input_photon_frame=3345.569,20623.73,21000
       #export PIDX=99999
 
       export SEvt__transformInputPhoton_VERBOSE=1
       export CSGFoundry__getFrame_VERBOSE=1
       export CSGFoundry__getFrameE_VERBOSE=1
+
+      if [ "${TEST/refine}" != "$TEST" ]; then
+         export OPTICKS_PROPAGATE_REFINE=1
+      else
+         unset OPTICKS_PROPAGATE_REFINE
+      fi
+
 
    elif [ "${TEST:12}" == "_s_pmt" ]; then
 

@@ -84,7 +84,10 @@ envvars
 #include "SMesh.h"
 #include "SGLM.h"
 
-#include "SGLFW_Extras.h"
+#include "SGLFW_check.h"
+#include "SGLFW_Buffer.h"
+#include "SGLFW_VAO.h"
+#include "SGLFW_Attrib.h"
 #include "SGLFW_Program.h"
 #include "SGLFW_Mesh.h"
 #include "SGLFW_GLEQ.h"
@@ -146,13 +149,19 @@ F
    gm.toggle.tmax : then change far by moving cursor vertically
 G
    -
+alt+G
+   toggle gm.option.G controlling rendering of SGen
+
 H
    invokes SGLM::home returning to initial position with no lookrotation or eyeshift [--home]
-   and dumps this help string [--help]
+
+alt+H
+   dumps this help string [--help]
+
 I
-   --snap-local
+   --snap-local : taking a screenshot
 J
-   --snap-local-inverted
+   --snap-local-inverted : taking a y-inverted screenshot
 K
    save screen shot [--snap]
 L
@@ -376,7 +385,7 @@ inline bool SGLFW::renderloop_proceed()
 }
 inline void SGLFW::renderloop_exit()
 {
-    std::cout << "SGLFW::renderloop_exit" << std::endl;
+    if(level > 0) std::cout << "SGLFW::renderloop_exit" << std::endl;
     glfwSetWindowShouldClose(window, true);
 }
 
@@ -392,7 +401,7 @@ HMM: perhaps handle_frame_hop from here ?
 
 inline void SGLFW::renderloop_head()
 {
-    dump = count % 100000 == 0 ;
+    dump = level > 0 && count % 100000 == 0 ;
 
     getWindowSize();
     glViewport(0, 0, _width, _height);
@@ -540,16 +549,16 @@ inline void SGLFW::key_pressed(unsigned key)
             case GLFW_KEY_U:      gm.toggle.norm = !gm.toggle.norm            ; break ;
             case GLFW_KEY_T:      gm.toggle.time = !gm.toggle.time            ; break ;
             case GLFW_KEY_SPACE:  gm.toggle.stop = !gm.toggle.stop            ; break ;
-            case GLFW_KEY_P:      command("--desc")                     ; break ;
-            case GLFW_KEY_H:      command("--home") ; command("--help") ; break ;
-            case GLFW_KEY_O:      command("--tcam")                     ; break ;
-            case GLFW_KEY_I:      command("--snap-local")               ; break ;
-            case GLFW_KEY_J:      command("--snap-local-inverted")      ; break ;
-            case GLFW_KEY_K:      command("--snap")                     ; break ;
-            case GLFW_KEY_L:      command("--snap-inverted")            ; break ;
-            case GLFW_KEY_V:      command("--traceyflip")               ; break ;
-            case GLFW_KEY_X:      command("--rendertype")               ; break ;   // HMM: also in SGLM_Modnav
-            case GLFW_KEY_ESCAPE: command("--exit")                     ; break ;
+            case GLFW_KEY_P:      command("--desc")                           ; break ;
+            case GLFW_KEY_H:      command("--home")                           ; break ;
+            case GLFW_KEY_O:      command("--tcam")                           ; break ;
+            case GLFW_KEY_I:      command("--snap-local")                     ; break ;
+            case GLFW_KEY_J:      command("--snap-local-inverted")            ; break ;
+            case GLFW_KEY_K:      command("--snap")                           ; break ;
+            case GLFW_KEY_L:      command("--snap-inverted")                  ; break ;
+            case GLFW_KEY_V:      command("--traceyflip")                     ; break ;
+            case GLFW_KEY_X:      command("--rendertype")                     ; break ;   // HMM: also in SGLM_Modnav
+            case GLFW_KEY_ESCAPE: command("--exit")                           ; break ;
 
 
             case GLFW_KEY_W:   // WASDQE keys control navigation via SGLM_Modnav
@@ -568,9 +577,11 @@ inline void SGLFW::key_pressed(unsigned key)
         {
             case GLFW_KEY_A:   gm.option.A = !gm.option.A     ; break ;
             case GLFW_KEY_B:   gm.option.B = !gm.option.B     ; break ;
+            case GLFW_KEY_G:   gm.option.G = !gm.option.G     ; break ;
             case GLFW_KEY_M:   gm.option.M = !gm.option.M     ; break ;
             case GLFW_KEY_O:   gm.option.O = !gm.option.O     ; break ;
             case GLFW_KEY_T:   gm.reset_time()                ; break ;
+            case GLFW_KEY_H:   command("--help")              ; break ;
         }
     }
     else if( SGLM_Modifiers::IsShift(modifiers))
@@ -1203,27 +1214,12 @@ inline void SGLFW::init()
 
     gleqInit();
 
-#if defined __APPLE__
-    glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 3);  // version specifies the minimum, not what will get on mac
-    glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-#elif defined _MSC_VER
-    glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 1);
-
-#elif __linux
-
-    if(level > 1) printf(".SGLFW::init.__linux\n");
     glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 6);  // 1/6 ?
     glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);  // remove stuff deprecated in requested release
     glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
     // https://learnopengl.com/In-Practice/Debugging Debug output is core since OpenGL version 4.3,
-#endif
-
 
     // HMM: using fullscreen mode with resolution less than display changes display resolution
     GLFWmonitor* monitor = gm.fullscreen ? glfwGetPrimaryMonitor() : nullptr ;   // nullptr for windowed mode

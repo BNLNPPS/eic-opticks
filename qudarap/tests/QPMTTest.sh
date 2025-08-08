@@ -29,7 +29,8 @@ arg=${1:-$defarg}
 
 logging(){
    export QPMT=INFO
-   export QU=INFO
+   export SPMT__level=1
+   #export QU=INFO
 }
 logging
 

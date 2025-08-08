@@ -9,6 +9,8 @@ Used from SGLFW_Evt.h
 
 #include "NP.hh"
 
+
+#include "ssys.h"
 #include "spath.h"
 #include "sphoton.h"
 #include "sseq_record.h"
@@ -21,6 +23,8 @@ struct SRecord
 {
     static constexpr const char* NAME = "record.npy" ;
     static constexpr const char* RPOS_SPEC = "4,GL_FLOAT,GL_FALSE,64,0,false";
+    static constexpr const char* _level = "SRecord__level" ;
+    static int level ;
 
     NP* record;
     int record_first ;
@@ -42,9 +46,16 @@ struct SRecord
 
     const float get_t0() const ;
     const float get_t1() const ;
-
     std::string desc() const ;
+
+    void getPhotonAtTime( std::vector<sphoton>& photon, float t ) const;
+    NP*  getPhotonAtTime( float t ) const;
+
 };
+
+
+int SRecord::level = ssys::getenvint(_level,0) ;
+
 
 /**
 SRecord::LoadArray
@@ -64,14 +75,18 @@ that yield a selection string or direct such strings.
 
      "[:,0,0,1] < -1.0"
 
-2. "indexSlice" selection, eg every 1000th or the first 10::
+2. "indexSlice" selection, eg every 1000th or the first 10.
+   This uses partial loading of items from files which enables working
+   with very large record files, eg 66GB. Example slices::
 
      "[::1000]"
      "[:10]"
 
+3. path to index array eg "/tmp/w54.npy" : create that file from ipython with::
 
-The indexSlice form uses partial loading of items from files
-to enable working with very large record files, eg 66GB.
+    In [39]: w54
+    Out[39]: array([71464, 71485, 71663, 71678, 71690, 71780, 71782, 71798, 71799, 71803, 71810, 71914, 71918, 71919, 71975, 71978, 72019, 72026, 72032, 73149, 73212, 73344, 73372])
+    In [40]: np.save("/tmp/w54.npy", w54)
 
 
 **/
@@ -79,7 +94,6 @@ to enable working with very large record files, eg 66GB.
 inline NP* SRecord::LoadArray(const char* _fold, const char* _slice )
 {
     const char* path = spath::Resolve(_fold, NAME);
-
     bool looks_unresolved = spath::LooksUnresolved(path, _fold);
     if(looks_unresolved)
     {
@@ -94,7 +108,6 @@ inline NP* SRecord::LoadArray(const char* _fold, const char* _slice )
         return nullptr ;
     }
 
-
     NP* a = nullptr ;
 
     if( _slice == nullptr )
@@ -102,19 +115,19 @@ inline NP* SRecord::LoadArray(const char* _fold, const char* _slice )
         a = NP::Load(path);
         a->set_meta<std::string>("SRecord__LoadArray", "NP::Load");
     }
-    else if(sseq_record::LooksLikeRecordSeqSelection(_slice))
+    else if(sseq_record::LooksLikeRecordSeqSelection(_slice)) // can be indirect via envvar, once resolved look for starting with "CK/SI/TO"
     {
         a = sseq_record::LoadRecordSeqSelection(_fold, _slice);
         a->set_meta<std::string>("SRecord__LoadArray_METHOD", "sseq_record::LoadRecordSeqSelection");
         a->set_meta<std::string>("SRecord__LoadArray_SLICE", _slice );
     }
-    else if(NP::LooksLikeWhereSelection(_slice))
+    else if(NP::LooksLikeWhereSelection(_slice)) // can be indirect via envvar, once resolved look for "<" or ">"
     {
         a = NP::LoadThenSlice<float>(path, _slice);
         a->set_meta<std::string>("SRecord__LoadArray_METHOD", "NP::LoadThenSlice");
         a->set_meta<std::string>("SRecord__LoadArray_SLICE", _slice );
     }
-    else
+    else    // eg "[0:100]" OR "/tmp/w54.npy" OR "/tmp/w54.npy[0:10]"
     {
         a = NP::LoadSlice(path, _slice);
         a->set_meta<std::string>("SRecord__LoadArray_METHOD", "NP::LoadSlice");
@@ -160,7 +173,8 @@ inline void SRecord::init()
     record_first = 0 ;
     record_count = record->shape[0]*record->shape[1] ;   // all step points across all photon
 
-    sphoton::MinMaxPost(&mn.x, &mx.x, record );
+    bool skip_flagmask_zero = true ;
+    sphoton::MinMaxPost(&mn.x, &mx.x, record, skip_flagmask_zero );
     ce = scuda::center_extent( mn, mx );
 
     record->set_meta<float>("x0", mn.x );
@@ -233,4 +247,78 @@ inline std::string SRecord::desc() const
     std::string str = ss.str() ;
     return str ;
 }
+
+/**
+SRecord::getPhotonAtTime
+--------------------------
+
+WIP: add API to provide photons corresponding to an input simulation time
+by interpolation between positions in the record array. Momentum and
+polarization can be taken from the first of the straddling step points.
+When not straddling need to skip that photon, corresponding
+to it not being alive at the simulation time provided.
+
+**/
+
+inline void SRecord::getPhotonAtTime( std::vector<sphoton>& pp, float t ) const
+{
+    int ni = record->shape[0] ;
+    int nj = record->shape[1] ;
+    int item_bytes = record->item_bytes() ; // encompasses multiple step point sphoton
+
+    bool dump = false ;
+
+    std::vector<sphoton> point(nj) ;
+
+    for(int i=0 ; i < ni ; i++)
+    {
+        if(dump) std::cout
+            << "SRecord::getPhotonAtTime"
+            << " i " << std::setw(6) << i
+            << "\n"
+            ;
+
+        // populate step point vector
+        memcpy( point.data(), record->bytes() + i*item_bytes,  item_bytes );
+
+        sphoton p = {} ;
+
+        for(int j=1 ; j < nj ; j++)
+        {
+            const sphoton& p0 = point[j-1] ;
+            const sphoton& p1 = point[j] ;
+            bool straddle = p0.time <= t  && t < p1.time ;
+            if( straddle )
+            {
+                p = p0 ;  // (pol,mom) from p0
+
+                // interpolated position
+                float frac = (t - p0.time)/(p1.time - p0.time) ;
+                p.pos = lerp( p0.pos, p1.pos, frac ) ;
+                p.time = t ;
+
+                pp.push_back(p);
+
+                if(dump) std::cout
+                    << " j " << std::setw(2) << j
+                    << " p0.time " << std::fixed << std::setw(7) << std::setprecision(3) << p0.time
+                    << " p1.time " << std::fixed << std::setw(7) << std::setprecision(3) << p1.time
+                    << " straddle " << ( straddle ? "YES" : "NO " )
+                    << "\n"
+                    ;
+                break ;
+            }
+        }
+    }
+}
+
+inline NP* SRecord::getPhotonAtTime( float t ) const
+{
+    std::vector<sphoton> vpp ;
+    getPhotonAtTime(vpp, t );
+    int num_pp = vpp.size();
+    NP* pp = num_pp > 0 ?  NPX::ArrayFromVec<float,sphoton>(vpp, 4, 4 ) : nullptr ;
+    return pp ;
+}
+
 

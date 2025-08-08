@@ -36,7 +36,7 @@ struct storchtype
     static constexpr const char* T_SPHERE_  = "sphere" ;
 
     static unsigned Type(const char* name); 
-    static unsigned Type(const std::string& name); 
+    static unsigned Type(const std::string& name);
     static const char* Name(unsigned type); 
     static bool     IsValid(unsigned type); 
 }; 
@@ -54,7 +54,7 @@ inline unsigned storchtype::Type(const char* name)
     return type ; 
 }
 
-inline unsigned storchtype::Type(const std::string& name) 
+inline unsigned storchtype::Type(const std::string& name)
 {
     return Type(name.c_str());
 }

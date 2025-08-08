@@ -29,7 +29,6 @@
 #include <cassert>
 #include <cstdio>
 #include <fstream> 
-#include <limits>
 
 #include <sys/wait.h>
 
@@ -248,6 +247,9 @@ std::string SSys::hexlify(const void* obj, size_t size, bool reverse)
     for(size_t i=0 ; i < size ; i++) ss << std::setw(2) << std::hex << std::setfill('0') << unsigned(bytes[reverse ? size - 1 - i : i]) ; 
     return ss.str(); 
 }
+
+
+
 
 
 /**

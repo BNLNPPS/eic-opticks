@@ -3,6 +3,31 @@ usage(){ cat << EOU
 cxr_min.sh : Ray trace geometry rendering script
 ====================================================
 
+
+Bash args
+------------
+
+info
+   dump vars
+
+open
+   write context file, use this to control where screenshots are copied to
+
+run
+   run executable
+
+dbg
+   run under gdb
+
+close
+   delete context file
+
+
+
+Notes
+------
+
+
 Formerly described as "minimal script for shakedown"
 but has become the first visualization script to use.
 This uses one of two executables:
@@ -27,11 +52,11 @@ Example commandlines using installed script::
 
     ELV=t:Water_solid,Rock_solid  cxr_min.sh
 
-    ELV=t:sWorld,sBottomRock,sTopRock,sExpHall,sExpRockBox,sDomeRockBox  EYE=0,5,0  cxr_min.sh
-       ## excluding large volumes can be illustrative
+    ELV=t:sWorld,sBottomRock,sTopRock,sExpHall,sExpRockBox,sDomeRockBox,sAirGap,sDeadWater_shell,sTyvek_shell,sOuterWaterPool,sPoolLining MOI=sTarget EYE=0,-2,0  cxr_min.sh
+       ## excluding large volumes can be illustrative, however must not remove the MOI volume
+
 
     MOI=PMT_20inch_veto:0:1000 cxr_min.sh
-
 
     EMM=2,3,4 EYE=3,3,0 cxr_min.sh
 
@@ -69,29 +94,18 @@ NB presence of comma in EMM switches to bit position input, not binary value
 EOU
 }
 
-SDIR=$(dirname $(realpath $BASH_SOURCE))
+cd $(dirname $(realpath $BASH_SOURCE))
+export SCRIPT=cxr_min
 
-defarg=run_info
+defarg=open_run_info
 [ -n "$BP" ] && defarg=dbg_info
 arg=${1:-$defarg}
+arg2=$2
+
 
 bin=CSGOptiXRenderInteractiveTest
 [ -n "$SNAP" ] && bin=CSGOptiXRMTest
 which_bin=$(which $bin)
-
-External_CFBaseFromGEOM=${GEOM}_CFBaseFromGEOM
-if [ -n "$GEOM" -a -n "${!External_CFBaseFromGEOM}" -a -d "${!External_CFBaseFromGEOM}" -a -f "${!External_CFBaseFromGEOM}/CSGFoundry/prim.npy" ]; then
-    echo $BASH_SOURCE - External GEOM setup detected
-    vv="External_CFBaseFromGEOM ${External_CFBaseFromGEOM}"
-    for v in $vv ; do printf "%40s : %s \n" "$v" "${!v}" ; done
-else
-    source ~/.opticks/GEOM/GEOM.sh  ## sets GEOM envvar, use GEOM bash function to setup/edit
-fi
-
-source $HOME/.opticks/GEOM/EVT.sh   ## optionally sets AFOLD BFOLD where event info is loaded from
-source $HOME/.opticks/GEOM/MOI.sh   ## sets MOI envvar, controlling initial view, use MOI bash function to setup/edit
-
-
 
 logging(){
    type $FUNCNAME
@@ -117,76 +131,115 @@ anim()
 
 
 
-#eye=1000,1000,1000
-#eye=3.7878,3.7878,3.7878
-#eye=-1,-1,0
-#eye=-1,0,0
-#eye=1,0,0
-eye=0,1,0
-#eye=3,0,0
-#eye=3,0,-1.5
-#eye=0,3,-1.5
-#eye=0,-1,0
-#eye=-1,-1,3
-#eye=-1,-1,3
-
-look=0,0,0
-
-up=0,0,1
-#up=0,0,-1    ## inverted is useful for PMT
 
 
-wh=2560,1440
-fullscreen=1
+External_CFBaseFromGEOM=${GEOM}_CFBaseFromGEOM
+if [ -n "$GEOM" -a -n "${!External_CFBaseFromGEOM}" -a -d "${!External_CFBaseFromGEOM}" -a -f "${!External_CFBaseFromGEOM}/CSGFoundry/prim.npy" ]; then
+    echo $BASH_SOURCE - External GEOM setup detected
+    vv="External_CFBaseFromGEOM ${External_CFBaseFromGEOM}"
+    for v in $vv ; do printf "%40s : %s \n" "$v" "${!v}" ; done
+else
+    source ~/.opticks/GEOM/GEOM.sh  ## sets GEOM envvar, use GEOM bash function to setup/edit
+fi
 
-zoom=1
-tmin=0.5
-cam=perspective
-#cam=orthographic   # needs work to set param to make view start closer to perspective
-
-#escale=asis
-escale=extent
-
-traceyflip=0
-
-
-## Formerly had some MOI dependent setting of
-## view defaults, but as the view defaults apply
-## to all frames have removed that kludge.
-
-export WH=${WH:-$wh}
-export FULLSCREEN=${FULLSCREEN:-$fullscreen}
-
-export ESCALE=${ESCALE:-$escale}
-export EYE=${EYE:-$eye}
-export LOOK=${LOOK:-$look}
-export UP=${UP:-$up}
-export ZOOM=${ZOOM:-$zoom}
-export TMIN=${TMIN:-$tmin}
-export CAM=${CAM:-$cam}
-export TRACEYFLIP=${TRACEYFLIP:-$traceyflip}
+source $HOME/.opticks/GEOM/EVT.sh 2>/dev/null  ## optionally sets AFOLD BFOLD where event info is loaded from
+source $HOME/.opticks/GEOM/MOI.sh 2>/dev/null  ## optionally sets MOI envvar, controlling initial view, use MOI bash function to setup/edit
+source $HOME/.opticks/GEOM/ELV.sh 2>/dev/null  ## optionally set ELV envvar controlling included/excluded LV by name
+source $HOME/.opticks/GEOM/SDR.sh 2>/dev/null  ## optionally configure OpenGL shader
+source $HOME/.opticks/GEOM/CUR.sh 2>/dev/null  ## optionally configure current context file writing
 
 
-nameprefix=cxr_min_
-nameprefix=${nameprefix}_eye_${EYE}_
-nameprefix=${nameprefix}_zoom_${ZOOM}_
-nameprefix=${nameprefix}_tmin_${TMIN}_
-
-# moi appended within CSGOptiX::render_snap ?
-export NAMEPREFIX=$nameprefix
-## NAMEPREFIX used in CSGOptiX::getRenderStemDefault
 
 
-topline="ESCALE=$ESCALE EYE=$EYE TMIN=$TMIN MOI=$MOI ZOOM=$ZOOM CAM=$CAM cxr_min.sh "
-botline="$(date)"
-export TOPLINE=${TOPLINE:-$topline}
-export BOTLINE=${BOTLINE:-$botline}
+if [ -f "$HOME/.opticks/GEOM/VUE.sh" ]; then
+    source $HOME/.opticks/GEOM/VUE.sh
+else
 
-## NB CUDA_VISIBLE_DEVICES is left up to the user to set - not opticks scripts
+    #eye=1000,1000,1000
+    #eye=3.7878,3.7878,3.7878
+    #eye=-1,-1,0
+    #eye=-1,0,0
+    #eye=1,0,0
+    eye=0,1,0
+    #eye=3,0,0
+    #eye=3,0,-1.5
+    #eye=0,3,-1.5
+    #eye=0,-1,0
+    #eye=-1,-1,3
+    #eye=-1,-1,3
 
-export CSGOptiXRenderInteractiveTest__FRAME_HOP=1
-#export CSGOptiXRenderInteractiveTest__SGLM_DESC=1
-export SGLFW__DEPTH=1   # dump _depth.jpg together with screenshots
+    look=0,0,0
+
+    up=0,0,1
+    #up=0,0,-1    ## inverted is useful for PMT
+
+
+    wh=2560,1440
+    fullscreen=1
+
+    zoom=1
+    tmin=0.5
+    cam=perspective
+    #cam=orthographic   # needs work to set param to make view start closer to perspective
+
+    #escale=asis
+    escale=extent
+
+    traceyflip=0
+
+
+    vizmask=t    # 0xff default, no masking
+    #vizmask=t0  # 0xfe mask global, only instanced geometry in both OpenGL and OptiX renders
+
+
+
+    export WH=${WH:-$wh}
+    export FULLSCREEN=${FULLSCREEN:-$fullscreen}
+
+    export ESCALE=${ESCALE:-$escale}
+    export EYE=${EYE:-$eye}
+    export LOOK=${LOOK:-$look}
+    export UP=${UP:-$up}
+    export ZOOM=${ZOOM:-$zoom}
+    export TMIN=${TMIN:-$tmin}
+    export CAM=${CAM:-$cam}
+    export TRACEYFLIP=${TRACEYFLIP:-$traceyflip}
+
+    ## VIZMASK may be ssst.sh ONLY ?
+    export VIZMASK=${VIZMASK:-$vizmask}
+
+
+    nameprefix=${SCRIPT}_
+    nameprefix=${nameprefix}_eye_${EYE}_
+    nameprefix=${nameprefix}_zoom_${ZOOM}_
+    nameprefix=${nameprefix}_tmin_${TMIN}_
+
+    # moi appended within CSGOptiX::render_snap ?
+    export NAMEPREFIX=$nameprefix
+    ## NAMEPREFIX used in CSGOptiX::getRenderStemDefault
+
+
+    topline="ESCALE=$ESCALE EYE=$EYE TMIN=$TMIN MOI=$MOI ZOOM=$ZOOM CAM=$CAM $SCRIPT.sh "
+    botline="$(date)"
+    export TOPLINE=${TOPLINE:-$topline}
+    export BOTLINE=${BOTLINE:-$botline}
+
+    #export CSGOptiXRenderInteractiveTest__SGLM_DESC=1
+    #export SGLFW__DEPTH=1   # dump _depth.jpg together with screenshots
+
+
+    soptix__handle=-1  # default, full geometry
+    #soptix__handle`=0  #  only non-instanced global geometry
+    #soptix__handle=1  #  single CSGSolid
+    #soptix__handle=2  #
+    export SOPTIX__HANDLE=${SOPTIX__HANDLE:-$soptix__handle}
+
+    #export SOPTIX_Options__LEVEL=1
+
+fi
+
+
+
 
 
 TMP=${TMP:-/tmp/$USER/opticks}
@@ -199,8 +252,8 @@ cd $LOGDIR
 
 LOG=$bin.log
 
-vars="bin which_bin GEOM MOI EMM ELV TMIN EYE LOOK UP ZOOM LOGDIR BASE PBAS NAMEPREFIX OPTICKS_HASH TOPLINE BOTLINE CUDA_VISIBLE_DEVICES"
-vars="$vars AFOLD AFOLD_RECORD_SLICE BFOLD BFOLD_RECORD_SLICE"
+vv="bin which_bin GEOM MOI EMM ELV TMIN EYE LOOK UP ZOOM LOGDIR BASE PBAS NAMEPREFIX OPTICKS_HASH TOPLINE BOTLINE CUDA_VISIBLE_DEVICES"
+vv="$vv AFOLD AFOLD_RECORD_SLICE BFOLD BFOLD_RECORD_SLICE _CUR"
 
 Resolve_CFBaseFromGEOM()
 {
@@ -245,10 +298,17 @@ Resolve_CFBaseFromGEOM
 
 
 
-
+_CUR=GEOM/$GEOM/$SCRIPT/$EVT_CHECK
 
 if [ "${arg/info}" != "$arg" ]; then
-   for var in $vars ; do printf "%20s : %s \n" "$var" "${!var}" ; done
+   for v in $vv ; do printf "%20s : %s \n" "$v" "${!v}" ; done
+fi
+
+
+if [ "${arg/open}" != "$arg" ]; then
+    # open to define current context string which controls where screenshots are copied to by ~/j/bin/pic.sh
+    ## HMM : maybe should not overwrite when prefixing ? 
+    CUR_open ${_CUR}
 fi
 
 if [ "${arg/run}" != "$arg" ]; then
@@ -271,12 +331,18 @@ if [ "${arg/dbg}" != "$arg" ]; then
    [ $? -ne 0 ] && echo $BASH_SOURCE dbg error && exit 1
 fi
 
-if [ "$arg" == "grab" -o "$arg" == "open" -o "$arg" == "clean" -o "$arg" == "grab_open" ]; then
-    source $OPTICKS_HOME/bin/BASE_grab.sh $arg
+if [ "${arg/close}" != "$arg" ]; then
+    # close to invalidate the context
+    CUR_close
 fi
 
-if [ "${arg/list}" != "$arg" -o "${arg/pub}" != "$arg" ]; then
-    source $OPTICKS_HOME/bin/BASE_grab.sh $arg
+if [ "$arg" == "touch"  ]; then
+    if [ -n "$arg2" ]; then
+        CUR_touch "$arg2"
+    else
+        echo $BASH_SOURCE arg2 needs to be a datetime accepted by CUR_touch eg "cxr_min.sh touch 11:00"
+    fi
+
 fi
 
 

@@ -26,7 +26,12 @@ with OptiX ray trace and OpenGL rasterized.
 
 * OpenGL/CUDA interop-ing the triangle data is possible (but not straight off)
 
-* TODO: solid selection eg skipping virtuals so can see PMT shapes
+* TODO: solid selection via ELV envvar eg skipping virtuals so can see PMT shapes
+
+  * some work on that already in SScene::CopySelect using name info within SScene
+  * an alternative approach would be to combine the initFromTree
+    with applying the selection as all the identity info needed is
+    available within the tree
 
 * WIP: incorporate into standard workflow
 
@@ -39,22 +44,31 @@ with OptiX ray trace and OpenGL rasterized.
 #include "stree.h"
 #include "svec.h"
 
+#include "SName.h"
 #include "SMesh.h"
 #include "SMeshGroup.h"
 #include "SBitSet.h"
+#include "SGeoConfig.hh"
 
 struct SScene
 {
     static constexpr const char* __level = "SScene__level" ;
+
+    static constexpr const char* BASE = "$CFBaseFromGEOM/CSGFoundry/SSim" ;
     static constexpr const char* RELDIR = "scene" ;
+
     static constexpr const char* MESHGROUP = "meshgroup" ;
     static constexpr const char* MESHMERGE = "meshmerge" ;
     static constexpr const char* FRAME = "frame" ;
     static constexpr const char* INST_TRAN = "inst_tran.npy" ;
     static constexpr const char* INST_COL3 = "inst_col3.npy" ;
     static constexpr const char* INST_INFO = "inst_info.npy" ;
+    static constexpr const char* SONAME = "soname.txt" ;
 
     int level ;
+    std::vector<std::string>          soname ;
+    SName*                            id ;
+
     std::vector<const SMeshGroup*>    meshgroup ;
     std::vector<const SMesh*>         meshmerge ;
     std::vector<sfr>                  frame ;
@@ -65,13 +79,15 @@ struct SScene
     std::vector<glm::tvec4<int32_t>>  inst_col3 ;
 
 
+    static SScene* Load_(const char* dir=BASE);
+    static SScene* Load(const char* dir=BASE);
 
-    static SScene* Load(const char* dir);
     SScene();
     void check() const ;
 
     void initFromTree(const stree* st);
 
+    void initFromTree_soname(const stree* st);
     void initFromTree_Remainder(  const stree* st);
     void initFromTree_Triangulate(const stree* st);
     void initFromTree_Global(const stree* st, char ridx_type, int ridx );
@@ -110,7 +126,7 @@ struct SScene
     void import_frame(const NPFold* _frame ) ;
 
     NPFold* serialize() const ;
-    void import(const NPFold* fold);
+    void import_(const NPFold* fold);
 
     void save(const char* dir) const ;
     void load(const char* dir);
@@ -129,20 +145,55 @@ struct SScene
 
 
 
-inline SScene* SScene::Load(const char* dir)
+inline SScene* SScene::Load_(const char* _base)
 {
     int level = ssys::getenvint(__level, 0);
-    if(level > 0) std::cout << "[SScene::Load dir " << ( dir ? dir : "-" ) << "\n" ;
-    SScene* s = new SScene ;
-    s->load(dir);
-    s->check();
-    if(level > 0) std::cout << "]SScene::Load dir " << ( dir ? dir : "-" ) << "\n" ;
-    return s ;
+    const char* base = spath::ResolveTopLevel(_base) ;
+    if(level > 0) std::cout << "[SScene::Load_ _base[" << ( _base ? _base : "-" ) << "]\n" ;
+    SScene* src = nullptr ;
+    if(base)
+    {
+        src = new SScene ;
+        src->load(base);
+        src->check();
+    }
+    if(level > 0) std::cout << "]SScene::Load_ base[" << ( base ? base : "-" ) << "]\n" ;
+    return src ;
 }
+
+
+/**
+SScene::Load
+--------------
+
+HMM cf CSGFoundry::Load which uses SSim::set_override_scene
+
+Dependency on SGeoConfig.cc (ie library functionality, not just header only)
+is inconvenient for examples/UseShaderSGLFW_SScene. Workaraound is to
+use lowerlevel SScene::Load_ without the ELV functionality.
+
+**/
+
+inline SScene* SScene::Load(const char* base)
+{
+    SScene* src = Load_( base );
+    if(src == nullptr) std::cerr
+        << "SScene::Load_ FAILED "
+        << " base[" << ( base ? base : "-" ) << "]"
+        << "\n"
+        ;
+    if(src == nullptr) return nullptr ;
+
+    const SBitSet* elv = SGeoConfig::ELV(src->id);
+    SScene* dst = src->copy(elv);
+    return dst ;
+}
+
 
 inline SScene::SScene()
     :
-    level(ssys::getenvint(__level, 0))
+    level(ssys::getenvint(__level, 0)),
+    id(new SName(soname))    // reference to soname vector
 {
 }
 
@@ -206,6 +257,7 @@ HMM: could do both adding dynamic framespec from some other path
 
 inline void SScene::initFromTree(const stree* st)
 {
+    initFromTree_soname(st);
     initFromTree_Remainder(st);
     initFromTree_Factor(st);
     initFromTree_Triangulate(st);
@@ -213,6 +265,11 @@ inline void SScene::initFromTree(const stree* st)
     initFromTree_Instance(st);
 
     addFrames("$SScene__initFromTree_addFrames", st );
+}
+
+inline void SScene::initFromTree_soname(const stree* st)
+{
+    st->get_meshname(soname);
 }
 
 inline void SScene::initFromTree_Remainder(const stree* st)
@@ -694,7 +751,7 @@ inline NPFold* SScene::serialize() const
     NP* _inst_tran = NPX::ArrayFromVec<float, glm::tmat4x4<float>>( inst_tran, 4, 4) ;
     NP* _inst_info = NPX::ArrayFromVec<int,int4>( inst_info, 4 ) ;
     NP* _inst_col3 = NPX::ArrayFromVec<int,glm::tvec4<int32_t>>( inst_col3, 4 ) ;
-
+    NP* _soname = NPX::Holder(soname) ;
 
     NPFold* fold = new NPFold ;
     fold->add_subfold( MESHMERGE, _meshmerge );
@@ -703,10 +760,11 @@ inline NPFold* SScene::serialize() const
     fold->add( INST_INFO, _inst_info );
     fold->add( INST_TRAN, _inst_tran );
     fold->add( INST_COL3, _inst_col3 );
+    fold->add( SONAME, _soname );
 
     return fold ;
 }
-inline void SScene::import(const NPFold* fold)
+inline void SScene::import_(const NPFold* fold)
 {
     if(level>0) std::cout << "[SScene::import \n" ;
     if(fold == nullptr) std::cerr << "SScene::import called with NULL fold argument\n" ;
@@ -722,10 +780,13 @@ inline void SScene::import(const NPFold* fold)
     const NP* _inst_info = fold->get(INST_INFO);
     const NP* _inst_tran = fold->get(INST_TRAN);
     const NP* _inst_col3 = fold->get(INST_COL3);
+    const NP* _soname = fold->get(SONAME) ;
 
     stree::ImportArray<glm::tmat4x4<float>, float>( inst_tran, _inst_tran, INST_TRAN );
     stree::ImportArray<int4, int>(                  inst_info, _inst_info, INST_INFO );
     stree::ImportArray<glm::tvec4<int32_t>, int>(   inst_col3, _inst_col3, INST_COL3 );
+    stree::ImportNames( soname, _soname , SONAME);
+
     if(level>0) std::cout << "]SScene::import \n" ;
 }
 
@@ -738,7 +799,7 @@ inline void SScene::load(const char* dir)
 {
     if(level>0) std::cout << "SScene::load dir " << ( dir ? dir : "-" ) << "\n" ;
     NPFold* fold = NPFold::Load(dir, RELDIR);
-    import(fold);
+    import_(fold);
 }
 
 
@@ -1052,6 +1113,16 @@ inline SScene* SScene::copy(const SBitSet* elv) const
 {
     return CopySelect(this, elv);
 }
+
+/**
+SScene::Compare
+---------------
+
+Observed that this comparison does not notice
+exclusions of global LV, see tests/SSceneLoadTest.sh
+
+**/
+
 
 inline int SScene::Compare(const SScene* a, const SScene* b) // static
 {
