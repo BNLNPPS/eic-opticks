@@ -154,7 +154,7 @@
       <property name="EFFICIENCY" ref="EFFICIENCY0x560299349111"/>
       <property name="REFLECTIVITY" ref="REFLECTIVITY0x56008bfb3580"/>
     </opticalsurface>
-    <opticalsurface finish="0" model="1" name="MirrorPyramid0x56008bfb1550" type="0" value="0">
+    <opticalsurface finish="polished" model="unified" name="MirrorPyramid0x56008bfb1550" type="dielectric_metal" value="0">
       <property name="EFFICIENCY" ref="EFFICIENCY0x560299349111" />
       <property name="REFLECTIVITY" ref="REFLECTIVITY0x56008bfb3580"/>
     </opticalsurface>
