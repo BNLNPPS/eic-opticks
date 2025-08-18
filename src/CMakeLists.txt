@@ -1,6 +1,6 @@
 find_package(Geant4 REQUIRED ui_all vis_all)
 
-configure_file(config.h.in config.h @ONLY)
+configure_file(config_path.h.in config_path.h @ONLY)
 
 # gphox is the primary library
 add_library(gphox configurator.cpp torch.cpp)

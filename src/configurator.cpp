@@ -12,7 +12,7 @@
 #include "sysrap/SEventConfig.hh"
 
 #include "configurator.h"
-#include "config.h"
+#include "config_path.h"
 
 namespace gphox {
 
