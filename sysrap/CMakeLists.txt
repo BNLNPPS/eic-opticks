@@ -376,6 +376,9 @@ set(HEADERS
 
     SCMD.h
 
+    SRecord.h
+    SGen.h
+
     SGLM.h
     SGLM_Parse.h
     SGLM_Modifiers.h
@@ -389,10 +392,16 @@ set(HEADERS
 
     SGLFW.h
     SGLFW_Keys.h
-    SGLFW_Extras.h
+    SGLFW_check.h
+    SGLFW_Buffer.h
+    SGLFW_VAO.h
+    SGLFW_Attrib.h
     SGLFW_Program.h
     SGLFW_Mesh.h
     SGLFW_Scene.h
+    SGLFW_Record.h
+    SGLFW_Gen.h
+    SGLFW_Evt.h
     SGLFW_GLEQ.h
 
     SGLDisplay.h

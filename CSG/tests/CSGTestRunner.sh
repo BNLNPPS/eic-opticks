@@ -47,7 +47,6 @@ Resolve_CFBaseFromGEOM
 
 
 
-
 vars="HOME PWD GEOM BASH_SOURCE EXECUTABLE ARGS"
 for var in $vars ; do printf "%20s : %s\n" "$var" "${!var}" ; done 
 

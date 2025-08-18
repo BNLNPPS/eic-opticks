@@ -108,6 +108,7 @@ set(TEST_SOURCES
    SGeoConfigTest.cc
 
 
+
    SEvtTest.cc
    SEvtLoadTest.cc
    SEvt__UU_BURN_Test.cc
@@ -146,6 +147,8 @@ set(BASH_RUN_TEST_SOURCES
     SEnvTest_PASS.cc
     SSimTest.cc
     SBndTest.cc
+
+    SSceneLoadTest.cc
 )
 
 if(NLJSON_FOUND)

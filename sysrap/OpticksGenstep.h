@@ -72,7 +72,7 @@ struct OpticksGenstep_
     static constexpr const char* INPUT_PHOTON_            = "INPUT_PHOTON" ;
 
     static unsigned Type(const char* name); 
-    static unsigned Type(const std::string& name); 
+    static unsigned Type(const std::string& name);
     static const char* Name(unsigned type); 
 
     static bool IsValid(int gentype);
@@ -116,7 +116,7 @@ inline unsigned OpticksGenstep_::Type(const char* name)
     return type ; 
 }
 
-inline unsigned OpticksGenstep_::Type(const std::string& name) 
+inline unsigned OpticksGenstep_::Type(const std::string& name)
 {
     return Type(name.c_str());
 }
