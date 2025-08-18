@@ -35,7 +35,7 @@
 #include "u4/U4Touchable.h"
 #include "u4/U4Track.h"
 
-#include "configurator.h"
+#include "config.h"
 #include "torch.h"
 
 bool IsSubtractionSolid(G4VSolid *solid)
@@ -206,10 +206,10 @@ struct DetectorConstruction : G4VUserDetectorConstruction
 
 struct PrimaryGenerator : G4VUserPrimaryGeneratorAction
 {
-    gphox::Configurator cfg;
+    gphox::Config cfg;
     SEvt *sev;
 
-    PrimaryGenerator(const gphox::Configurator& cfg, SEvt *sev) : cfg(cfg), sev(sev)
+    PrimaryGenerator(const gphox::Config& cfg, SEvt *sev) : cfg(cfg), sev(sev)
     {
     }
 
@@ -440,7 +440,7 @@ struct TrackingAction : G4UserTrackingAction
 
 struct G4App
 {
-    G4App(const gphox::Configurator& cfg, std::filesystem::path gdml_file)
+    G4App(const gphox::Config& cfg, std::filesystem::path gdml_file)
         : sev(SEvt::CreateOrReuse_ECPU()), det_cons_(new DetectorConstruction(gdml_file)),
           prim_gen_(new PrimaryGenerator(cfg, sev)), event_act_(new EventAction(sev)), stepping_(new SteppingAction(sev)),
           tracking_(new TrackingAction(sev))

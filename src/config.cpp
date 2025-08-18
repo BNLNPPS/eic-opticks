@@ -11,21 +11,21 @@
 
 #include "sysrap/SEventConfig.hh"
 
-#include "configurator.h"
+#include "config.h"
 #include "config_path.h"
 
 namespace gphox {
 
 using namespace std;
 
-Configurator::Configurator(std::string config_name) :
+Config::Config(std::string config_name) :
   name{std::getenv("GPHOX_CONFIG") ? std::getenv("GPHOX_CONFIG") : config_name}
 {
   ReadConfig(Locate(name + ".json"));
 }
 
 
-std::string Configurator::Locate(std::string filename) const
+std::string Config::Locate(std::string filename) const
 {
   std::vector<std::string> search_paths;
 
@@ -76,7 +76,7 @@ std::string Configurator::Locate(std::string filename) const
 /**
  * Expects a valid filepath.
  */
-void Configurator::ReadConfig(std::string filepath)
+void Config::ReadConfig(std::string filepath)
 {
   nlohmann::json json;
 

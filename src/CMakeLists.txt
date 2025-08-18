@@ -3,7 +3,7 @@ find_package(Geant4 REQUIRED ui_all vis_all)
 configure_file(config_path.h.in config_path.h @ONLY)
 
 # gphox is the primary library
-add_library(gphox configurator.cpp torch.cpp)
+add_library(gphox config.cpp torch.cpp)
 target_link_libraries(gphox PUBLIC ${Geant4_LIBRARIES} G4CX SysRap)
 target_include_directories(gphox
     INTERFACE $<INSTALL_INTERFACE:include>
