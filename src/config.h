@@ -13,13 +13,13 @@ namespace gphox {
 /**
  * Provides access to all configuration types and data.
  */
-class Configurator
+class Config
 {
  public:
 
-  Configurator(std::string config_name = "dev");
+  Config(std::string config_name = "dev");
 
-  /// A unique name associated with this Configurator
+  /// A unique name associated with this Config
   std::string name;
 
   storch torch;
