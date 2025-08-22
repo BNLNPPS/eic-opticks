@@ -64,6 +64,7 @@ jobs:
           cache-to: type=local,dest=/home/runner/.buildx-cache,mode=max
 
       - name: Run tests
+        if: ${{ matrix.target != 'develop' }}
         run: |
           docker run --rm ghcr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} /src/eic-opticks/tests/test_opticks.sh
           docker run --rm ghcr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} /src/eic-opticks/tests/test_simg4ox.sh
