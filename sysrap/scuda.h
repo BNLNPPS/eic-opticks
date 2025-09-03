@@ -105,7 +105,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE unsigned long long min(unsigned long long a, unsig
 // Avoid conflict with C++20 std::lerp (and <math.h> bringing it into global)
 
 #if defined(__cpp_lib_interpolate) // && !defined(__CUDA_ARCH__)
-using std::lerp;   // make std::lerp visible to unqualified calls
+using std::lerp;                   // make std::lerp visible to unqualified calls
 #else
 
 /** lerp */

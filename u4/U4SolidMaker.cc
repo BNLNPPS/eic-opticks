@@ -2151,9 +2151,10 @@ const G4VSolid* U4SolidMaker::BltLocalFastenerAcrylicConstruction(const char* na
 
     G4Tubs* screw = new G4Tubs("screw",0,13*mm,50.*mm,0.0*deg,360.0*deg);
 
-    std::vector<G4ThreeVector> tlate(num_column, G4ThreeVector(0,0,0));
+    std::vector<G4ThreeVector> tlate(num_column, G4ThreeVector(0, 0, 0));
 
-    for(long i=0;i<num_column;i++) tlate[i] = G4ThreeVector(164.*cos(i*pi/4)*mm, 164.*sin(i*pi/4)*mm,-65.0*mm);
+    for (long i = 0; i < num_column; i++)
+        tlate[i] = G4ThreeVector(164. * cos(i * pi / 4) * mm, 164. * sin(i * pi / 4) * mm, -65.0 * mm);
 
     G4VSolid* muni = screw ; 
     for(long i=1 ; i < num_column ; i++) muni = new G4UnionSolid( name, muni, screw, 0, tlate[i] ) ; 
