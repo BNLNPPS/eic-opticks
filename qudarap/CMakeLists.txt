@@ -143,7 +143,13 @@ if(Custom4_FOUND)
    target_include_directories( ${name} PUBLIC ${Custom4_INCLUDE_DIR})
 endif()
 
-target_link_libraries( ${name} SysRap ssl)
+find_package(OpenSSL REQUIRED)
+
+target_link_libraries( ${name} SysRap
+    OpenSSL::SSL
+    OpenSSL::Crypto
+)
+
 target_compile_definitions( ${name} PUBLIC OPTICKS_QUDARAP DEBUG_TAG )
 
 
