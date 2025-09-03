@@ -2138,7 +2138,7 @@ const G4VSolid* U4SolidMaker::BltLocalFastenerAcrylicConstruction(const char* na
 {
     [[maybe_unused]] const char* PREFIX = "BltLocalFastenerAcrylicConstruction" ; 
     assert( sstr::StartsWith(name,PREFIX ));
-    long num_column = sstr::ExtractLong(name, 1) ; 
+    const size_t num_column = static_cast<size_t>(sstr::ExtractLong(name, 1));
 
     LOG(info) 
         << " name " <<  ( name ? name : "-" )
@@ -2151,7 +2151,8 @@ const G4VSolid* U4SolidMaker::BltLocalFastenerAcrylicConstruction(const char* na
 
     G4Tubs* screw = new G4Tubs("screw",0,13*mm,50.*mm,0.0*deg,360.0*deg);
 
-    G4ThreeVector tlate[num_column] = {} ; 
+    std::vector<G4ThreeVector> tlate(num_column, G4ThreeVector(0,0,0));
+
     for(long i=0;i<num_column;i++) tlate[i] = G4ThreeVector(164.*cos(i*pi/4)*mm, 164.*sin(i*pi/4)*mm,-65.0*mm);
 
     G4VSolid* muni = screw ; 
