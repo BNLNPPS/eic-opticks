@@ -101,7 +101,6 @@ SUTIL_INLINE SUTIL_HOSTDEVICE unsigned long long min(unsigned long long a, unsig
     return a < b ? a : b;
 }
 
-
 // Avoid conflict with C++20 std::lerp (and <math.h> bringing it into global)
 
 #if defined(__cpp_lib_interpolate) // && !defined(__CUDA_ARCH__)
@@ -115,8 +114,6 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float lerp(const float a, const float b, const flo
 }
 
 #endif
-
-
 
 /** bilerp */
 SUTIL_INLINE SUTIL_HOSTDEVICE float bilerp(const float x00, const float x10, const float x01, const float x11,
