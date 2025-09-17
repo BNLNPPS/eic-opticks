@@ -81,6 +81,30 @@ FROM base AS develop
 
 RUN apt update && apt install -y x11-apps mesa-utils vim
 
+# Install nsight-compute
+COPY nsight-compute-linux-2024.3.2.3-34861637.run .
+
+# Follow instructions at https://docs.nvidia.com/nsight-systems/InstallationGuide/index.html#package-manager-installation
+RUN <<"EOF"
+ apt update
+ apt install -y --no-install-recommends gnupg
+ echo "deb http://developer.download.nvidia.com/devtools/repos/ubuntu$(source /etc/lsb-release; echo "$DISTRIB_RELEASE" | tr -d .)/$(dpkg --print-architecture) /" | tee /etc/apt/sources.list.d/nvidia-devtools.list
+ apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
+ apt update
+ apt install -y qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools
+ apt install -y libqt5x11extras5
+ apt install -y libxcb-xinerama0 libxcb-xinerama0-dev
+ apt install -y libxkbcommon-x11-0
+ apt install -y nsight-systems-cli nsight-systems libgl1-mesa-glx libsm6 libx11-6 libxext6 libxrender1 libxtst6 libxcb1
+ apt install -y mesa-utils x11-apps
+ apt clean
+EOF
+
+RUN <<"EOF"
+ ./nsight-compute-linux-2024.3.2.3-34861637.run --quiet -- -noprompt
+ rm -fr nsight-compute-linux-2024.3.2.3-34861637.run
+EOF
+
 COPY . $OPTICKS_HOME
 
 RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Debug \

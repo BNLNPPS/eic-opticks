@@ -29,6 +29,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Copy external assets
+        run: cp /home/runner/nsight-compute-linux-2024.3.2.3-34861637.run .
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
