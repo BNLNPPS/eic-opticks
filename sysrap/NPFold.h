@@ -286,6 +286,7 @@ public:
     // ]subfold handling
 
 
+    void add(int ikey, const NP* a, char prefix, int wid=3);
     void add( const char* k, const NP* a);
     void add_(const char* k, const NP* a);
     void set( const char* k, const NP* a);
@@ -349,6 +350,7 @@ public:
     template<typename T> void set_meta(const char* key, T value ) ;
 
 
+    int save(const char* base, const char* rel, const char* name) ;
     int save(const char* base, const char* rel) ;
     int save(const char* base) ;
     int save_verbose(const char* base) ;
@@ -1717,6 +1719,13 @@ inline int NPFold::total_items() const
 // ] subfold handling
 
 
+inline void NPFold::add(int ikey, const NP* a, char prefix, int wid)
+{
+    std::string skey = U::FormNameWithPrefix(prefix, ikey, wid);
+    add(skey.c_str(), a );
+}
+
+
 /**
 NPFold::add
 ------------
@@ -2444,6 +2453,17 @@ inline int NPFold::save(const char* base_, const char* rel) // not const as sets
     return save(base);
 }
 
+inline int NPFold::save(const char* base_, const char* rel, const char* name) // not const as sets savedir
+{
+    std::string _base = U::form_path(base_, rel, name);
+    const char* base = _base.c_str();
+    return save(base);
+}
+
+
+
+
+
 
 /**
 NPFold::save
@@ -2819,7 +2839,7 @@ inline int NPFold::load(const char* _base)
     const char* base = nodata ? _base + 1 : _base ;
 
     int _DUMP = U::GetEnvInt(load_DUMP, 0);
-    if(_DUMP>0) std::cout << "[" << load_DUMP << " : [" << ( base ? base : "-" )  << "]\n" ;
+    if(_DUMP>0) std::cout << "[" << load_DUMP << " " << U::FormatLog() << " : [" << ( base ? base : "-" )  << "]\n" ;
 
 
     bool exists = NP::Exists(base);
@@ -2836,7 +2856,7 @@ inline int NPFold::load(const char* _base)
     bool has_index = NP::Exists(base, INDEX) ;
     int rc = has_index ? load_index(_base) : load_dir(_base) ;
 
-    if(_DUMP>0) std::cout << "]" << load_DUMP << " : [" << ( base ? base : "-" ) << " rc " << rc << "]\n" ;
+    if(_DUMP>0) std::cout << "]" << load_DUMP << " " << U::FormatLog() << " : [" << ( base ? base : "-" ) << " rc " << rc << "]\n" ;
     return rc ;
 }
 inline int NPFold::load(const char* base_, const char* rel0, const char* rel1)

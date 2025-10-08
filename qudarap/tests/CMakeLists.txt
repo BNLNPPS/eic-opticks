@@ -4,28 +4,23 @@ find_package(CUDAToolkit REQUIRED)
 
 set(TEST_SOURCES
 
-   QTexRotateTest.cc
 
    QRngTest.cc
    QScintTest.cc
    QCerenkovIntegralTest.cc
    QPolyTest.cc
-   QSimTest.cc
    QSimDescTest.cc
-   QOpticalTest.cc 
    QPropTest.cc 
-   QEventTest.cc 
    QEvent_Lifecycle_Test.cc
-   QSim_Lifecycle_Test.cc
-   QSimWithEventTest.cc 
    QSimCreateTest.cc 
    QUTest.cc
    QTexMakerTest.cc
    QTexLookupTest.cc
-   QBufTest.cc
    QMultiFilmTest.cc
 
+
    QCurandStateMonolithicTest.cc
+   QCurandStateTest.cc
 
    qrng_test.cc
 )

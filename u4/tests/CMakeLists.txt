@@ -53,7 +53,8 @@ set(TEST_SOURCES
    U4Material_MakePropertyFold_LoadTest.cc
    U4TouchableTest.cc
    U4SurfaceTest.cc
-   U4SolidTest.cc 
+   U4SolidTest.cc
+   U4SolidMakerTest.cc
 
    U4SensitiveDetectorTest.cc 
 

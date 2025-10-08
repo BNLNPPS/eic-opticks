@@ -19,6 +19,12 @@ as the static initialization would have happened already
 * TODO: provide persistency into ~16 quad4 for debugging view/cam/projection state
 
 
+SGLM::desc
+-------------
+
+NB : to dump view param from interactive viz use "P" key invoking SGLM::desc
+
+
 DONE : rasterized and raytrace render consistency
 -------------------------------------------------
 
@@ -255,6 +261,8 @@ struct SYSRAP_API SGLM : public SCMD
     static constexpr const char* kFOCAL = "FOCAL" ;
     static constexpr const char* kFULLSCREEN = "FULLSCREEN" ;
     static constexpr const char* kESCALE = "ESCALE" ;
+    static constexpr const char* kEXTENT_FUDGE = "EXTENT_FUDGE" ;
+
     static constexpr const char* kVIZMASK = "VIZMASK" ;
     static constexpr const char* kTRACEYFLIP = "TRACEYFLIP" ;
     static constexpr const char* kLEVEL = "SGLM_LEVEL" ;
@@ -290,6 +298,7 @@ struct SYSRAP_API SGLM : public SCMD
     static int   FOCAL ;
     static int   FULLSCREEN ;
     static int   ESCALE ;
+    static float EXTENT_FUDGE ;
     static uint32_t VIZMASK ;
     static int   TRACEYFLIP ;
     static int   LEVEL ;
@@ -373,6 +382,10 @@ struct SYSRAP_API SGLM : public SCMD
     void key_pressed_action( unsigned modifiers );
 
     void home();
+    std::string descEyeShift() const ;
+    static std::string DescQuat( const glm::quat& q );
+
+
     void tcam();
     void toggle_traceyflip();
     void toggle_rendertype();
@@ -431,7 +444,7 @@ struct SYSRAP_API SGLM : public SCMD
     glm::vec3 eyeshift  ;
 
     int       depth_test ;
-
+    int       home_count ;
 
     float     get_escale_() const ;
     glm::mat4 get_escale() const ;
@@ -581,6 +594,9 @@ struct SYSRAP_API SGLM : public SCMD
 
     void dump() const ;
     void update();
+    void constrain() const ;
+
+
     void addlog( const char* label, float value       ) ;
     void addlog( const char* label, const char* value ) ;
     std::string descLog() const ;
@@ -594,6 +610,7 @@ struct SYSRAP_API SGLM : public SCMD
 
     static std::string Present(const glm::ivec2& v, int wid=6 );
     static std::string Present(const float v, int wid=10, int prec=3);
+    static std::string Present(const glm::vec2& v, int wid=10, int prec=3);
     static std::string Present(const glm::vec3& v, int wid=10, int prec=3);
     static std::string Present(const glm::vec4& v, int wid=10, int prec=3);
     static std::string Present(const float4& v,    int wid=10, int prec=3);
@@ -608,9 +625,9 @@ struct SYSRAP_API SGLM : public SCMD
     template <typename T> static T EValue(const char* key, const char* fallback );
     static glm::ivec2 EVec2i(const char* key, const char* fallback);
     static glm::vec3 EVec3(const char* key, const char* fallback);
-    static glm::vec4 EVec4(const char* key, const char* fallback, float missing=1.f );
-    static glm::vec4 SVec4(const char* str, float missing=1.f );
-    static glm::vec3 SVec3(const char* str, float missing=1.f );
+    static glm::vec4 EVec4(const char* key, const char* fallback, float missing );
+    static glm::vec4 SVec4(const char* str, float missing );
+    static glm::vec3 SVec3(const char* str, float missing );
 
     template<typename T> static glm::tmat4x4<T> DemoMatrix(T scale);
 
@@ -659,10 +676,13 @@ SGLM* SGLM::INSTANCE = nullptr ;
 SGLM* SGLM::Get(){  return INSTANCE ? INSTANCE : new SGLM  ; }
 
 glm::ivec2 SGLM::WH = EVec2i(kWH,"1920,1080") ;
-glm::vec4  SGLM::CE = EVec4(kCE,"0,0,0,100") ;
-glm::vec4  SGLM::EYE  = EVec4(kEYE, "-1,-1,0,1") ;
-glm::vec4  SGLM::LOOK = EVec4(kLOOK, "0,0,0,1") ;
-glm::vec4  SGLM::UP  =  EVec4(kUP,   "0,0,1,0") ;
+
+glm::vec4  SGLM::CE = EVec4(kCE,"0,0,0,100", 100.f) ;
+
+glm::vec4  SGLM::EYE  = EVec4(kEYE, "-1,-1,0,1", 1.f) ;
+glm::vec4  SGLM::LOOK = EVec4(kLOOK, "0,0,0,1" , 1.f) ;
+glm::vec4  SGLM::UP  =  EVec4(kUP,   "0,0,1,0" , 0.f) ;
+
 float      SGLM::ZOOM = EValue<float>(kZOOM, "1");
 float      SGLM::TMIN = EValue<float>(kTMIN, "0.1");
 float      SGLM::TMAX = EValue<float>(kTMAX, "100.0");
@@ -671,6 +691,7 @@ int        SGLM::NEARFAR = SBAS::EGet(kNEARFAR, "gazelength") ;
 int        SGLM::FOCAL   = SBAS::EGet(kFOCAL,   "gazelength") ;
 int        SGLM::FULLSCREEN  = EValue<int>(kFULLSCREEN,   "0") ;
 int        SGLM::ESCALE  = SBAS::EGet(kESCALE,  "extent") ;  // "asis"
+float      SGLM::EXTENT_FUDGE = EValue<float>(kEXTENT_FUDGE, "1");
 uint32_t   SGLM::VIZMASK = SBitSet::Value<uint32_t>(32, kVIZMASK, "t" );
 int        SGLM::TRACEYFLIP  = ssys::getenvint(kTRACEYFLIP,  0 ) ;
 int        SGLM::LEVEL  = ssys::getenvint(kLEVEL,  0 ) ;
@@ -688,7 +709,7 @@ inline void SGLM::SetCE(  float x, float y, float z, float w){ CE.x = x ; CE.y =
 
 inline void SGLM::SetEYE( float x, float y, float z){ EYE.x = x  ; EYE.y = y  ; EYE.z = z  ;  EYE.w = 1.f ; }
 inline void SGLM::SetLOOK(float x, float y, float z){ LOOK.x = x ; LOOK.y = y ; LOOK.z = z ;  LOOK.w = 1.f ; }
-inline void SGLM::SetUP(  float x, float y, float z){ UP.x = x   ; UP.y = y   ; UP.z = z   ;  UP.w = 1.f ; }
+inline void SGLM::SetUP(  float x, float y, float z){ UP.x = x   ; UP.y = y   ; UP.z = z   ;  UP.w = 0.f ; }  // 0.f as treat as direction
 
 inline void SGLM::SetZOOM( float v ){ ZOOM = v ; if(LEVEL>0) std::cout << "SGLM::SetZOOM " << ZOOM << std::endl ; }
 inline void SGLM::SetTMIN( float v ){ TMIN = v ; if(LEVEL>0) std::cout << "SGLM::SetTMIN " << TMIN << std::endl ; }
@@ -758,9 +779,10 @@ inline SGLM::SGLM()
     eye2look(1.f),
     look2eye(1.f),
     q_lookrot(1.f,0.f,0.f,0.f),   // identity quaternion
-    q_eyerot(1.f,0.f,0.f,0.f),   // identity quaternion
+    q_eyerot( 1.f,0.f,0.f,0.f),   // identity quaternion
     eyeshift(0.f,0.f,0.f),
     depth_test(1),
+    home_count(0),
     forward_ax(0.f,0.f,0.f),
     right_ax(0.f,0.f,0.f),
     top_ax(0.f,0.f,0.f),
@@ -813,6 +835,8 @@ inline void SGLM::init()
     axes.push_back( {1.f,0.f,0.f} );
     axes.push_back( {0.f,1.f,0.f} );
     axes.push_back( {0.f,0.f,1.f} );
+
+    constrain();
 }
 
 
@@ -903,6 +927,7 @@ void SGLM::setLookRotation( const glm::vec2& a, const glm::vec2& b )
 }
 void SGLM::setEyeRotation( const glm::vec2& a, const glm::vec2& b )
 {
+    //std::cout << "SGLM::setEyeRotation " << glm::to_string(a) << " " << glm::to_string(b) << std::endl ;
     q_eyerot = SGLM_Arcball::A2B_Screen( a, b );
 }
 
@@ -952,13 +977,55 @@ void SGLM::key_pressed_action( unsigned modifiers )
 
 void SGLM::home()
 {
+    if(LEVEL > 3) std::cout << "SGLM::home [" << home_count << "]" << descEyeShift();
+    home_count += 1 ;
+
     eyeshift.x = 0.f ;
     eyeshift.y = 0.f ;
     eyeshift.z = 0.f ;
     q_lookrot = SGLM_Arcball::Identity();
     q_eyerot = SGLM_Arcball::Identity();
+
     SetZOOM(1.f);
 }
+
+std::string SGLM::descEyeShift() const
+{
+    std::stringstream ss ;
+    ss
+       << "[SGLM::descEyeShift\n"
+       << " eyeshift " << Present(eyeshift) << "\n"
+       << " q_lookrot " << DescQuat(q_lookrot) << "\n"
+       << " q_eyerot " << DescQuat(q_eyerot) << "\n"
+       << "]SGLM::descEyeShift\n"
+       ;
+    std::string str = ss.str() ;
+    return str ;
+}
+
+std::string SGLM::DescQuat( const glm::quat& q ) // static
+{
+    glm::mat4 m = glm::mat4_cast(q);
+    std::stringstream ss ;
+
+    ss << "q_wxyz{"
+       << " " << std::setw(10) << std::fixed << std::setprecision(3) << q.w
+       << "," << std::setw(10) << std::fixed << std::setprecision(3) << q.x
+       << "," << std::setw(10) << std::fixed << std::setprecision(3) << q.y
+       << "," << std::setw(10) << std::fixed << std::setprecision(3) << q.z
+       << "}\n"
+       << m
+       << "\n"
+       ;
+
+    std::string str = ss.str() ;
+    return str ;
+}
+
+
+
+
+
 void SGLM::tcam()
 {
     cam = SCAM::Next(cam);
@@ -1093,6 +1160,15 @@ void SGLM::writeDesc(const char* dir, const char* name_ , const char* ext_ ) con
     NP::WriteString(dir, name, ext,  ds );
 }
 
+
+/**
+SGLM::desc
+------------
+
+Invoke this from interactive viz using "P" key
+
+**/
+
 std::string SGLM::desc() const
 {
     std::stringstream ss ;
@@ -1128,6 +1204,7 @@ std::string SGLM::DescInput() // static
     ss << std::setw(15) << kNEARFAR << " " << NEARFAR_Label() << std::endl ;
     ss << std::setw(15) << kFOCAL   << " " << FOCAL_Label() << std::endl ;
     ss << std::setw(15) << kESCALE  << " " << ESCALE_Label() << std::endl ;
+    ss << std::setw(15) << kEXTENT_FUDGE  << " " << EXTENT_FUDGE << std::endl ;
     ss << std::setw(15) << kWH    << Present( WH )   << " Aspect " << Aspect() << std::endl ;
     ss << std::setw(15) << kCE    << Present( CE )   << std::endl ;
     ss << std::setw(15) << kEYE   << Present( EYE )  << std::endl ;
@@ -1177,7 +1254,17 @@ inline bool SGLM::has_frame_idx(int q_idx) const
 }
 inline const std::string& SGLM::get_frame_name() const { return fr.get_name(); }
 
-inline float SGLM::extent() const {   return fr.ce.w > 0 ? fr.ce.w : CE.w ; }
+/**
+SGLM::extent
+-------------
+
+When looking at small objects a fudged increase in the extent with EXTENT_FUDGE improves
+the viz interface by avoiding overly tight near,far and also avoiding overly slow
+WASDQE navigation.
+
+**/
+
+inline float SGLM::extent() const {   return EXTENT_FUDGE*(fr.ce.w > 0 ? fr.ce.w : CE.w) ; }
 inline float SGLM::tmin_abs() const { return extent()*TMIN ; }  // HUH:extent might not be the basis ?
 inline float SGLM::tmax_abs() const { return extent()*TMAX ; }  // HUH:extent might not be the basis ?
 
@@ -1231,6 +1318,8 @@ inline void SGLM::update()
 {
     addlog("SGLM::update", "[");
 
+    constrain();
+
     initModelMatrix();  //  fr.ce(center)->model2world translation
     initELU();          //  EYE,LOOK,UP,model2world,extent->eye,look,up
 
@@ -1245,8 +1334,24 @@ inline void SGLM::update()
 
     updateTitle();
 
+    constrain();
     addlog("SGLM::update", "]");
 }
+
+inline void SGLM::constrain() const
+{
+    bool expect_UP_w = UP.w == 0.f ;
+    if(!expect_UP_w) std::cerr
+        << "SGLM::constrain"
+        << " expect_UP_w " << ( expect_UP_w ? "YES" : "NO " )
+        << " UP " << Present(UP)
+        << descELU()
+        << "\n"
+        ;
+
+    assert( expect_UP_w );
+}
+
 
 inline void SGLM::set_rtp_tangential(bool rtp_tangential_ )
 {
@@ -1417,11 +1522,16 @@ A: This is for consistency with sframe.h transforms which are used when
 void SGLM::initELU()
 {
     glm::mat4 escale = get_escale();
-    // std::cout << "SGLM::initELU escale " << glm::to_string(escale) << "\n" ;
 
     eye  = glm::vec3( model2world * escale * EYE ) ;
     look = glm::vec3( model2world * escale * LOOK ) ;
     up   = glm::vec3( model2world * escale * UP ) ;
+
+    if(LEVEL > 0) std::cout
+        << "[ SGLM::initELU\n"
+        << descELU()
+        << "] SGLM::initELU\n"
+        ;
 }
 
 /**
@@ -1505,25 +1615,31 @@ std::string SGLM::descELU() const
     float escale_ = get_escale_();
     glm::mat4 escale = get_escale();
     std::stringstream ss ;
-    ss << "SGLM::descELU" << std::endl ;
-    ss << std::setw(15) << " sglm.EYE "  << Present( EYE )  << std::endl ;
-    ss << std::setw(15) << " sglm.LOOK " << Present( LOOK ) << std::endl ;
-    ss << std::setw(15) << " sglm.UP "   << Present( UP )   << std::endl ;
-    ss << std::setw(15) << " sglm.GAZE " << Present( LOOK-EYE ) << std::endl ;
-    ss << std::endl ;
-    ss << std::setw(15) << " escale_ "           << Present( escale_ ) << std::endl ;
-    ss << std::setw(15) << " sglm.EYE*escale  "  << Present( EYE*escale )  << std::endl ;
-    ss << std::setw(15) << " sglm.LOOK*escale " << Present( LOOK*escale ) << std::endl ;
-    ss << std::setw(15) << " sglm.UP*escale   "   << Present( UP*escale )   << std::endl ;
-    ss << std::setw(15) << " sglm.GAZE*escale " << Present( (LOOK-EYE)*escale ) << std::endl ;
-    ss << std::endl ;
-    ss << std::setw(15) << " sglm.eye "  << Present( eye )  << std::endl ;
-    ss << std::setw(15) << " sglm.look " << Present( look ) << std::endl ;
-    ss << std::setw(15) << " sglm.up "   << Present( up )   << std::endl ;
-    ss << std::setw(15) << " sglm.gaze " << Present( gaze ) << std::endl ;
-    ss << std::endl ;
-    std::string s = ss.str();
-    return s ;
+    ss << "[SGLM::descELU\n"
+       << " [" << kLEVEL << "] " << LEVEL   << "\n"
+       << " EYE  "  << Present( EYE )       << "\n"
+       << " LOOK "  << Present( LOOK )      << "\n"
+       << " UP   "  << Present( UP )        << "\n"
+       << " GAZE "  << Present( LOOK-EYE )  << "\n"
+       << "\n"
+       << " escale_ " << Present( escale_ ) << "\n"
+       << " escale\n" << Present( escale )  << "\n"
+       << " model2world\n" << Present( model2world ) << "\n"
+       << " (model2world * escale)\n"   << Present( model2world * escale ) << "\n"
+       << "\n"
+       << " EYE*escale  "  << Present( EYE*escale )  << "\n"
+       << " LOOK*escale "  << Present( LOOK*escale ) << "\n"
+       << " UP*escale   "  << Present( UP*escale )   << "\n"
+       << " GAZE*escale "  << Present( (LOOK-EYE)*escale ) << "\n"
+       << "\n"
+       << " eye  = (model2world * escale * EYE  ) "  << Present( model2world * escale * EYE ) << "\n"
+       << " look = (model2world * escale * LOOK ) "  << Present( model2world * escale * LOOK ) << "\n"
+       << " up   = (model2world * escale * UP   ) "  << Present( model2world * escale * UP  ) << "\n"
+       << " gaze                                  "  << Present( gaze ) << "\n"
+       << "]SGLM::descELU\n"
+       ;
+    std::string str = ss.str();
+    return str ;
 }
 
 
@@ -2752,6 +2868,16 @@ inline std::string SGLM::Present(const float v, int wid, int prec)
 {
     std::stringstream ss ;
     ss << std::fixed << std::setw(wid) << std::setprecision(prec) << v ;
+    std::string s = ss.str();
+    return s;
+}
+
+
+inline std::string SGLM::Present(const glm::vec2& v, int wid, int prec)
+{
+    std::stringstream ss ;
+    ss << std::fixed << std::setw(wid) << std::setprecision(prec) << v.x << " " ;
+    ss << std::fixed << std::setw(wid) << std::setprecision(prec) << v.y << " " ;
     std::string s = ss.str();
     return s;
 }

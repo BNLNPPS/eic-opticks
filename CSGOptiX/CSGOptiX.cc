@@ -722,6 +722,22 @@ double CSGOptiX::simulate(int eventID)
     return dt ;
 }
 
+
+/**
+CSGOptiX::simulate
+-------------------
+
+High level interface used by CSGOptiXService.h
+
+**/
+
+NP* CSGOptiX::simulate(const NP* gs, int eventID)
+{
+    return sim->simulate(gs, eventID);
+}
+
+
+
 /**
 CSGOptiX::simtrace
 --------------------
@@ -981,12 +997,8 @@ void CSGOptiX::prepareParam()
         case SRG_SIMULATE : prepareParamSimulate() ; break ;
     }
 
-#if OPTIX_VERSION < 70000
-    six->updateContext();  // Populates optix::context with values from hostside params
-#else
     params->upload();
     LOG_IF(level, !flight) << params->detail();
-#endif
 }
 
 
@@ -1029,7 +1041,18 @@ double CSGOptiX::launch()
         case SRG_SIMTRACE:  { width = event->getNumSimtrace() ; height = 1              ; depth = 1             ; } ; break ;
         case SRG_SIMULATE:  { width = event->getNumPhoton()   ; height = 1              ; depth = 1             ; } ; break ;
     }
-    assert( width > 0 );
+
+    bool expect = width > 0 ;
+    LOG_IF(fatal, !expect)
+        << " event.getNumSimtrace " << ( event ? event->getNumSimtrace() : -1 )
+        << " event.getNumPhoton   " << ( event ? event->getNumPhoton() : -1 )
+        << " width " << width
+        << " height " << height
+        << " depth " << depth
+        << " expect " << ( expect ? "YES" : "NO " )
+        ;
+
+    assert(expect );
 
     typedef std::chrono::time_point<std::chrono::high_resolution_clock> TP ;
     typedef std::chrono::duration<double> DT ;
