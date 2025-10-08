@@ -54,27 +54,36 @@ RUN mkdir -p /opt/cmake/src && curl -sL https://github.com/Kitware/CMake/release
  && cmake --build /opt/cmake/build --parallel --target install \
  && rm -fr /opt/cmake
 
-ENV OPTICKS_PREFIX=/opt/eic-opticks
-ENV OPTICKS_HOME=/src/eic-opticks
-ENV OPTICKS_BUILD=/opt/eic-opticks/build
-ENV LD_LIBRARY_PATH=${OPTICKS_PREFIX}/lib:/usr/local/lib:${LD_LIBRARY_PATH}
-ENV PATH=${OPTICKS_PREFIX}/bin:${PATH}
-ENV NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
-
 SHELL ["/bin/bash", "-l", "-c"]
 
 # Set up non-interactive shells by sourcing all of the scripts in /etc/profile.d/
-COPY spack/bash.nonint /etc/bash.nonint
+RUN cat <<"EOF" > /etc/bash.nonint
+if [ -d /etc/profile.d ]; then
+  for i in /etc/profile.d/*.sh; do
+    if [ -r $i ]; then
+      . $i
+    fi
+  done
+  unset i
+fi
+EOF
 
 RUN cat /etc/bash.nonint >> /etc/bash.bashrc
 
 ENV BASH_ENV=/etc/bash.nonint
+ENV OPTICKS_PREFIX=/opt/eic-opticks
+ENV OPTICKS_HOME=/src/eic-opticks
+ENV OPTICKS_BUILD=/opt/eic-opticks/build
+ENV LD_LIBRARY_PATH=${OPTICKS_PREFIX}/lib:${LD_LIBRARY_PATH}
+ENV PATH=${OPTICKS_PREFIX}/bin:${PATH}
+ENV NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
+
+WORKDIR $OPTICKS_HOME
 
 # Install Python dependencies
-WORKDIR $OPTICKS_HOME
 COPY pyproject.toml $OPTICKS_HOME/
 COPY optiphy $OPTICKS_HOME/optiphy
-RUN python -m pip install --upgrade pip && pip install -e .
+RUN python -m pip install --upgrade pip && pip install -e $OPTICKS_HOME
 
 
 FROM base AS develop
