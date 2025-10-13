@@ -130,7 +130,12 @@ target_link_libraries( ${name} PUBLIC
     CLHEP::CLHEP
     XercesC::XercesC
     GDXML
-    Geant4::G4persistency
+    Geant4::G4gdml
+    Geant4::G4particles
+    Geant4::G4track
+    Geant4::G4digits_hits
+    Geant4::G4processes
+    Geant4::G4run
 )
 
 target_include_directories( ${name} PUBLIC
