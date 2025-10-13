@@ -22,7 +22,7 @@ RUN apt update \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /opt/geant4/src && curl -sL https://github.com/Geant4/geant4/archive/refs/tags/v11.1.2.tar.gz | tar -xz --strip-components 1 -C /opt/geant4/src \
+RUN mkdir -p /opt/geant4/src && curl -sL https://github.com/Geant4/geant4/archive/refs/tags/v11.3.2.tar.gz | tar -xz --strip-components 1 -C /opt/geant4/src \
  && cmake -S /opt/geant4/src -B /opt/geant4/build -DGEANT4_USE_OPENGL_X11=ON -DGEANT4_USE_QT=ON -DGEANT4_USE_GDML=ON -DGEANT4_INSTALL_DATA=ON -DGEANT4_BUILD_MULTITHREADED=ON \
  && cmake --build /opt/geant4/build --parallel --target install \
  && rm -fr /opt/geant4

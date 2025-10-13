@@ -11,6 +11,8 @@ use a small array and plant metadata on that
 
 **/
 
+#include <sstream>
+
 #include "G4String.hh"
 #include "G4OpticalSurface.hh"
 #include "G4MaterialPropertiesTable.hh"
@@ -218,6 +220,11 @@ inline const std::vector<G4LogicalBorderSurface*>* U4Surface::PrepareBorderSurfa
     for(IT it=tab->begin() ; it != tab->end() ; it++ )
     {   
         G4LogicalBorderSurface* bs = it->second ;    
+
+        std::stringstream ss;
+        ss << bs->GetName() << "_" << std::setw(4) << std::setfill('0') << bs->GetIndex();
+        bs->SetName(ss.str());
+
         vec->push_back(bs);    
         const PPV ppv = it->first ; 
         assert( ppv.first == bs->GetVolume1());  
@@ -252,7 +259,7 @@ inline const std::vector<G4LogicalSkinSurface*>* U4Surface::PrepareSkinSurfaceVe
     typedef std::vector<G4LogicalSkinSurface*> VKS ; 
 #if G4VERSION_NUMBER >= 1122
     typedef std::map<const G4LogicalVolume*,G4LogicalSkinSurface*>::const_iterator IT ; 
-    const VKS* vec = new VKS ;   
+    VKS *vec = new VKS;
 
     for(IT it=tab->begin() ; it != tab->end() ; it++ )
     {   
@@ -268,7 +275,7 @@ inline const std::vector<G4LogicalSkinSurface*>* U4Surface::PrepareSkinSurfaceVe
     }   
 
 #else
-    const VKS* vec = tab ;   
+    VKS *vec = tab;
 #endif
     return vec ; 
 }
