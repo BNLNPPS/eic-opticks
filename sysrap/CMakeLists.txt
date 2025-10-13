@@ -168,7 +168,8 @@ set(HEADERS
 
     schrono.h
     stimer.h
-    sstamp.h 
+    sstamp.h
+    ssystime.h
 
     SBnd.h
     SPrd.h
@@ -193,8 +194,9 @@ set(HEADERS
     slist.h
     sfreq.h 
     snode.h
-    stree.h 
-    suniquename.h 
+    stree.h
+    s_unique.h
+    suniquename.h
 
     sstandard.h
     sprop.h 
@@ -484,10 +486,12 @@ set(HEADERS
     SGeoConfig.hh
 
     np.h
-    NP.hh  
-    NPU.hh 
-    NPX.h 
-    NPFold.h 
+    NP.hh
+    NP_nanobind.h
+
+    NPU.hh
+    NPX.h
+    NPFold.h
     SSim.hh
     SPropMockup.h
 

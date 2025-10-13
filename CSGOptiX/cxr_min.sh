@@ -11,7 +11,16 @@ info
    dump vars
 
 open
-   write context file, use this to control where screenshots are copied to
+   write context file, use this to control where screenshots are copied to, accepts 2nd
+   argument to backdate the context opening, eg::
+
+        cxr_min.sh open "09:00"
+        cxr_min.sh open "Fri Aug 22 09:00"
+
+        EVT # set EVT envvar to identify AFOLD/BFOLD or just to identify some snapshots
+        cxr_min.sh open "yesterday 09:00"
+
+        pic   # lists screenshots within the context
 
 run
    run executable
@@ -97,7 +106,7 @@ EOU
 cd $(dirname $(realpath $BASH_SOURCE))
 export SCRIPT=cxr_min
 
-defarg=open_run_info
+defarg=run_info
 [ -n "$BP" ] && defarg=dbg_info
 arg=${1:-$defarg}
 arg2=$2
@@ -142,7 +151,7 @@ else
     source ~/.opticks/GEOM/GEOM.sh  ## sets GEOM envvar, use GEOM bash function to setup/edit
 fi
 
-source $HOME/.opticks/GEOM/EVT.sh 2>/dev/null  ## optionally sets AFOLD BFOLD where event info is loaded from
+source $HOME/.opticks/GEOM/EVT.sh 2>/dev/null  ## optionally sets EVT name and corresponding AFOLD BFOLD where event arrays are loaded from
 source $HOME/.opticks/GEOM/MOI.sh 2>/dev/null  ## optionally sets MOI envvar, controlling initial view, use MOI bash function to setup/edit
 source $HOME/.opticks/GEOM/ELV.sh 2>/dev/null  ## optionally set ELV envvar controlling included/excluded LV by name
 source $HOME/.opticks/GEOM/SDR.sh 2>/dev/null  ## optionally configure OpenGL shader
@@ -252,7 +261,7 @@ cd $LOGDIR
 
 LOG=$bin.log
 
-vv="bin which_bin GEOM MOI EMM ELV TMIN EYE LOOK UP ZOOM LOGDIR BASE PBAS NAMEPREFIX OPTICKS_HASH TOPLINE BOTLINE CUDA_VISIBLE_DEVICES"
+vv="bin which_bin GEOM MOI EMM ELV TMIN VUE EYE LOOK UP ZOOM LOGDIR BASE PBAS NAMEPREFIX OPTICKS_HASH TOPLINE BOTLINE CUDA_VISIBLE_DEVICES"
 vv="$vv AFOLD AFOLD_RECORD_SLICE BFOLD BFOLD_RECORD_SLICE _CUR"
 
 Resolve_CFBaseFromGEOM()
@@ -297,8 +306,8 @@ Resolve_CFBaseFromGEOM()
 Resolve_CFBaseFromGEOM
 
 
-
-_CUR=GEOM/$GEOM/$SCRIPT/$EVT_CHECK
+# NB EVT is not necessaryily used to pick between SEvt AFOLD/BFOLD it can just be a name to identify context of some snapshots
+_CUR=GEOM/$GEOM/$SCRIPT/$EVT
 
 if [ "${arg/info}" != "$arg" ]; then
    for v in $vv ; do printf "%20s : %s \n" "$v" "${!v}" ; done
@@ -307,8 +316,17 @@ fi
 
 if [ "${arg/open}" != "$arg" ]; then
     # open to define current context string which controls where screenshots are copied to by ~/j/bin/pic.sh
-    ## HMM : maybe should not overwrite when prefixing ? 
+    ## HMM : maybe should not overwrite when prefixing ?
+    echo $BASH_SOURCE CUR_open ${_CUR}
     CUR_open ${_CUR}
+
+    # second time argument like 11:00 to back date the context to include earlier snaps
+    if [ -n "$arg2" ]; then
+        echo $BASH_SOURCE CUR_touch "$arg2" \# use pic to see which snaps are included in the contect
+        CUR_touch "$arg2"
+    else
+        echo $BASH_SOURCE arg2 needs to be a datetime accepted by CUR_touch eg "cxr_min.sh open 11:00" OR "cxr_min.sh open \"Fri Aug 22 11:00\" "
+    fi
 fi
 
 if [ "${arg/run}" != "$arg" ]; then
@@ -331,18 +349,19 @@ if [ "${arg/dbg}" != "$arg" ]; then
    [ $? -ne 0 ] && echo $BASH_SOURCE dbg error && exit 1
 fi
 
+if [ "${arg/gdb}" != "$arg" ]; then
+   if [ -f "$LOG" ]; then
+       echo $BASH_SOURCE : gdb : delete prior LOG $LOG
+       rm "$LOG"
+   fi
+   gdb -ex "watch SGLM::UP.w" -ex r  $bin
+   [ $? -ne 0 ] && echo $BASH_SOURCE gdb error && exit 1
+fi
+
+
 if [ "${arg/close}" != "$arg" ]; then
     # close to invalidate the context
     CUR_close
-fi
-
-if [ "$arg" == "touch"  ]; then
-    if [ -n "$arg2" ]; then
-        CUR_touch "$arg2"
-    else
-        echo $BASH_SOURCE arg2 needs to be a datetime accepted by CUR_touch eg "cxr_min.sh touch 11:00"
-    fi
-
 fi
 
 

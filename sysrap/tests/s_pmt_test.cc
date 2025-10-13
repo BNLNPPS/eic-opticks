@@ -3,6 +3,9 @@
 
 struct s_pmt_test
 {
+     static int desc();
+
+
      static int lpmtidx();
      static NP* lpmtidx_array();
 
@@ -12,16 +15,23 @@ struct s_pmt_test
      static int contiguousidx();
      static NP* contiguousidx_array();
 
+
+
      static NPFold* makefold_();
      static int makefold();
 
      static int main();
 };
 
+int s_pmt_test::desc()
+{
+    std::cout << s_pmt::desc() ;
+    return 0;
+}
 
 int s_pmt_test::lpmtidx()
 {
-    for(int i=0 ; i < s_pmt::NUM_CD_LPMT_AND_WP ; i++)
+    for(int i=0 ; i < s_pmt::NUM_LPMTIDX ; i++)
     {
         int lpmtidx = i ;
         int lpmtid = s_pmt::pmtid_from_lpmtidx(lpmtidx);
@@ -33,7 +43,7 @@ int s_pmt_test::lpmtidx()
 
 NP* s_pmt_test::lpmtidx_array()
 {
-    int ni = s_pmt::NUM_CD_LPMT_AND_WP ;
+    int ni = s_pmt::NUM_LPMTIDX ;
     int nj = 3 ;
     NP* a = NP::Make<int>( ni, nj );
     int* aa = a->values<int>();
@@ -54,7 +64,7 @@ NP* s_pmt_test::lpmtidx_array()
 
 int s_pmt_test::oldcontiguousidx()
 {
-    for(int i=0 ; i < s_pmt::NUM_ALL ; i++)
+    for(int i=0 ; i < s_pmt::NUM_OLDCONTIGUOUSIDX ; i++)
     {
         int oldcontiguousidx = i ;
         int pmtid = s_pmt::pmtid_from_oldcontiguousidx(oldcontiguousidx);
@@ -66,7 +76,7 @@ int s_pmt_test::oldcontiguousidx()
 
 NP* s_pmt_test::oldcontiguousidx_array()
 {
-    int ni = s_pmt::NUM_ALL ;
+    int ni = s_pmt::NUM_OLDCONTIGUOUSIDX ;
     int nj = 3 ;
     NP* a = NP::Make<int>( ni, nj );
     int* aa = a->values<int>();
@@ -94,7 +104,7 @@ NP* s_pmt_test::oldcontiguousidx_array()
 
 int s_pmt_test::contiguousidx()
 {
-    for(int i=0 ; i < s_pmt::NUM_ALL ; i++)
+    for(int i=0 ; i < s_pmt::NUM_CONTIGUOUSIDX ; i++)
     {
         int contiguousidx = i ;
         int pmtid = s_pmt::pmtid_from_contiguousidx(contiguousidx);
@@ -106,7 +116,7 @@ int s_pmt_test::contiguousidx()
 
 NP* s_pmt_test::contiguousidx_array()
 {
-    int ni = s_pmt::NUM_ALL ;
+    int ni = s_pmt::NUM_CONTIGUOUSIDX ;
     int nj = 3 ;
     NP* a = NP::Make<int>( ni, nj );
     int* aa = a->values<int>();
@@ -151,6 +161,7 @@ int s_pmt_test::makefold()
 int s_pmt_test::main()
 {
     int rc = 0 ;
+    rc += desc();
     rc += lpmtidx();
     rc += oldcontiguousidx();
     rc += contiguousidx();

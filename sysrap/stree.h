@@ -206,6 +206,7 @@ When SSim not in use can also use::
 #include <vector>
 #include <string>
 #include <map>
+#include <functional>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -230,6 +231,7 @@ When SSim not in use can also use::
 
 #include "s_csg.h"
 #include "sn.h"
+#include "s_unique.h"
 
 #include "stra.h"
 #include "sstandard.h"
@@ -264,12 +266,15 @@ struct stree
     static constexpr const char* stree__get_frame_dump = "stree__get_frame_dump" ;
 
     static constexpr const int MAXDEPTH = 15 ; // presentational limit only
-    static constexpr const int FREQ_CUT = 500 ;   // HMM GInstancer using 400
-    // subtree digests with less repeats than FREQ_CUT within the entire geometry
-    // are not regarded as repeats for instancing factorization purposes
 
+    static constexpr const char* _FREQ_CUT = "stree__FREQ_CUT" ; // only active at geometry translation
+    static constexpr const int    FREQ_CUT_DEFAULT = 500 ;   // HMM GInstancer using 400
+    // subtree digests with less repeats than the FREQ_CUT within the entire geometry
+    // are not regarded as repeats for instancing factorization purposes
+    //
     static constexpr const char* BASE = "$CFBaseFromGEOM/CSGFoundry/SSim" ;
     static constexpr const char* RELDIR = "stree" ;
+    static constexpr const char* DESC = "desc" ;
 
     static constexpr const char* NDS = "nds.npy" ;
     static constexpr const char* NDS_NOTE = "snode.h structural volume nodes" ;
@@ -295,7 +300,6 @@ struct stree
 #endif
 
 
-    //static constexpr const char* SUINDEX = "suindex.npy" ;
 
     static constexpr const char* SONAME = "soname.txt" ;
     static constexpr const char* CSG = "csg" ;
@@ -329,6 +333,7 @@ struct stree
 
 
     int level ;                            // verbosity
+    int FREQ_CUT ;
     const char*      force_triangulate_solid ;
     std::vector<int> force_triangulate_lvid ;
     bool get_frame_dump ;
@@ -398,9 +403,18 @@ struct stree
     void init();
     void set_level(int level_);
 
+    void save_desc(const char* base, const char* midl) const ;
+    void save_desc(const char* base) const ;
+    void save_desc_(const char* fold) const ;
+    void populate_descMap( std::map<std::string, std::function<std::string()>>& m ) const ;
+
+
     std::string desc() const ;
+    std::string desc_meta() const ;
     std::string desc_soname() const ;
     std::string desc_lvid() const ;
+    std::string desc_lvid_unique(const std::vector<int>& some_lvid) const ;
+
     std::string desc_size(char div='\n') const ;
     std::string desc_vec() const ;
     std::string desc_sub(bool all=false) const ;
@@ -418,7 +432,7 @@ struct stree
 
     void get_children(std::vector<int>& children, int nidx) const ;   // immediate children
     void get_progeny( std::vector<int>& progeny, int nidx ) const ;   // recursively get children and all their children and so on...
-    std::string desc_progeny(int nidx) const ;
+    std::string desc_progeny(int nidx, int edge=1000) const ;  // edge=0 disables summarization
 
     void traverse(int nidx=0) const ;
     void traverse_r(int nidx, int depth, int sibdex) const ;
@@ -450,7 +464,9 @@ struct stree
 
     int  find_lvid(const char* soname_, bool starting=true  ) const ;
 
-    const std::vector<snode>* get_node_vector( char _src ) const ; // 'N':nds 'R':rem 'T':tri
+    const std::vector<snode>* get_node_vector(      char _src ) const ; // 'N':nds 'R':rem 'T':tri
+    const char*               get_node_vector_name( char _src ) const ;
+
     void find_lvid_nodes_( std::vector<snode>& nodes, int lvid, char _src ) const ;
     void find_lvid_nodes(  std::vector<int>& nodes, int lvid, char _src ) const ;
     int count_lvid_nodes( int lvid, char _src='N' ) const ;
@@ -573,7 +589,9 @@ struct stree
     std::string desc_nodes( const std::vector<int>&   nn, int edgeitems=10) const ;
     std::string desc_nodes_(const std::vector<snode>& nn, int edgeitems=10) const ;
     std::string desc_node_solids() const ;
+    std::string desc_solids_0() const ;
     std::string desc_solids() const ;
+    std::string desc_triangulate() const ;
     std::string desc_solid(int lvid) const ;
 
 
@@ -582,7 +600,7 @@ struct stree
 
 
     void save_( const char* fold ) const ;
-    void save( const char* base, const char* reldir=RELDIR ) const ;
+    void save( const char* base ) const ;
     NPFold* serialize() const ;
 
 
@@ -604,7 +622,9 @@ struct stree
 
     static void FindForceTriangulateLVID(std::vector<int>& lvid, const std::vector<std::string>& _sonames, const char* _force_triangulate_solid, char delim=','  );
     std::string descForceTriangulateLVID() const ;
-    bool        is_force_triangulate( int lvid ) const ;
+    bool        is_force_triangulate( int lvid ) const ; // HMM: is_manual_triangulate would be better name
+    bool        is_auto_triangulate( int lvid ) const ;  // WIP: automate decision, avoiding hassle with geometry updates that change/add solid names
+    bool        is_triangulate(int lvid) const ;  // OR of the above
 
 
     void classifySubtrees();
@@ -659,6 +679,17 @@ struct stree
     std::string desc_repeat_node(int q_repeat_index, int q_repeat_ordinal) const ;
 
     std::string desc_repeat_nodes() const ;
+
+    std::string desc_NRT() const ;
+    std::string desc_nds() const ;
+    std::string desc_rem() const ;
+    std::string desc_tri() const ;
+    std::string desc_NRT(char NRT) const ;
+
+    std::string desc_node_ELVID() const ;
+    std::string desc_node_ECOPYNO() const ;
+    std::string desc_node_EBOUNDARY() const ;
+    std::string desc_node_elist(const char* etag, const char* fallback) const ;
 
 
     void add_inst( glm::tmat4x4<double>& m2w, glm::tmat4x4<double>& w2m, int gas_idx, int nidx );
@@ -759,6 +790,7 @@ HMM the force_triangulate_solid envvar only relevant for stree creation, not wit
 inline stree::stree()
     :
     level(ssys::getenvint("stree__level", 0)),
+    FREQ_CUT(ssys::getenvint(_FREQ_CUT, FREQ_CUT_DEFAULT)),
     force_triangulate_solid(ssys::getenvvar(stree__force_triangulate_solid,nullptr)),
     get_frame_dump(ssys::getenvbool(stree__get_frame_dump)),
     sensor_count(0),
@@ -835,13 +867,99 @@ inline std::string stree::desc_size(char div) const
 }
 
 
+
+/**
+stree::save_desc
+------------------
+
+Save .txt files for each of the listed desc methods
+within a *reldir* which defaults to "desc" which is
+created within the *base* directory.
+
+**/
+
+inline void stree::save_desc(const char* base, const char* midl) const
+{
+    const char* fold = U::Resolve(base, midl, DESC);
+    save_desc_(fold);
+}
+inline void stree::save_desc(const char* base) const
+{
+    const char* fold = U::Resolve(base, DESC);
+    save_desc_(fold);
+}
+
+inline void stree::save_desc_(const char* fold) const
+{
+    std::cout << "[stree::save_desc_ fold [" << ( fold ? fold : "-" ) << "]\n" ;
+
+    std::map<std::string, std::function<std::string()>> descMap ;
+    populate_descMap(descMap);
+
+    for (auto const& [k, fn] : descMap)
+    {
+        std::string name = k + ".txt" ;
+        std::cout << "-stree::save_desc_ name [" << name.c_str() << "]\n" ;
+
+        std::string desc = fn(); // move this after output as errors likely here
+
+        U::WriteString( fold, name.c_str(), desc.c_str() );
+    }
+    std::cout << "]stree::save_desc_ fold [" << ( fold ? fold : "-" ) << "]\n" ;
+}
+
+inline void stree::populate_descMap( std::map<std::string, std::function<std::string()>>& m ) const
+{
+    int NIDX = ssys::getenvint("NIDX", 0);
+    int EDGE = ssys::getenvint("EDGE", 10);
+    int PROGENY_EDGE = ssys::getenvint("PROGENY_EDGE", 1000);
+
+    m["meta"] = [this](){ return this->desc_meta(); };
+    m["soname"] = [this](){ return this->desc_soname(); };
+    m["lvid"] = [this](){ return this->desc_lvid(); };
+
+    m["size"] = [this](){ return this->desc_size(); };
+    m["vec"] = [this](){ return this->desc_vec(); };
+    m["sub"] = [this](){ return this->desc_sub(); };
+    m["progeny"] = [this,NIDX,PROGENY_EDGE](){ return this->desc_progeny(NIDX,PROGENY_EDGE); };
+
+    m["sensor"] = [this](){ return this->desc_sensor(); };
+    m["sensor_nd"] = [this,EDGE](){ return this->desc_sensor_nd(EDGE); };
+    m["sensor_id"] = [this,EDGE](){ return this->desc_sensor_id(EDGE); };
+    m["node_solids"] = [this](){ return this->desc_node_solids(); };
+    m["nodes"] = [this](){ return this->descNodes(); };
+    m["solids"] = [this](){ return this->desc_solids(); };
+    m["triangulate"] = [this](){ return this->desc_triangulate(); };
+    m["factor"] = [this](){ return this->desc_factor(); };
+    m["repeat_nodes"] = [this](){ return this->desc_repeat_nodes(); };
+
+    m["NRT"] = [this](){ return this->desc_NRT(); };
+    m["nds"] = [this](){ return this->desc_nds(); };
+    m["rem"] = [this](){ return this->desc_rem(); };
+    m["tri"] = [this](){ return this->desc_tri(); };
+    m["node_ELVID"] = [this](){ return this->desc_node_ELVID(); };
+    m["node_ECOPYNO"] = [this](){ return this->desc_node_ECOPYNO(); };
+    m["node_EBOUNDARY"] = [this](){ return this->desc_node_EBOUNDARY(); };
+    m["inst"] = [this](){ return this->desc_inst(); };
+    m["inst_info"] = [this](){ return this->desc_inst_info(); };
+    m["inst_info_check"] = [this](){ return this->desc_inst_info_check(); };
+    m["mt"] = [this](){ return this->desc_mt(); };
+    m["bd"] = [this](){ return this->desc_bd(); };
+
+    m["subs_freq"] = [this](){ return this->subs_freq ? this->subs_freq->desc() : "-" ; };
+    m["material"] = [this](){ return this->material ? this->material->desc() : "-" ; };
+    m["surface"] = [this](){ return this->surface ? this->surface->desc() : "-" ; };
+    m["mesh"] = [this](){ return this->mesh ? this->mesh->desc() : "-" ; };
+    m["_csg"] = [this](){ return this->_csg ? this->_csg->desc() : "-" ; };
+}
+
 inline std::string stree::desc() const
 {
     std::stringstream ss ;
     ss
        << std::endl
        << "[stree::desc"
-       << " level " << level
+       << desc_meta()
        << desc_size()
        << " stree.desc.subs_freq "
        << std::endl
@@ -880,7 +998,17 @@ inline std::string stree::desc() const
     return str ;
 }
 
-
+inline std::string stree::desc_meta() const
+{
+    std::stringstream ss ;
+    ss << "[stree::desc_meta\n" ;
+    ss << "level:" << level << "\n" ;
+    ss << "FREQ_CUT:" << FREQ_CUT << "\n" ;
+    ss << "FREQ_CUT_DEFAULT:" << FREQ_CUT_DEFAULT << "\n" ;
+    ss << "]stree::desc_meta\n" ;
+    std::string str = ss.str();
+    return str ;
+}
 
 inline std::string stree::desc_soname() const
 {
@@ -946,6 +1074,45 @@ inline std::string stree::desc_lvid() const
     std::string str = ss.str();
     return str ;
 }
+
+/**
+stree::desc_lvid_unique
+------------------------
+
+Counts unique lvid from some_lvid and presents unique table
+with occurence counts and solid names from soname. The table
+is ordered by descending occurence counts.
+
+**/
+
+
+inline std::string stree::desc_lvid_unique(const std::vector<int>& some_lvid) const
+{
+    // count unique lvid
+    std::vector<int>           u_lvid ;
+    std::vector<std::size_t>   c_lvid ;  // count
+    std::vector<std::size_t>   o_lvid ;  // order
+    std::vector<std::size_t>   x_lvid ;  // first index
+
+    s_unique( u_lvid, some_lvid.begin(), some_lvid.end(), &c_lvid, &o_lvid, &x_lvid );
+
+    std::stringstream ss ;
+    ss
+        << "[stree::desc_unique_lvid\n"
+        << " some_lvid.size " << some_lvid.size() << "\n"
+        << " u_lvid.size " << u_lvid.size() << "\n"
+        << " c_lvid.size " << c_lvid.size() << "\n"
+        << " o_lvid.size " << o_lvid.size() << "\n"
+        << " x_lvid.size " << x_lvid.size() << "\n"
+        << s_unique_desc( u_lvid, &soname, &c_lvid, &o_lvid, &x_lvid ) << "\n"
+        << "]stree::desc_unique_lvid\n"
+        ;
+
+    std::string str = ss.str();
+    return str ;
+}
+
+
 
 
 
@@ -1016,8 +1183,8 @@ inline std::string stree::desc_sub(bool all) const
         if(all == false && freq < FREQ_CUT) continue ;
         ss << desc_sub(sub) << std::endl ;
     }
-    std::string s = ss.str();
-    return s ;
+    std::string str = ss.str();
+    return str ;
 }
 
 inline std::string stree::desc_sub(const char* sub) const
@@ -1036,8 +1203,8 @@ inline std::string stree::desc_sub(const char* sub) const
        << " 1st:" << std::setw(6) << first_nidx
        << " " <<  get_soname(first_nidx)
        ;
-    std::string s = ss.str();
-    return s ;
+    std::string str = ss.str();
+    return str ;
 }
 
 
@@ -1085,8 +1252,30 @@ inline int stree::GetValueIndex( const std::vector<T>& vec, const T& obj) // sta
 
 inline void stree::get_children( std::vector<int>& children , int nidx ) const
 {
+    int num_nd = nds.size();
+    bool nidx_expect = nidx < num_nd ;
+    if(!nidx_expect) std::cerr
+        << "stree::get_children"
+        << " nidx_expect " << ( nidx_expect ? "YES" : "NO ")
+        << " num_nd " << num_nd
+        << " nidx " << nidx
+        << "\n"
+        ;
+    if(!nidx_expect) return ;
+
+
     const snode& nd = nds[nidx];
-    assert( nd.index == nidx );
+    bool nd_expect = nd.index == nidx ;
+    if(!nd_expect) std::cerr
+        << "stree::get_children"
+        << " nd.index " << nd.index
+        << " nidx " << nidx
+        << " num_nd " << num_nd
+        << " nidx_expect " << ( nidx_expect ? "YES" : "NO " )
+        << " nd_expect " << ( nd_expect ? "YES" : "NO " )
+        << "\n"
+        ;
+    assert( nd_expect );
 
     int ch = nd.first_child ;
     while( ch > -1 )
@@ -1108,36 +1297,67 @@ inline void stree::get_progeny( std::vector<int>& progeny , int nidx ) const
 }
 
 
-inline std::string stree::desc_progeny(int nidx) const
+inline std::string stree::desc_progeny(int nidx, int edge) const
 {
-    std::vector<int> progeny ;
-    get_progeny(progeny, nidx );
-    sfreq* sf = make_freq(progeny);
-    sf->sort();
+    int num_nd = nds.size();
+    bool nidx_valid = nidx < num_nd ;
 
     std::stringstream ss ;
-    ss << "stree::desc_progeny nidx " << nidx << " progeny.size " << progeny.size() << std::endl ;
-    ss << "sf.desc" << std::endl << sf->desc() << std::endl ;
-    ss
-       << " i " << std::setw(6) << -1
-       << desc_node(nidx, true )
-       << std::endl
+    ss << "stree::desc_progeny\n"
+       << " nidx " << nidx << "\n"
+       << " nidx_valid " << ( nidx_valid ? "YES" : "NO " ) << "\n"
        ;
 
-    for(unsigned i=0 ; i < progeny.size() ; i++)
+
+    if( nidx_valid )
     {
-        int nix = progeny[i] ;
-        int depth = get_depth(nix);
+        std::vector<int> progeny ;
+        get_progeny(progeny, nidx );
+        sfreq* sf = make_freq(progeny);
+        sf->sort();
+        int num_progeny = progeny.size() ;
+
         ss
-            << " i " << std::setw(6) << i
-            << " depth " << std::setw(2) << depth
-            << desc_node_(nix, sf )
-            << std::endl
-            ;
+           << " num_progeny " << num_progeny << "\n"
+           << " edge " << edge << "\n"
+           << "[sf.desc\n"
+           << sf->desc()
+           << "]sf.desc\n"
+           << " i " << std::setw(6) << -1
+           << desc_node(nidx, true )
+           << "\n"
+           ;
+
+
+        for(int i=0 ; i < num_progeny ; i++)
+        {
+            int nix = progeny[i] ;
+            int depth = get_depth(nix);
+
+            if( edge == 0 || i < edge || i > num_progeny - edge )
+            {
+                ss
+                    << " i " << std::setw(6) << i
+                    << " depth " << std::setw(2) << depth
+                    << desc_node_(nix, sf )
+                    << "\n"
+                    ;
+            }
+            else if( i == edge )
+            {
+                ss
+                    << " i " << std::setw(6) << i
+                    << " depth " << std::setw(2) << depth
+                    << " ... "
+                    << "\n"
+                    ;
+            }
+        }
     }
 
-    std::string s = ss.str();
-    return s;
+
+    std::string str = ss.str();
+    return str ;
 }
 
 
@@ -1607,6 +1827,21 @@ inline const std::vector<snode>* stree::get_node_vector( char _src ) const
     }
     return src ;
 }
+
+inline const char* stree::get_node_vector_name( char _src ) const
+{
+    const char* name = nullptr ;
+    switch( _src )
+    {
+        case 'N': name = NDS ; break ;
+        case 'R': name = REM ; break ;
+        case 'T': name = TRI ; break ;
+    }
+    return name ;
+}
+
+
+
 
 
 /**
@@ -3208,30 +3443,159 @@ inline std::string stree::desc_node_solids() const
 
 
 /**
-stree::desc_solids
--------------------
+stree::desc_solids_0
+---------------------
 
-OBSERVE THAT THE stree::solids ARE NOT PERSISTED, INSTEAD USE sn::Get methods
-to access the s_csg.h persisted sn.h
+OBSERVE THAT THE stree::solids ARE NOT PERSISTED,
+SO THIS IS ONLY USEFUL DURING TRANSLATION AFTER U4Tree::initSolids
 
+TODO : FIND WAY TO RECOVER THE stree::solids vector using sn::Get
+methods to access the s_csg.h persisted sn.h
 **/
 
-inline std::string stree::desc_solids() const
+inline std::string stree::desc_solids_0() const
 {
     int num_solids = solids.size() ;
     std::stringstream ss ;
-    ss << "stree::desc_solids num_solids " << num_solids  << std::endl ;
+    ss << "[stree::desc_solids_0 num_solids " << num_solids  << "\n" ;
     for(int i=0 ; i < num_solids ; i++)
     {
+        const char* srn = soname_raw[i].c_str();
+        const char* son = soname[i].c_str();
+
         const sn* root = solids[i] ;
+
+        int lvid = i ;
+        const sn* root2 = sn::GetLVRoot(lvid);
+        bool root2_match = root == root2 ;
+
         ss
+            << " i " << std::setw(3) << i
             << " (sn)root.lvid " << std::setw(3) << root->lvid
-            << std::endl
+            << " root2_match " << ( root2_match ? "YES" : "NO " )
+            << " soname_raw[i] " << std::setw(60) << ( srn ? srn : "-" )
+            << " soname[i] " << std::setw(60) << ( son ? son : "-" )
+            << "\n"
             ;
     }
+    ss << "]stree::desc_solids_0 num_solids " << num_solids  << "\n" ;
     std::string str = ss.str();
     return str ;
 }
+
+inline std::string stree::desc_solids() const
+{
+    int num_soname = soname.size() ;
+    std::stringstream ss ;
+    ss << "[stree::desc_solids num_soname " << num_soname  << "\n" ;
+    for(int i=0 ; i < num_soname ; i++)
+    {
+        int lvid = i ;
+
+        bool ift = is_force_triangulate(lvid) ;
+        bool iat = is_auto_triangulate(lvid) ;
+        bool it = is_triangulate(lvid) ;
+
+        const char* son = lvid < int(soname.size())     ? soname[lvid].c_str() : nullptr ;
+        const sn* root = sn::GetLVRoot(lvid);
+        assert(root);
+        assert( root->lvid == lvid );
+        ss
+            << " lvid " << std::setw(3) << lvid
+            << " is_force_triangulate " << ( ift ? "YES" : "NO " )
+            << " is_auto_triangulate " << ( iat ? "YES" : "NO " )
+            << " is_triangulate " << ( it ? "YES" : "NO " )
+            << " soname[lvid] " << std::setw(60) << ( son ? son : "-" )
+            << " " << ( root ? root->rbrief() : "" )
+            << "\n"
+            ;
+    }
+    ss << "]stree::desc_solids num_soname " << num_soname  << "\n" ;
+    std::string str = ss.str();
+    return str ;
+}
+
+inline std::string stree::desc_triangulate() const
+{
+    int num_soname = soname.size() ;
+
+    int count_triangulate = 0 ;
+    int count_force_triangulate = 0 ;
+    int count_auto_triangulate = 0 ;
+    int count_auto_triangulate_only = 0 ;
+    int count_force_triangulate_only = 0 ;
+
+    std::vector<std::string> names_auto_triangulate_only ;
+    std::vector<std::string> names_force_triangulate_only ;
+
+    std::stringstream ss ;
+    ss << "[stree::desc_triangulate num_soname " << num_soname  << "\n" ;
+    for(int i=0 ; i < num_soname ; i++)
+    {
+        int lvid = i ;
+
+        bool ift = is_force_triangulate(lvid) ;
+        bool iat = is_auto_triangulate(lvid) ;
+        bool it = is_triangulate(lvid) ;
+        bool fto = ift == true && iat == false ;
+        bool ato = ift == false && iat == true ;
+
+        if(it)  count_triangulate += 1 ;
+        if(ift) count_force_triangulate += 1 ;
+        if(iat) count_auto_triangulate += 1 ;
+        if(fto) count_force_triangulate_only += 1 ;
+        if(ato) count_auto_triangulate_only += 1 ;
+
+        if(!it) continue ;
+        //if(!fto) continue ;
+
+        const char* son = lvid < int(soname.size())     ? soname[lvid].c_str() : nullptr ;
+        assert(son);
+
+        if(ato) names_auto_triangulate_only.push_back(son);
+        if(fto) names_force_triangulate_only.push_back(son);
+
+        const sn* root = sn::GetLVRoot(lvid);
+        assert(root);
+        assert( root->lvid == lvid );
+        ss
+            << " lvid " << std::setw(3) << lvid
+            << " is_force_triangulate " << ( ift ? "YES" : "NO " )
+            << " is_auto_triangulate " << ( iat ? "YES" : "NO " )
+            << " is_triangulate " << ( it ? "YES" : "NO " )
+            << " force_triangulate_only " << ( fto ? "YES" : "NO " )
+            << " soname[lvid] " << std::setw(60) << ( son ? son : "-" )
+            << " " << ( root ? root->rbrief() : "" )
+            << "\n"
+            ;
+    }
+
+    ss << "-stree::desc_triangulate.[names_auto_triangulate_only\n" ;
+    for(int i=0 ; i < int(names_auto_triangulate_only.size()) ; i++ ) ss << names_auto_triangulate_only[i] << "\n" ;
+    ss << "-stree::desc_triangulate.]names_auto_triangulate_only\n" ;
+
+    ss << "-stree::desc_triangulate.[names_force_triangulate_only\n" ;
+    for(int i=0 ; i < int(names_force_triangulate_only.size()) ; i++ ) ss << names_force_triangulate_only[i] << "\n" ;
+    ss << "-stree::desc_triangulate.]names_force_triangulate_only\n" ;
+
+
+    ss << "]stree::desc_triangulate\n"
+       << " num_soname                   " << num_soname  << "\n"
+       << " count_triangulate            " << count_triangulate << "\n"
+       << " count_auto_triangulate       " << count_auto_triangulate << "\n"
+       << " count_force_triangulate      " << count_force_triangulate << "\n"
+       << " count_auto_triangulate_only  " << count_auto_triangulate_only << "\n"
+       << " count_force_triangulate_only " << count_force_triangulate_only  << "\n"
+       ;
+
+
+    std::string str = ss.str();
+    return str ;
+
+
+}
+
+
 
 
 inline std::string stree::desc_solid(int lvid) const
@@ -3301,15 +3665,16 @@ inline void stree::save_trs(const char* fold) const
 
 
 
-inline void stree::save( const char* base, const char* reldir ) const
+inline void stree::save( const char* base) const
 {
-    const char* dir = U::Resolve(base, reldir);
+    const char* dir = U::Resolve(base, RELDIR );
     save_(dir);
 }
 inline void stree::save_( const char* dir ) const
 {
     NPFold* fold = serialize() ;
     fold->save(dir) ;
+    save_desc(dir);   // saves .txt for most desc methods into <base>/stree/desc
 }
 
 inline NPFold* stree::serialize() const
@@ -3363,6 +3728,10 @@ inline NPFold* stree::serialize() const
 
     NPFold* f_subs_freq = subs_freq->serialize() ;
     fold->add_subfold( SUBS_FREQ, f_subs_freq );
+
+    fold->set_meta<int>("FREQ_CUT", FREQ_CUT);
+    fold->set_meta<int>("FREQ_CUT_DEFAULT", FREQ_CUT_DEFAULT);
+
 
     NP* _factor = NPX::ArrayFromVec<int,sfactor>( factor, sfactor::NV );
 
@@ -3478,8 +3847,8 @@ inline int stree::load( const char* base, const char* reldir )
 inline int stree::load_( const char* dir )
 {
     if(level > 0) std::cerr << "stree::load_ " << ( dir ? dir : "-" ) << std::endl ;
-    NPFold* fold = NPFold::Load(dir) ;
-    import_(fold);
+    NPFold* top = NPFold::Load(dir) ;
+    import_(top);
     return 0 ;
 }
 
@@ -3555,6 +3924,9 @@ inline void stree::import_(const NPFold* fold)
 
     NPFold* f_subs_freq = fold->get_subfold(SUBS_FREQ) ;
     subs_freq->import(f_subs_freq);
+
+    FREQ_CUT = fold->get_meta<int>("FREQ_CUT");
+
 
     ImportArray<sfactor, int>( factor, fold->get(FACTOR), FACTOR );
 
@@ -3668,30 +4040,6 @@ inline std::string stree::descForceTriangulateLVID() const
 /**
 stree::is_force_triangulate
 ----------------------------
-
-How this info gets used is spread over the geometry handling
-of sysrap, CSG and CSGOptiX packages. Relevant methods/fields include::
-
-stree::get_ridx_type
-stree::tri
-stree::rem
-
-CSGSolid::setIntent
-   invoked by the below importers
-
-CSGImport::importSolid
-CSGImport::importSolidGlobal
-CSGImport::importSolidFactor
-
-CSGFoundry::isSolidTrimesh
-   returns depending on the CSGSolid intent
-
-SBT::createGAS
-   depending on CSGFoundry::isSolidTrimesh switches between the mesh and analytic buildInput
-   passed to SOPTIX_Accel::Create
-
-
-In order to dump the triangulation status, best to dump the solids
 **/
 
 
@@ -3700,11 +4048,81 @@ inline bool stree::is_force_triangulate( int lvid ) const
     return slist::Contains( force_triangulate_lvid, lvid );
 }
 
+/**
+stree::is_auto_triangulate
+----------------------------
+
+WIP: to reproduce the manual list of lvid also need to judge
+based on the CSG complexity, depth etc.. even with supported
+nodes
+
+**/
 
 
+inline bool stree::is_auto_triangulate( int lvid ) const
+{
+    const sn* root = sn::GetLVRoot(lvid);
+    assert( root );
+
+    std::vector<int> tcq = {CSG_TORUS, CSG_NOTSUPPORTED, CSG_CUTCYLINDER } ;
+    int minsubdepth = 0;
+    int count = root->typecodes_count(tcq, minsubdepth );
+    return count > 0 ;
+}
 
 
+/**
+stree::is_triangulate
+------------------------
 
+How the result of stree::is_triangulate is used is spread over
+the geometry handling of sysrap, CSG and CSGOptiX packages.
+Relevant methods/fields include:
+
+stree::tri
+    vector of snode : subset of nds which are triangulated (currently only global, non-instanced nodes)
+    (tri vector is populated by stree::factorize/stree::collectGlobalNodes, based on stree::is_triangulate)
+
+stree::rem
+    vector of snode : subset of nds which are remainder nodes : left following factorization
+    (rem vector is populated by stree::factorize/stree::collectGlobalNodes, based on stree::is_triangulate)
+
+stree::get_ridx_type
+    returns 'R' 'F' or 'T' (depending on get_num_remainder (always 1), get_num_factor, get_num_triangulated (0 or 1))
+
+    'R' analytic global solid
+    'T' triangulated global solid
+    'F' analytic factor solid
+    ## NB no 'Q' for triangulated factor solid : NOT YET IMPLEMENTED
+
+
+void CSGSolid::setIntent(char _intent)
+   invoked by the below importers, where _intent is one of::
+
+CSGImport::importSolid
+CSGImport::importSolidGlobal
+CSGImport::importSolidFactor
+
+CSGFoundry::isSolidTrimesh
+   returns true when CSGFoundry::getSolidIntent yields 'T' ... this is
+   used extensively by the below CSGOptiX methods to setup the GPU geometry
+
+CSGOptiX/SBT::createGAS
+   depending on CSGFoundry::isSolidTrimesh switches between the mesh and analytic buildInput
+   passed to SOPTIX_Accel::Create
+
+CSGOptiX/SBT::createHitgroup
+
+
+In order to dump the triangulation status, need to dump the compound CSGSolid
+
+**/
+
+
+inline bool stree::is_triangulate( int lvid ) const
+{
+    return is_force_triangulate(lvid) || is_auto_triangulate(lvid);
+}
 
 
 
@@ -3716,7 +4134,7 @@ stree::classifySubtrees
 
 This is invoked by stree::factorize
 
-Traverse all nodes, computing and collecting subtree digests and adding them to subs_freq
+Traverse all nodes, computing and collecting subtree digests and adding them to (sfreq*)subs_freq
 to find the top repeaters.
 
 **/
@@ -3737,6 +4155,12 @@ inline void stree::classifySubtrees()
 /**
 stree::is_contained_repeat
 ----------------------------
+
+The result of this is used to disqualify repeated subtrees
+that are contained within other repeated subtrees in order to find
+the largest subtrees of repeated nodes. In that case the parent node
+would be a candidate to be the outer factor node. But of course the
+parent could itself be a contained repeat.
 
 A contained repeat *sub* digest is defined as one where the subtree
 digest of the parent of the first node with *sub* digest passes "pfreq >= FREQ_CUT"
@@ -3867,6 +4291,8 @@ stree::sortSubtrees
 ---------------------
 
 Order the subs_freq (sub,freq) pairs within the vector
+The subtrees are sorted in order for the order of factors
+to be reproducible between different machines.
 
 **/
 
@@ -3933,9 +4359,9 @@ inline void stree::labelFactorSubtrees()
     int num_factor = factor.size();
     if(level>0) std::cout << "[ stree::labelFactorSubtrees num_factor " << num_factor << std::endl ;
 
-    for(int i=0 ; i < num_factor ; i++)
+    for(int f=0 ; f < num_factor ; f++)
     {
-        int repeat_index = i + 1 ;   // leave repeat_index zero for the global remainder
+        int repeat_index = f + 1 ;   // leave repeat_index zero for the global remainder
         sfactor& fac = factor.at(repeat_index-1) ;  // .at is appropriate for small loops
         std::string sub = fac.get_sub() ;
         assert( fac.index == repeat_index - 1 );
@@ -3946,6 +4372,7 @@ inline void stree::labelFactorSubtrees()
 
         int fac_olvid = -1 ;
         int fac_subtree = -1 ;
+
         for(unsigned i=0 ; i < outer_node.size() ; i++)
         {
             int outer = outer_node[i] ;
@@ -3983,11 +4410,11 @@ inline void stree::labelFactorSubtrees()
                 snode& nd = nds[nidx] ;
                 assert( nd.index == nidx );
                 nd.repeat_index = repeat_index ;
-                nd.repeat_ordinal = i ;
+                nd.repeat_ordinal = i ;  // index over occurence of the subtree digest
             }
         }
-        fac.subtree = fac_subtree ;
-        fac.olvid = fac_olvid ;
+        fac.subtree = fac_subtree ;  // notes on the subtree
+        fac.olvid = fac_olvid ;      // outer node lvid
 
         if(level>0) std::cout
             << "stree::labelFactorSubtrees"
@@ -4083,6 +4510,19 @@ should triangulation action be done post-cache ?
   but for actual use the definiteness of getting same geometry from cache has value
 
 
+
+Q: HOW TO EXTEND TO TRIANGULATED FACTOR NODES ?
+
+A: LOOKS LIKE NO FUNDAMENTAL THING STOPPING TRI FACTOR NODES IN CSGOptiX,
+   PERHAPS JUST BOOKKEEPING CHANGE IN stree.h ?
+
+   * ONE THING TO NOTE IS THAT THE ENTIRE factor subtree that becomes
+     the compound CSGSolid will need to be all triangulated or all analytic
+     ... cannot mix ana and tri in the same CSGSolid
+
+   * HOW TO PROCEED : NEED EXAMPLE TO WORK WITH
+
+
 **/
 
 
@@ -4095,15 +4535,17 @@ inline void stree::collectGlobalNodes()
     {
         const snode& nd = nds[nidx] ;
         assert( nd.index == nidx );
-        bool do_force_triangulate = is_force_triangulate(nd.lvid) ;
+        bool do_triangulate = is_triangulate(nd.lvid) ;
         if( nd.repeat_index == 0 )
         {
-            std::vector<snode>& dst = do_force_triangulate ? tri : rem  ;
+            std::vector<snode>& dst = do_triangulate ? tri : rem  ;
             dst.push_back(nd) ;
         }
         else
         {
-            assert( do_force_triangulate == false && "force triangulate solid is currently only supported for remainder nodes" );
+            assert( do_triangulate == false && "triangulate solid is currently only supported for remainder nodes" );
+            // HMM: FOR TRI FACTOR NODES NEED TO OPERATE WITH THE SUBTREES : AS ALL OF THE FUTURE CSGSolid
+            // HAS TO BE TRI TOGETHER : SO CAN DO NOTHING HERE
         }
     }
     if(level>0) std::cout
@@ -4139,16 +4581,17 @@ stree::factorize
 Canonically invoked from U4Tree::Create
 
 classifySubtrees
-   compute and store stree::subtree_digest for subtrees of all nodes
+   compute and store stree::subtree_digest for subtrees of all nodes using (sfreq*)subs_freq
 
 disqualifyContainedRepeats
-   flip freq sign in subs_freq to disqualify all contained repeats
+   flip freq sign in (sfreq*)subs_freq to disqualify all contained repeats, as want factors
+   to have the largest subtrees
 
 sortSubtrees
-   order the subs_freq (sub,freq) pairs within the vector
+   order the subs_freq (sub,freq) pairs within the vector, for reproducible factors between different machines
 
 enumerateFactors
-   create sfactor and collect into factor vector
+   create sfactor instances and collect into factor vector
 
 labelFactorSubtrees
    label all nodes of subtrees of all repeats with repeat_index,
@@ -4304,12 +4747,12 @@ Also lots of other places assume always have this
 
 **/
 
-inline int stree::get_num_remainder() const
+inline int stree::get_num_remainder() const   // to be more precise analytic_global_remainder
 {
     //return rem.size() > 0 ? 1 : 0 ;
     return 1 ;
 }
-inline int stree::get_num_triangulated() const
+inline int stree::get_num_triangulated() const  // to be more precise global_triangulated
 {
     return tri.size() > 0 ? 1 : 0 ;
 }
@@ -4351,6 +4794,9 @@ Expectation for compound solids:
 +-----+-------------------------------+----------------------------------------------------------------------------+
 |  T  |  triangulated non-instanced   |  0 or 1 solid formed from any *tri* nodes depending on stree envvar config |
 +-----+-------------------------------+----------------------------------------------------------------------------+
+|  Q  |  triangulated instanced       | NOT YET IMPLEMENTED  : MAY NEED FOR COMPLEX STRUTS                         |
++-----+-------------------------------+----------------------------------------------------------------------------+
+
 
 Indices of ranges of the 3 types of compound solids:
 
@@ -4363,6 +4809,7 @@ Indices of ranges of the 3 types of compound solids:
 +---+--------------------------------------------+--------------------------------------------------------+
 | T | num_remainder + num_factor + 0             | num_remainder + num_factor + num_triangulate - 1       |
 +---+--------------------------------------------+--------------------------------------------------------+
+
 
 **/
 
@@ -4644,7 +5091,7 @@ inline std::string stree::desc_repeat_node(int q_repeat_index, int q_repeat_ordi
     int num_node = nodes.size() ;
 
     std::stringstream ss ;
-    ss << "stree::desc_repeat_nodes"
+    ss << "stree::desc_repeat_node"
        << " q_repeat_index " << q_repeat_index
        << " q_repeat_ordinal " << q_repeat_ordinal
        << " num_node " << num_node
@@ -4676,7 +5123,6 @@ inline std::string stree::desc_repeat_node(int q_repeat_index, int q_repeat_ordi
     std::string str = ss.str();
     return str ;
 }
-
 
 
 inline std::string stree::desc_repeat_nodes() const
@@ -4723,6 +5169,108 @@ inline std::string stree::desc_repeat_nodes() const
     std::string str = ss.str();
     return str ;
 }
+
+
+/**
+desc_NRT
+---------
+
+Provides intelligible dumping of the lvid solids from nds/rem/tri snode vectors
+in a way that is useful even with many thousands of nodes. This works by
+creating a presenting a unique lvid table using s_unique.h functionality.
+
+**/
+
+inline std::string stree::desc_NRT() const
+{
+    std::stringstream ss ;
+    ss << desc_nds();
+    ss << desc_rem();
+    ss << desc_tri();
+    std::string str = ss.str();
+    return str ;
+}
+
+inline std::string stree::desc_nds() const { return desc_NRT('N'); }
+inline std::string stree::desc_rem() const { return desc_NRT('R'); }
+inline std::string stree::desc_tri() const { return desc_NRT('T'); }
+
+inline std::string stree::desc_NRT(char NRT) const
+{
+    const std::vector<snode>* vec = get_node_vector(NRT);
+    const char* nam               = get_node_vector_name(NRT);
+
+    // collect lvid from the snode vector
+    std::vector<int> vec_lvid ;
+    for(int i=0 ; i < int(vec->size()) ; i++) vec_lvid.push_back( (*vec)[i].lvid );
+
+    std::stringstream ss ;
+    ss
+        << "[stree::desc_NRT." << NRT << " " << ( nam ? nam : "-" ) << "\n"
+        << " vec.size " << vec->size() << "\n"
+        << desc_lvid_unique(vec_lvid)
+        << "]stree::desc_NRT." << NRT << " " << ( nam ? nam : "-" ) << "\n"
+        ;
+    std::string str = ss.str();
+    return str ;
+}
+
+/**
+stree::desc_node_ELVID
+------------------------
+
+Dump snode that have lvid solids with index listed in the ELVID comma delimited envvar, eg::
+
+    TEST=desc_node_elvid ELVID=43,44,45,46,47,48 ~/o/sysrap/tests/stree_load_test.sh
+
+**/
+
+inline std::string stree::desc_node_ELVID() const {   return desc_node_elist("ELVID", nullptr); }
+inline std::string stree::desc_node_ECOPYNO() const { return desc_node_elist("ECOPYNO", nullptr); }
+inline std::string stree::desc_node_EBOUNDARY() const { return desc_node_elist("EBOUNDARY", nullptr); }
+
+inline std::string stree::desc_node_elist(const char* etag, const char* fallback) const
+{
+    std::vector<int>* elist = ssys::getenv_ParseIntSpecList(etag, fallback) ;
+
+    char NRT = 'N' ;
+    const std::vector<snode>* vec = get_node_vector(NRT);
+    const char* nam               = get_node_vector_name(NRT);
+
+    const char* tag = etag && etag[0] == 'E' ? etag + 1 : nullptr ; // eg ELVID -> LVID
+    int field_idx = snode_field::Idx(tag) ;
+
+    std::stringstream ss ;
+
+    ss << "[stree::desc_node_elist\n" ;
+    ss << " etag " << ( etag ? etag : "-" ) << "\n" ;
+    ss << " tag " << ( tag ? tag : "-" ) << "\n" ;
+    ss << " field_idx " << field_idx << "\n" ;
+    ss << " nam " << ( nam ? nam : "-" ) << "\n" ;
+    ss << " elist " << ( elist ? "YES" : "NO " ) << "\n" ;
+
+    int count = 0 ;
+    if(elist && field_idx > -1)
+    {
+
+        for(int i=0 ; i < int(vec->size()) ; i++)
+        {
+            const snode& n = (*vec)[i] ;
+            int attrib = n.get_attrib(field_idx);
+            bool listed = std::find(elist->begin(), elist->end(), attrib ) != elist->end() ;
+            if(!listed) continue ;
+            count += 1 ;
+            ss << std::setw(7) << i << " : " << n.desc() << " tag " << ( tag ? tag : "-" ) << " listed " << ( listed ? "YES" : "NO " ) << "\n" ;
+        }
+    }
+    ss << " count " << count << "\n" ;
+    ss << "]stree::desc_node_elist\n" ;
+
+    std::string str = ss.str();
+    return str ;
+}
+
+
 
 
 

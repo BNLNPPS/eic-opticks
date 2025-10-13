@@ -77,10 +77,23 @@ struct endian
 template<typename T>
 struct descr_
 {
-    static std::string dtype()
+    static std::string dtype()  // eg "<f4"
     {
         std::stringstream ss ;
         ss << endian::detect() << desc<T>::code << desc<T>::size ;
+        return ss.str();
+    }
+    static std::string dtype_name() // eg "float32"
+    {
+        std::stringstream ss ;
+        switch(desc<T>::code)
+        {
+           case 'f': ss << "float"   ; break ;
+           case 'i': ss << "int"     ; break ;
+           case 'u': ss << "uint"    ; break ;
+           case 'c': ss << "complex" ; break ;
+        }
+        ss << desc<T>::size*8 ;
         return ss.str();
     }
 };
@@ -104,9 +117,28 @@ template struct descr_<std::complex<float> > ;
 template struct descr_<std::complex<double> > ;
 
 
+struct dtype_convert
+{
+    static std::string from_name(const char* name)
+    {
+        std::stringstream ss ;
+        ss << endian::detect() ;
+        if(     strstr(name,"float"))   ss << 'f' ;
+        else if(strstr(name,"uint"))    ss << 'u' ;
+        else if(strstr(name,"int"))     ss << 'i' ;
+        else if(strstr(name,"complex")) ss << 'c' ;
 
+        std::stringstream ii;
+        for (int i=0 ; i < int(strlen(name)) ; i++) ii << (std::isdigit(name[i]) ? name[i] : ' ' ) ; // replace non-digits with spaces
+        int nbit(0);
+        ii >> nbit ;
 
+        bool expect = nbit % 8 == 0 ;
+        ss << ( expect ? nbit/8 : 0 ) ;
 
+        return ss.str();
+    }
+};
 
 /**
 net_hdr
@@ -204,6 +236,13 @@ struct NPS
         for(INT i=0 ; i < INT(src.size()) ; i++) dst.push_back(src[i]);
         return size(dst);
     }
+
+    static size_t copy_shape(std::vector<size_t>& dst, const std::vector<INT>& src)
+    {
+        for(size_t i=0 ; i < src.size() ; i++) dst.push_back(src[i]);
+        return size(dst);
+    }
+
 
     static NPS::INT copy_shape(std::vector<INT>& dst, INT ni=-1, INT nj=-1, INT nk=-1, INT nl=-1, INT nm=-1, INT no=-1)
     {
@@ -321,6 +360,15 @@ struct NPS
         for(INT i=0; i<ndim; ++i) sz *= shape[i] ;
         return ndim == 0 ? 0 : sz ;
     }
+
+    static size_t size(const std::vector<size_t>& shape)
+    {
+        size_t ndim = shape.size();
+        size_t sz = 1;
+        for(size_t i=0; i<ndim; ++i) sz *= shape[i] ;
+        return ndim == 0 ? 0 : sz ;
+    }
+
 
     static NPS::INT itemsize(const std::vector<INT>& shape)
     {
@@ -574,7 +622,11 @@ struct U
 
     static bool LooksLikeProfileTriplet(const char* str);
 
-    static std::string Format(uint64_t t=0, const char* fmt="%FT%T.");
+    static std::string Format(uint64_t t=0, const char* fmt="%FT%T.", int _wsubsec=3 );
+
+    static constexpr const char* LOG_FMT = "%Y-%m-%d %H:%M:%S" ;
+    static std::string FormatLog();
+
     static std::string FormatInt(int64_t t, int wid );
 
     static char* LastDigit(const char* str);
@@ -1764,6 +1816,9 @@ inline void U::WriteString( const char* dir, const char* name, const char* str )
 inline void U::WriteString( const char* path, const char* str )  // static
 {
     if(str == nullptr) return ;
+
+    MakeDirsForFile(path);
+
     std::ofstream fp(path, std::ios::out);
     fp << str ;
     fp.close();
@@ -1889,8 +1944,12 @@ inline bool U::LooksLikeProfileTriplet(const char* str) // static
 }
 
 
+inline std::string U::FormatLog() // static
+{
+    return U::Format(0, LOG_FMT, 3);
+}
 
-inline std::string U::Format(uint64_t t, const char* fmt) // static
+inline std::string U::Format(uint64_t t, const char* fmt, int _wsubsec) // static
 {
     // from opticks/sysrap/sstamp.h
     if(t == 0) t = Now() ;
@@ -1900,15 +1959,17 @@ inline std::string U::Format(uint64_t t, const char* fmt) // static
 
     std::time_t tt = Clock::to_time_t(tp);
 
-    // extract the sub second part from the duration since epoch
-    auto subsec = std::chrono::duration_cast<Unit>(tp.time_since_epoch()) % std::chrono::seconds{1};
-
     std::stringstream ss ;
-    ss
-       << std::put_time(std::localtime(&tt), fmt )
-       << std::setfill('0')
-       << std::setw(6) << subsec.count()
-       ;
+    ss << std::put_time(std::localtime(&tt), fmt ) ;
+
+    if(_wsubsec == 3 || _wsubsec == 6)
+    {
+        // extract the sub second part from the duration since epoch
+        auto subsec = std::chrono::duration_cast<Unit>(tp.time_since_epoch()) % std::chrono::seconds{1};
+        auto count = subsec.count() ;
+        if( _wsubsec == 3 ) count /= 1000 ;
+        ss << "." << std::setfill('0') << std::setw(_wsubsec) << count ;
+    }
 
     std::string str = ss.str();
     return str ;

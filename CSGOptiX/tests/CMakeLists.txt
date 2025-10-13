@@ -3,19 +3,20 @@ set(name CSGOptiXTest)
 find_package(CUDAToolkit REQUIRED)
 
 #[=[
-Promote sources to ctests by moving to lower list 
-generally the problem is required environment 
-or doing geometry specific things. 
+Promote sources to ctests by moving to lower list
+generally the problem is required environment
+or doing geometry specific things.
 #]=]
 
 set(SINGLE_SOURCES
 
-    CSGOptiXDescTest.cc 
+    CSGOptiXDescTest.cc
     CSGOptiXSimtraceTest.cc
     CSGOptiXSimulateTest.cc
     CSGOptiXSimTest.cc
     CXRaindropTest.cc
 
+    CSGOptiXServiceTest.cc
 
     CSGOptiXRMTest.cc
     CSGOptiXTMTest.cc
@@ -48,7 +49,7 @@ find_package(glfw3)
 foreach(SRC ${VIZ_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
-    target_link_libraries(${TGT} 
+    target_link_libraries(${TGT}
           CSGOptiX
           GLEW::glew
           glfw

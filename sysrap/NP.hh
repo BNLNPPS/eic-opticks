@@ -52,33 +52,57 @@ but the headers are also copied into opticks/sysrap.
 #include "NPU.hh"
 
 
-
+template<typename T>
 struct NP_slice
 {
-    int start ;
-    int stop ;
-    int step ;
+    T start ;
+    T stop ;
+    T step ;
 
-    bool is_match(const NP_slice& other) const ;
+    bool is_arange() const ;
+    bool is_linspace() const ;
+    bool is_match(const NP_slice<T>& other) const ;
     std::string desc() const ;
     int count() const ;
 };
 
-inline bool NP_slice::is_match(const NP_slice& other) const
+template<typename T>
+inline bool NP_slice<T>::is_arange() const
+{
+   return step > 0 ;
+}
+template<typename T>
+inline bool NP_slice<T>::is_linspace() const
+{
+   return step < 0 ;
+}
+template<typename T>
+inline bool NP_slice<T>::is_match(const NP_slice& other) const
 {
     return start == other.start && stop == other.stop && step == other.step ;
 }
-inline std::string NP_slice::desc() const
+template<typename T>
+inline std::string NP_slice<T>::desc() const
 {
     std::stringstream ss ;
     ss << "NP_slice(" <<  start << "," << stop << "," << step << ")" ;
     std::string str = ss.str();
     return str ;
 }
-inline int NP_slice::count() const
+
+
+template<typename T>
+inline int NP_slice<T>::count() const
 {
     int _count = 0 ;
-    for(int i=start ; i < stop ; i += step ) _count++ ;
+    if( step < 0 )
+    {
+        _count = int(-step) ;  // linspace
+    }
+    else
+    {
+        for(T v=start ; v < stop ; v += step ) _count++ ;
+    }
     return _count ;
 }
 
@@ -86,6 +110,7 @@ inline int NP_slice::count() const
 struct NP
 {
     typedef std::int64_t INT ;
+    typedef std::uint64_t UINT ;
     static constexpr const INT TEN = 10 ;
 
     static constexpr const char* EXT = ".npy" ;
@@ -128,7 +153,7 @@ struct NP
     template<typename T> static NP* ARange(   T x0, T x1, T st );
 
     template<typename T> static NP* ARange_FromString( const char* spec );
-    template<typename T> static NP* ARange_(int start, int stop, int step);
+    template<typename T> static NP* ARange_(T start, T stop, T step);
 
 
     template<typename T> static NP* Linspace( T x0, T x1, unsigned nx, INT npayload=-1 );
@@ -147,19 +172,37 @@ struct NP
     template<typename T, typename ... Args> static NP*  Make_( Args ... shape ) ;  // Make_shape
     template<typename T> static NP* MakeFlat(INT ni=-1, INT nj=-1, INT nk=-1, INT nl=-1, INT nm=-1, INT no=-1 );
 
+    static std::string HexDump(const std::string& str );
+    static std::string HexDump(const char* buffer, size_t size);
+
+    static size_t ReadToBufferCallback(char* buffer, size_t size, size_t nitems, void* arr);
+    void serializeToBuffer( std::vector<char>& buf, size_t size=16, size_t nitems=1 ) ; // not const as need to change *position*
+    static void SaveBufferToFile(const std::vector<char>& buf, const char* path_ );
+
+    void prepareForStreamIn();
+    static NP* CreateFromBuffer( const std::vector<char>& buf, size_t size=16, size_t nitems=1 );
+    static size_t WriteToArrayCallback(char* buffer, size_t size, size_t nitems, void* arg);
 
     //  MEMBER FUNCTIONS
 
     char*       bytes();
     const char* bytes() const ;
 
+    bool hdr_complete() const ;
+    char hdr_lastchar() const ;
     INT hdr_bytes() const ;
+    UINT uhdr_bytes() const ;
+
     INT num_items() const ;       // shape[0]
     INT num_values() const ;      // all values, product of shape[0]*shape[1]*...
     INT num_itemvalues() const ;  // values after first dimension
     INT arr_bytes() const ;       // formerly num_bytes
+    UINT uarr_bytes() const ;
+    UINT serialize_bytes() const ;  // total of hdr and array
+
     INT item_bytes() const ;      // *item* comprises all dimensions beyond the first
     INT meta_bytes() const ;
+    UINT umeta_bytes() const ;
 
     template<typename T> bool is_itemtype() const ;  // size of item matches size of type
 
@@ -175,7 +218,6 @@ struct NP
     unsigned    prefix_size(unsigned index) const ;
 
 
-
     // CTOR
     NP(const char* dtype_, const std::vector<INT>& shape_ );
     NP(const char* dtype_="<f4", INT ni=-1, INT nj=-1, INT nk=-1, INT nl=-1, INT nm=-1, INT no=-1 );
@@ -183,6 +225,7 @@ struct NP
     void init();
     void set_shape( INT ni=-1, INT nj=-1, INT nk=-1, INT nl=-1, INT nm=-1, INT no=-1);
     void set_shape( const std::vector<INT>& src_shape );
+    void get_shape( std::vector<size_t>& sh ) const ;
     // CAUTION: DO NOT USE *set_shape* TO CHANGE SHAPE (as it calls *init*) INSTEAD USE *change_shape*
     bool has_shape(INT ni=-1, INT nj=-1, INT nk=-1, INT nl=-1, INT nm=-1, INT no=-1 ) const ;
     void change_shape(INT ni=-1, INT nj=-1, INT nk=-1, INT nl=-1, INT nm=-1, INT no=-1 ) ;   // one dimension entry left at -1 can be auto-set
@@ -191,10 +234,14 @@ struct NP
     void change_shape_to_3D() ;
     void reshape( const std::vector<INT>& new_shape ); // product of shape before and after must be the same
 
+
     template<int P> void size_2D( INT& width, INT& height ) const ;
 
 
     void set_dtype(const char* dtype_); // *set_dtype* may change shape and size of array while retaining the same underlying bytes
+    std::string dtype_name() const ;   // eg float32 uint8
+
+
 
 
     INT index(  INT i,  INT j=0,  INT k=0,  INT l=0, INT m=0, INT o=0) const ;
@@ -310,12 +357,15 @@ struct NP
     static NP* MakeSelection( const NP* src, const NP* sel );  // sel expected to contain integer indices selecting items in src
 
     static int ParseSliceString(std::vector<INT>& idxx, const char* _sli );
-    static int ParseSliceIndexString(int& start, int& stop, int& step, const char* _sli );
+
+    template<typename T>
+    static int ParseSliceIndexString(T& start, T& stop, T& step, const char* _sli, bool dump=false );
     static bool LooksLikeSliceIndexString(const char* _sli );
     static bool LooksLikeSliceIndexStringSuffix(const char* _sli, char** body, char** suffix );
 
 
-    void parse_slice( NP_slice& sli, const char* _sli) const ;
+    template<typename T>
+    void parse_slice( NP_slice<T>& sli, const char* _sli) const ;
 
 
     template<typename T> static NP* MakeSliceSelection( const NP* src, const char* sel );
@@ -352,6 +402,9 @@ struct NP
     static bool ExistsArrayFolder(const char* path );
 
     static NP* Load_(const char* path);
+    static NP* LoadFromBuffer_(const char* buffer, size_t size );
+
+
     static NP* LoadSlice_(const char* path, const char* sli);
 
     static NP* Load(const char* dir, const char* name);
@@ -548,8 +601,21 @@ struct NP
 
 
     int load(const char* path, const char* sli );
+
     std::ifstream* load_header(const char* _path, const char* _sli);
+
+    static bool   HasChar( const char* buffer, size_t size, char q);
+    static size_t FindChar(const char* buffer, size_t size, char q);
+
+
     void load_data( std::ifstream* fp, const char* sli );
+
+    int load_from_buffer(const char* buffer, size_t size);
+    size_t load_header_from_buffer(const char* buffer, size_t size);
+    size_t load_data_from_buffer( const char* buffer, size_t size, size_t pos );
+    size_t load_meta_from_buffer( const char* buffer, size_t size, size_t pos );
+
+
     void load_data_sliced( std::ifstream* fp, const char* sli );
     void load_data_where(  std::ifstream* fp, const char* _sli );
 
@@ -585,6 +651,7 @@ struct NP
 
     template<typename T> void read(const T* src);
     template<typename T> void read2(const T* src);
+    void read_bytes(char* src);
     template<typename T> void write(T* dst) const ;
 
 
@@ -676,6 +743,8 @@ struct NP
     char        uifc ;    // element type code
     INT         ebyte ;   // element bytes
     INT         size ;    // number of elements from shape
+    size_t      position ;
+
 
     // nodata:true used for lightweight access to metadata from many arrays
     bool        nodata ;
@@ -856,12 +925,12 @@ Spec examples::
 template<typename T>
 inline NP* NP::ARange_FromString( const char* spec ) // static
 {
-    NP_slice sli = {} ;
+    NP_slice<T> sli = {} ;
     sli.start = 0 ;
     sli.stop  = 0 ;
     sli.step  = 1 ;
 
-    int rc = ParseSliceIndexString( sli.start, sli.stop, sli.step, spec );
+    int rc = ParseSliceIndexString<T>( sli.start, sli.stop, sli.step, spec );
     bool valid = rc == 0 && sli.stop > 0 ;
 
     if(!valid) std::cerr
@@ -878,21 +947,43 @@ inline NP* NP::ARange_FromString( const char* spec ) // static
 }
 
 
+/**
+NP::ARange_
+--------------
+
+step>0
+   like np.arange with step increment
+
+step<0
+   like np.linspace with int(-step) values between start and stop inclusive
+
+**/
 
 template<typename T>
-inline NP* NP::ARange_(int start, int stop, int step) // static
+inline NP* NP::ARange_(T start, T stop, T step) // static
 {
-    NP_slice sli = { start, stop, step };
+    NP_slice<T> sli = { start, stop, step };
     INT num = sli.count();
 
     NP* a = NP::Make<T>(num);
     T* aa = a->values<T>();
 
-    INT count = 0 ;
-    for(INT i=start ; i < stop ; i += step )
+    if( step > 0 )
     {
-        aa[count] = T(i);
-        count += 1;
+        // arange
+        INT count = 0 ;
+        for(T v=start ; v < stop ; v += step )
+        {
+            aa[count] = v ;
+            count += 1;
+        }
+        assert( count == num );
+    }
+    else
+    {
+        // linspace
+        INT ni = -step ;
+        for(INT i=0 ; i < ni ; i++) aa[i] = start + (stop-start)*T(i)/T(ni-1) ;
     }
     return a ;
 }
@@ -1272,6 +1363,511 @@ template<typename T> NP* NP::MakeFlat(INT ni, INT nj, INT nk, INT nl, INT nm, IN
     return a ;
 }
 
+inline std::string NP::HexDump(const std::string& str)  // static
+{
+    return HexDump(str.data(), str.size());
+}
+
+inline std::string NP::HexDump(const char* buffer, size_t size)  // static
+{
+    std::stringstream ss ;
+    for (size_t i = 0; i < size; i += 16)
+    {
+        ss << std::hex << std::setfill('0') << std::setw(8) << i << ": ";
+
+        for (size_t j = 0; j < 16; ++j)
+        {
+            if (i + j < size)
+            {
+                ss << std::hex << std::setw(2) << (unsigned int)(unsigned char)buffer[i + j] ;
+                if( (j + 1) % 2 == 0 ) ss << " " ;
+            }
+            else
+            {
+                ss << "   "; // Pad for alignment
+            }
+        }
+
+        ss << " ";
+        for (size_t j = 0; j < 16 && i + j < size; ++j)
+        {
+            char c = buffer[i + j];
+            ss << (std::isprint(c) ? c : '.');
+        }
+        ss << std::endl;
+    }
+    return ss.str();
+}
+
+
+
+/**
+NP::ReadToBufferCallback
+--------------------------
+
+Need to handle any size and nitems the
+caller throws at us. That means the
+number of bytes read could be as small
+as 1 byte requiring multiple calls to
+read even the header.
+
+Note it is not appropriate to while loop
+in the callback, as need to read precisely
+the number of bytes instructed until run out
+of header+data to provide at which point must
+return zero.
+
+So are relying on the caller to invoke this
+repeatedly until this returns zero.
+
+CAUTION : SOME OF THE READS WILL CROSS BETWEEN
+HEADER AND DATA
+
+Prior to calling this, do::
+
+    arr->update_headers();  // in addition to updating headers this zeros position
+
+
+
+    +------------+       +
+    |   hdr      |       |
+    +------------+       |
+    |            |       +
+    |   data     |
+    |            |
+    |            |
+    +------------+
+    |   meta     |
+    +------------+
+
+
+
+Reads the NP array serialized bytes into the buffer via multiple calls to this callback,
+so it could be serialized byte-by-byte if size*nitems = 1.
+Progress from call to call is stored in arr->position
+
+**/
+
+inline size_t NP::ReadToBufferCallback(char* buffer, size_t size, size_t nitems, void* arg ) // static
+{
+    char* dest = buffer ;
+    size_t max_read = size*nitems ;
+    size_t remaining = max_read ;
+
+    NP* arr = (NP*)arg ; // established array being serialized to the buffer
+
+    size_t hdr_size = arr->uhdr_bytes() ;
+    size_t data_size = arr->uarr_bytes();
+    size_t meta_size = arr->umeta_bytes();
+    size_t total_copy = 0 ;
+
+    bool dump = false ;
+
+    if(dump) std::cout
+         << "[NP::ReadToBufferCallback"
+         << " arr.sstr " << ( arr ? arr->sstr() : "-" )
+         << " arr.position " << ( arr ? arr->position : -1 )
+         << " hdr_size " << hdr_size
+         << " data_size " << data_size
+         << " meta_size " << meta_size
+         << " max_read " << max_read
+         << "\n"
+         ;
+
+    bool reading_hdr = arr->position < hdr_size ;
+    size_t hdr_copy = 0 ;
+    if( reading_hdr )
+    {
+        size_t hdr_offset = arr->position ;
+        size_t hdr_left   = hdr_size - hdr_offset ;
+        hdr_copy   = remaining > hdr_left ? hdr_left : remaining ;
+
+        if( hdr_copy > 0 )
+        {
+            memcpy( dest, arr->_hdr.data() + hdr_offset, hdr_copy );
+            arr->position    += hdr_copy ;
+            total_copy       += hdr_copy ;
+            dest             += hdr_copy ;  // move target
+            remaining        -= hdr_copy ;
+        }
+
+        if(dump) std::cout
+             << "-NP::ReadToBufferCallback.reading_hdr"
+             << " arr.position " << arr->position
+             << " hdr_offset " << hdr_offset
+             << " hdr_left " << hdr_left
+             << " hdr_copy " << hdr_copy
+             << " total_copy " << total_copy
+             << " remaining " << remaining
+             << "\n"
+             ;
+    }
+    if( remaining == 0 ) return total_copy ;
+
+
+    bool reading_data = arr->position >= hdr_size && arr->position < hdr_size + data_size ;
+    size_t data_copy = 0 ;
+    if( reading_data )
+    {
+        size_t data_offset = arr->position - hdr_size ;
+        size_t data_left   = data_size - data_offset  ;
+        data_copy   = remaining > data_left ? data_left : remaining ;
+
+        if( data_copy > 0 )
+        {
+            memcpy( dest, arr->bytes() + data_offset, data_copy );
+            arr->position += data_copy ;
+            total_copy    += data_copy ;
+            dest          += data_copy ;
+            remaining     -= data_copy ;
+        }
+
+        if(dump) std::cout
+             << "-NP::ReadToBufferCallback.reading_data"
+             << " arr.position " << arr->position
+             << " data_offset " << data_offset
+             << " data_left " << data_left
+             << " data_copy " << data_copy
+             << " total_copy " << total_copy
+             << " remaining " << remaining
+             << "\n"
+             ;
+    }
+    if( remaining == 0 ) return total_copy ;
+
+    bool reading_meta = arr->position >= hdr_size + data_size && arr->position < hdr_size + data_size + meta_size ;
+    size_t meta_copy = 0 ;
+    if( reading_meta )
+    {
+        size_t meta_offset = arr->position - hdr_size - data_size ;
+        size_t meta_left   = meta_size - meta_offset ;
+        meta_copy   = remaining > meta_left ? meta_left : remaining ;
+
+        if( meta_copy > 0)
+        {
+            memcpy( dest, arr->meta.data() + meta_offset, meta_copy );
+            arr->position += meta_copy ;
+            total_copy    += meta_copy ;
+            dest          += meta_copy ;
+            remaining     -= meta_copy ;
+        }
+        if(dump) std::cout
+             << "-NP::ReadToBufferCallback.reading_meta"
+             << " arr.position " << arr->position
+             << " meta_offset " << meta_offset
+             << " meta_left " << meta_left
+             << " meta_copy " << meta_copy
+             << " total_copy " << total_copy
+             << " remaining " << remaining
+             << "\n"
+             ;
+    }
+
+    if(dump) std::cout
+         << "]NP::ReadToBufferCallback"
+         << " reading_hdr " << reading_hdr
+         << " reading_data " << reading_data
+         << " reading_meta " << reading_meta
+         << " hdr_copy " << hdr_copy
+         << " data_copy " << data_copy
+         << " meta_copy " << meta_copy
+         << " total_copy " << total_copy
+         << " remaining " << remaining
+         << "\n"
+         ;
+
+    return total_copy ;
+}
+
+
+
+/**
+NP::serializeToBuffer
+----------------------
+
+Primary purpose of NP::serializeToBuffer is to test the NP::ReadToBufferCallback
+which is used by NP_CURL.h
+
+The bytes written to buf should be exactly the same for
+any non-zero values of size and nitems.
+
+**/
+
+inline void NP::serializeToBuffer( std::vector<char>& buf, size_t size, size_t nitems )
+{
+    update_headers();
+
+    size_t tot_bytes = serialize_bytes() ;  // hdr + data + meta
+    buf.resize(tot_bytes);
+
+    char* buffer = buf.data();
+    size_t read = 0 ;
+    while(( read = ReadToBufferCallback(buffer, size, nitems, (void*)this ))) buffer += read ;
+    size_t bytes_read = buffer - buf.data() ;
+    bool expect_read = bytes_read == tot_bytes ;
+
+    if(1) std::cout
+        << "NP::serializeToBuffer"
+        << " size " << size
+        << " nitems " << nitems
+        << " size*nitems " << size*nitems
+        << " tot_bytes " << tot_bytes
+        << " buf.size " << buf.size()
+        << " bytes_read " << bytes_read
+        << " expect_read " << ( expect_read ? "YES" : "NO " )
+        << "\n"
+        ;
+
+    assert( expect_read );
+}
+
+inline void NP::SaveBufferToFile(const std::vector<char>& buf, const char* path_ ) // static
+{
+    const char* path = U::Resolve(path_);
+    std::ofstream fp(path, std::ios::out|std::ios::binary);
+    std::copy(buf.cbegin(), buf.cend(), std::ostreambuf_iterator<char>(fp));
+}
+
+
+
+inline void NP::prepareForStreamIn()
+{
+    _hdr = "" ; // scrub the placeholder default header, as use completed hdr for stream state transition
+    position = 0 ;
+    nodata = false ;
+    lpath = "prepareForStream" ;
+    lfold = "" ;
+}
+
+/**
+NP::CreateFromBuffer
+----------------------
+
+The array created should be exactly the same for any non-zero values of size and nitems.
+
+**/
+
+inline NP* NP::CreateFromBuffer( const std::vector<char>& buf, size_t size, size_t nitems )
+{
+    NP* arr = new NP ;
+    arr->prepareForStreamIn();
+
+    bool dump = false ;
+
+    if(dump) std::cout
+        << "[NP::CreateFromBuffer"
+        << " buf.size " << buf.size()
+        << " size " << size
+        << " nitems " << nitems
+        << " size*nitems " << size*nitems
+        << "\n"
+        ;
+
+    char* src0 = (char*)buf.data();
+    char* src = src0 ;
+    size_t write = 0 ;
+    size_t bytes_write = src - src0 ;
+
+    while(( write = WriteToArrayCallback(src, size, nitems, (void*)arr )))
+    {
+        src += write ;
+        bytes_write = src - src0 ;
+
+        if(dump) std::cout
+            << "-NP::CreateFromBuffer"
+            << " write " << write
+            << " bytes_write " << bytes_write
+            << "\n"
+            ;
+
+        if(bytes_write == buf.size()) break ;   // seems no way to avoid this because meta is addon
+    }
+
+    size_t tot_bytes = arr->serialize_bytes() ;
+
+    bool expect_write_0 = bytes_write == tot_bytes ;
+    bool expect_write_1 = bytes_write == buf.size() ;
+
+    if(dump) std::cout
+        << "]NP::CreateFromBuffer"
+        << " buf.size " << buf.size()
+        << " size " << size
+        << " nitems " << nitems
+        << " size*nitems " << size*nitems
+        << " bytes_write " << bytes_write
+        << " tot_bytes " << tot_bytes
+        << " expect_write_0 " << ( expect_write_0 ? "YES" : "NO " )
+        << " expect_write_1 " << ( expect_write_1 ? "YES" : "NO " )
+        << "\n"
+        ;
+
+    assert( expect_write_0 );
+    assert( expect_write_1 );
+
+    return arr ;
+}
+
+
+
+/**
+NP::WriteToArrayCallback
+-------------------------
+
+This callback is called multiple times with non-zero size*nitems bytes
+which must be copied from the src into the array.
+This does something similar to NP::load_from_buffer
+but potentially it must operate byte-by-byte as the callback is
+repeatedly called.
+
+The nascent array needs some setup before using this callback::
+
+    arr->prepareForStreamIn();
+
+
+Writes serialized bytes from src buffer directly into the nascent NP array
+instance via multiple calls to this callback, so the NP object is
+byte-by-byte reconstructed if size*nitems = 1.
+Progress from call to call is stored in arr->position
+
+**/
+
+inline size_t NP::WriteToArrayCallback(char* src, size_t size, size_t nitems, void* arg) // static
+{
+    size_t max_write = size*nitems ;
+    size_t remaining = max_write ;
+    size_t total_copy = 0 ;
+
+    NP* arr = (NP*)arg ;  // nascent array that will be populated from the buffer
+    std::string& _hdr = arr->_hdr ;
+    bool hdr_complete = arr->hdr_complete();
+    bool dump = false ;
+
+    if(dump) std::cout
+        << "[NP::WriteToArrayCallback"
+        << " max_write " << max_write
+        << " arr.position " << arr->position
+        << " hdr_complete " << ( hdr_complete ? "YES" : "NO " )
+        << "\n"
+        ;
+
+    size_t hdr_copy = 0 ;
+    if(!hdr_complete)  // _hdr does not end with '\n' yet
+    {
+        char q = '\n' ;
+
+        bool has_newline = HasChar(src, max_write, q) ;
+        hdr_copy = has_newline ? 1 + FindChar(src, max_write, q) : max_write ;  // 1 + includes '\n' into _hdr
+
+        /*
+        size_t len0 = _hdr.length();
+        _hdr.resize(len0 + hdr_copy );
+        char* dst = (char*)_hdr.data() ;
+        memcpy( dst + len0,  src, hdr_copy );
+        */
+        _hdr.append(src + total_copy, hdr_copy);
+
+        arr->position += hdr_copy ;
+        total_copy    += hdr_copy ;
+        remaining     -= hdr_copy ;
+
+
+        if(!has_newline) return hdr_copy ;  // can do nothing more until hdr has completely arrived
+
+        assert( arr->hdr_complete() );        // _hdr must now end with '\n'
+        bool data_resize = true ;
+        arr->decode_header( data_resize );
+    }
+
+    assert( arr->hdr_complete() );
+
+    // following decode_header know hdr and data size
+    // but cannot know meta_size as not all bytes arrived yet
+    size_t hdr_size = arr->uhdr_bytes() ;
+    size_t data_size = arr->uarr_bytes();
+
+    bool reading_data = arr->position >= hdr_size && arr->position < hdr_size + data_size ;
+    size_t data_copy = 0 ;
+    if( reading_data )
+    {
+        size_t data_offset = arr->position - hdr_size ;
+        size_t data_left   = data_offset < data_size ? data_size - data_offset : 0  ;
+        data_copy   = remaining > data_left ? data_left : remaining ;
+
+        if( data_copy > 0 )
+        {
+            memcpy( arr->bytes() + data_offset, src + hdr_copy, data_copy );
+            arr->position += data_copy ;
+            total_copy    += data_copy ;
+            remaining     -= data_copy ;
+        }
+
+        if(dump) std::cout
+             << "-NP::WriteToArrayCallback.reading_data"
+             << " arr.position " << arr->position
+             << " data_offset " << data_offset
+             << " data_left " << data_left
+             << " data_copy " << data_copy
+             << " total_copy " << total_copy
+             << " remaining " << remaining
+             << "\n"
+             ;
+    }
+    if( remaining == 0 ) return total_copy ;
+
+
+    bool reading_meta = arr->position >= hdr_size + data_size ;  // dont know meta_size yet
+    size_t meta_copy = 0 ;
+    std::string& meta = arr->meta ;
+    if( reading_meta )
+    {
+        meta_copy  = remaining ;   // everything after hdr and data assumed to be meta
+
+        if( meta_copy > 0)
+        {
+
+            /*
+            size_t len0 = meta.length();
+            meta.resize( len0 + meta_copy );
+
+            char* dst = (char*)meta.data();
+            memcpy( dst + len0, src + total_copy, meta_copy );
+            */
+            meta.append(src + total_copy, meta_copy);
+
+
+            arr->position += meta_copy ;
+            total_copy    += meta_copy ;
+            remaining     -= meta_copy ;
+        }
+        if(dump) std::cout
+             << "-NP::WriteToArrayCallback.reading_meta"
+             << " arr.position " << arr->position
+             << " meta_copy " << meta_copy
+             << " total_copy " << total_copy
+             << " remaining " << remaining
+             << "\n"
+             ;
+    }
+
+    if(dump) std::cout
+        << "]NP::WriteToArrayCallback"
+        << " arr->position " << arr->position
+        << " max_write " << max_write
+        << " hdr_size " << hdr_size
+        << " data_size " << data_size
+        << " meta.size " << meta.size()
+        << " total_copy " << total_copy
+        << "\n"
+        ;
+
+    return total_copy ;
+}
+
+
+
+
+
+
 
 
 
@@ -1281,13 +1877,21 @@ template<typename T> NP* NP::MakeFlat(INT ni, INT nj, INT nk, INT nl, INT nm, IN
 inline char*        NP::bytes() { return (char*)data.data() ;  }
 inline const char*  NP::bytes() const { return (char*)data.data() ;  }
 
-inline NP::INT NP::hdr_bytes() const { return _hdr.length() ; }
+inline bool     NP::hdr_complete() const { return hdr_lastchar() == '\n' ; }
+inline char     NP::hdr_lastchar() const { return _hdr.length() > 0 ? _hdr[_hdr.length() - 1] : '\0' ; }
+inline NP::INT  NP::hdr_bytes() const { return _hdr.length() ; }
+inline NP::UINT NP::uhdr_bytes() const { return _hdr.length() ; }
+
 inline NP::INT NP::num_items() const { return shape[0] ;  }
 inline NP::INT NP::num_values() const { return NPS::size(shape) ;  }
 inline NP::INT NP::num_itemvalues() const { return NPS::itemsize(shape) ;  }
-inline NP::INT NP::arr_bytes()  const { return NPS::size(shape)*ebyte ; }
+inline NP::INT  NP::arr_bytes()  const {  return NPS::size(shape)*ebyte ; }
+inline NP::UINT NP::uarr_bytes()  const { return NPS::size(shape)*ebyte ; }
+inline NP::UINT NP::serialize_bytes()  const { return uhdr_bytes() + uarr_bytes() + umeta_bytes() ; }
+
 inline NP::INT NP::item_bytes() const { return NPS::itemsize(shape)*ebyte ; }
 inline NP::INT NP::meta_bytes() const { return meta.length() ; }
+inline NP::UINT NP::umeta_bytes() const { return meta.length() ; }
 
 
 template<typename T>
@@ -1335,6 +1939,8 @@ inline void NP::update_headers()
     std::string hdr =  make_header();
     _hdr.resize(hdr.length());
     _hdr.assign(hdr.data(), hdr.length());
+
+    position = 0 ;  // used by streaming static  : ReadToBufferCallback
 }
 
 inline std::string NP::make_header() const
@@ -1447,6 +2053,7 @@ inline NP::NP(const char* dtype_, const std::vector<INT>& shape_ )
     uifc(NPU::_dtype_uifc(dtype)),
     ebyte(NPU::_dtype_ebyte(dtype)),
     size(NPS::size(shape)),
+    position(0),
     nodata(false)
 {
     init();
@@ -1460,6 +2067,7 @@ inline NP::NP(const char* dtype_, INT ni, INT nj, INT nk, INT nl, INT nm, INT no
     uifc(NPU::_dtype_uifc(dtype)),
     ebyte(NPU::_dtype_ebyte(dtype)),
     size(NPS::set_shape(shape, ni,nj,nk,nl,nm,no )),
+    position(0),
     nodata(false)
 {
     init();
@@ -1497,6 +2105,11 @@ inline void NP::set_shape(const std::vector<INT>& src_shape)
 {
     size = NPS::copy_shape(shape, src_shape);
     init();
+}
+inline void NP::get_shape( std::vector<size_t>& sh ) const
+{
+    size_t sz = NPS::copy_shape(sh, shape);
+    assert( sz == size_t(size) );
 }
 
 inline bool NP::has_shape(INT ni, INT nj, INT nk, INT nl, INT nm, INT no) const
@@ -1676,6 +2289,21 @@ inline void NP::set_dtype(const char* dtype_)
     size = size_ ;
 
     std::cout << desc() << std::endl ;
+}
+
+inline std::string NP::dtype_name() const
+{
+    std::stringstream ss ;
+    switch(uifc)
+    {
+        case 'u': ss << "uint"    ; break ;
+        case 'i': ss << "int"     ; break ;
+        case 'f': ss << "float"   ; break ;
+        case 'c': ss << "complex" ; break ;
+    }
+    ss << ebyte*8 ;
+    std::string str = ss.str();
+    return str ;
 }
 
 
@@ -2705,6 +3333,8 @@ Index slice (start,stop,step) strings of form::
     [1:10]     # start:1 stop:10 step:1
     [1:10:2]   # start:1 stop:10 step:2
 
+    [100]      # start:100 stop:101 step:1  special cased to allow single value
+
 Usage::
 
     struct slice { int start, stop, step ; }
@@ -2714,12 +3344,13 @@ Usage::
     sli.stop = num_items ;
     sli.step = 1 ;
 
-    int rc = NP::ParseSliceIndexString(sli.start, sli.stop, sli.step, _sli );
+    int rc = NP::ParseSliceIndexString<int>(sli.start, sli.stop, sli.step, _sli );
 
 
 **/
 
-inline int NP::ParseSliceIndexString(int& start, int& stop, int& step, const char* _sli )
+template<typename T>
+inline int NP::ParseSliceIndexString(T& start, T& stop, T& step, const char* _sli, bool dump )
 {
     size_t len = _sli ? strlen(_sli) : 0 ;
     if(len < 2) return 1 ;
@@ -2733,13 +3364,13 @@ inline int NP::ParseSliceIndexString(int& start, int& stop, int& step, const cha
 
     // copy starting from the char after the "[" up to the char before the "]"
     char* sli = strndup(o+1, c - o - 1 );
-    //std::cout << "NP::ParseSliceIndexString {" << sli << "}\n" ;
+    if(dump) std::cout << "NP::ParseSliceIndexString {" << sli << "}\n" ;
 
     if(strlen(sli)>2 && sli[0] == ':' && sli[1] == ':' )  // eg "::2"
     {
         std::string s(sli+2);
         std::istringstream iss(s);
-        INT t ;
+        T t ;
         iss >> t ;
 
         step = t ;
@@ -2748,10 +3379,34 @@ inline int NP::ParseSliceIndexString(int& start, int& stop, int& step, const cha
     {
         std::string s(sli+1);
         std::istringstream iss(s);
-        INT t ;
+        T t ;
         iss >> t ;
 
         stop = t ;
+    }
+    else if(strlen(sli)>0 && strstr(sli,":") == nullptr ) // eg "5" "50.5"
+    {
+        std::string s(sli);
+        std::istringstream iss(s);
+        T t ;
+        iss >> t ;
+
+        start = t ;
+        stop = t + T(1) ;
+        step = T(1) ;
+
+        // kludge to simplify giving single value within range/sli spec
+        // np.arange(100,101,1) == np.array([100])
+
+        if(dump) std::cout
+           << "NP::ParseSliceIndexString.here"
+           << " sli {" << sli << "}"
+           << " start " << start
+           << " stop " << stop
+           << " step " << step
+           << "\n"
+           ;
+
     }
     else  // eg 1:10 1:10:2
     {
@@ -2765,13 +3420,15 @@ inline int NP::ParseSliceIndexString(int& start, int& stop, int& step, const cha
         while (std::getline(ss, s, delim))
         {
             std::istringstream iss(s);
-            INT t ;
+            T t ;
             iss >> t ;
 
-            if(count == 0) start = t ;
-            else if(count == 1) stop = t ;
-            else if(count == 2) step = t ;
-
+            switch(count)
+            {
+               case 0: start = t ; break ;
+               case 1: stop  = t ; break ;
+               case 2: step  = t ; break ;
+            }
             count++ ;
         }
     }
@@ -2814,12 +3471,16 @@ inline bool NP::LooksLikeSliceIndexStringSuffix(const char* _sli, char** body, c
 }
 
 
-inline void NP::parse_slice( NP_slice& sli, const char* _sli) const
+template<typename T>
+inline void NP::parse_slice( NP_slice<T>& sli, const char* _sli) const
 {
-    sli.start = 0 ;
-    sli.stop = num_items() ;
-    sli.step = 1 ;
-    int rc = ParseSliceIndexString(sli.start, sli.stop, sli.step, _sli );
+    INT ni = num_items();
+
+    sli.start = T(0) ;
+    sli.stop = T(ni) ;
+    sli.step = T(1) ;
+
+    int rc = ParseSliceIndexString<T>(sli.start, sli.stop, sli.step, _sli );
     if( rc != 0 ) std::cerr
         << "NP::parse_slice "
         << " ParseSliceIndexString FAILED "
@@ -3648,13 +4309,23 @@ inline bool NP::ExistsArrayFolder(const char* path )
 
 
 
-inline NP* NP::Load_(const char* path)
+inline NP* NP::Load_(const char* path) // static
 {
     if(!path) return nullptr ;
     NP* a = new NP() ;
     INT rc = a->load(path, nullptr) ;
     return rc == 0 ? a  : nullptr ;
 }
+
+inline NP* NP::LoadFromBuffer_(const char* buffer, size_t size ) // static
+{
+    if(!buffer || size < 128) return nullptr ;
+    NP* a = new NP() ;
+    INT rc = a->load_from_buffer(buffer, size) ;
+    return rc == 0 ? a  : nullptr ;
+}
+
+
 
 /**
 NP::LoadSlice_
@@ -7115,6 +7786,17 @@ inline int NP::load(const char* _path, const char* _sli )
     return 0 ;
 }
 
+inline int NP::load_from_buffer(const char* buffer, size_t size)
+{
+    size_t loaded = 0 ;
+    loaded = load_header_from_buffer(  buffer, size);
+    loaded = load_data_from_buffer( buffer, size, loaded );
+    loaded = load_meta_from_buffer( buffer, size, loaded );
+    return loaded == size ? 0 : 1  ;
+}
+
+
+
 
 
 inline std::ifstream* NP::load_header(const char* _path, const char* _sli)
@@ -7141,6 +7823,71 @@ inline std::ifstream* NP::load_header(const char* _path, const char* _sli)
 
     return fp ;
 }
+
+inline size_t NP::load_header_from_buffer(const char* buffer, size_t size)
+{
+    char q = '\n' ;
+    size_t pos = FindChar(buffer, size, q);
+    if( pos == 0 || pos + 1 == size ) return 0 ;
+
+    nodata = false ;
+    lpath = "load_from_buffer" ;
+    lfold = "" ;
+
+    _hdr.resize( pos + 1 ); // include '\n' in the hdr
+    _hdr.assign( buffer, pos+1 );
+
+    if(0) std::cout << "NP::load_header_from_buffer _hdr[\n" << HexDump(_hdr) << "]\n" ;
+
+    bool data_resize = true ;
+    decode_header( data_resize );
+
+    return pos + 1 ;
+}
+
+inline size_t NP::load_data_from_buffer( const char* buffer, size_t size, size_t pos )
+{
+     size_t data_size = arr_bytes() ; // available after parsing header
+     memcpy( bytes(),  buffer + pos, data_size );
+     return pos + data_size ;
+}
+
+inline size_t NP::load_meta_from_buffer( const char* buffer, size_t size, size_t pos )
+{
+     size_t meta_size = size - uhdr_bytes() - arr_bytes() ; // available after parsing header
+     if(pos > size )             throw std::out_of_range("Invalid buffer pos");
+     if(meta_size + pos > size ) throw std::out_of_range("Invalid meta_size");
+     /*
+     meta.resize( meta_size );
+     memcpy( meta.data(),  buffer + pos, meta_size );
+     */
+
+     meta.assign(buffer+pos, meta_size);
+
+     return pos + meta_size ;
+}
+
+
+
+
+
+
+
+inline bool NP::HasChar(const char* buffer, size_t size, char q)  // static
+{
+    const char* qptr = (const char*)memchr(buffer, q, size);
+    return qptr != nullptr ;
+}
+inline size_t NP::FindChar(const char* buffer, size_t size, char q)  // static
+{
+    const char* qptr = (const char*)memchr(buffer, q, size);
+    return qptr ? (size_t)(qptr - buffer) : -1;
+}
+
+
+
+
+
 
 /**
 NP::load_data
@@ -7174,6 +7921,9 @@ inline void NP::load_data( std::ifstream* fp, const char* _sli )
 }
 
 
+
+
+
 /**
 NP::load_data_sliced
 ----------------------
@@ -7187,8 +7937,8 @@ NP::load_data_sliced
 
 inline void NP::load_data_sliced( std::ifstream* fp, const char* _sli )
 {
-    NP_slice sli = {} ;
-    parse_slice(sli, _sli);
+    NP_slice<INT> sli = {} ;
+    parse_slice<INT>(sli, _sli);
 
     INT count0 = 0 ;
     for(INT idx=sli.start ; idx < sli.stop ; idx += sli.step ) count0 += 1 ;
@@ -7601,7 +8351,7 @@ template <typename T> inline void NP::_dump(INT i0_, INT i1_, INT j0_, INT j1_ )
 }
 
 
-template <typename T> void NP::read(const T* src)
+template <typename T> inline void NP::read(const T* src)
 {
     T* v = values<T>();
 
@@ -7618,13 +8368,22 @@ template <typename T> void NP::read(const T* src)
     }
 }
 
-template <typename T> void NP::read2(const T* src)
+template <typename T> inline void NP::read2(const T* src)
 {
     bool consistent = sizeof(T) == ebyte ;
     if(!consistent) std::cout << "NP::read2 FAIL not consistent sizeof(T): " << sizeof(T) << " and ebyte: " << ebyte << std::endl ;
     assert( consistent );
     memcpy( bytes(), src, arr_bytes() );
 }
+
+inline void NP::read_bytes(char* src)
+{
+    memcpy( bytes(), src, arr_bytes() );
+}
+
+
+
+
 
 template <typename T>
 inline void NP::write(T* dst) const
@@ -7636,19 +8395,19 @@ inline void NP::write(T* dst) const
 
 
 
-template <typename T> void NP::Write(const char* dir, const char* reldir, const char* name, const T* data, INT ni_, INT nj_, INT nk_, INT nl_, INT nm_, INT no_ ) // static
+template <typename T> inline void NP::Write(const char* dir, const char* reldir, const char* name, const T* data, INT ni_, INT nj_, INT nk_, INT nl_, INT nm_, INT no_ ) // static
 {
     std::string path = U::form_path(dir, reldir, name);
     Write( path.c_str(), data, ni_, nj_, nk_, nl_, nm_, no_ );
 }
 
-template <typename T> void NP::Write(const char* dir, const char* name, const T* data, INT ni_, INT nj_, INT nk_, INT nl_, INT nm_, INT no_ ) // static
+template <typename T> inline void NP::Write(const char* dir, const char* name, const T* data, INT ni_, INT nj_, INT nk_, INT nl_, INT nm_, INT no_ ) // static
 {
     std::string path = U::form_path(dir, name);
     Write( path.c_str(), data, ni_, nj_, nk_, nl_, nm_, no_ );
 }
 
-template <typename T> void NP::Write(const char* path, const T* data, INT ni_, INT nj_, INT nk_, INT nl_, INT nm_, INT no_ ) // static
+template <typename T> inline void NP::Write(const char* path, const T* data, INT ni_, INT nj_, INT nk_, INT nl_, INT nm_, INT no_ ) // static
 {
     std::string dtype = descr_<T>::dtype() ;
     if(VERBOSE) std::cout
