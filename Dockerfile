@@ -49,7 +49,7 @@ RUN mkdir -p /opt/plog/src && curl -sL https://github.com/SergiusTheBest/plog/ar
 
 RUN mkdir -p /opt/optix && curl -sL https://github.com/NVIDIA/optix-dev/archive/refs/tags/v7.7.0.tar.gz | tar -xz --strip-components 1 -C /opt/optix
 
-RUN mkdir -p /opt/cmake/src && curl -sL https://github.com/Kitware/CMake/releases/download/v3.30.7/cmake-3.30.7.tar.gz | tar -xz --strip-components 1 -C /opt/cmake/src \
+RUN mkdir -p /opt/cmake/src && curl -sL https://github.com/Kitware/CMake/releases/download/v4.1.2/cmake-4.1.2.tar.gz | tar -xz --strip-components 1 -C /opt/cmake/src \
  && cmake -S /opt/cmake/src -B /opt/cmake/build \
  && cmake --build /opt/cmake/build --parallel --target install \
  && rm -fr /opt/cmake
