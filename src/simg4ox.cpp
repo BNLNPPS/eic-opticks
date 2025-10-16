@@ -13,7 +13,7 @@
 
 #include "sysrap/OPTICKS_LOG.hh"
 
-#include "configurator.h"
+#include "config.h"
 #include "g4app.h"
 
 using namespace std;
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    gphox::Configurator cfg(config_name);
+    gphox::Config cfg(config_name);
 
     // Configure Geant4
     // The physics list must be instantiated before other user actions

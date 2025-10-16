@@ -9,7 +9,7 @@
 #include "sysrap/storch.h"
 #include "sysrap/storchtype.h"
 
-#include "configurator.h"
+#include "config.h"
 #include "torch.h"
 
 #include <curand_kernel.h>
@@ -18,7 +18,7 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-    gphox::Configurator config("dev");
+    gphox::Config config("dev");
 
     cout << config.torch.desc() << endl;
 

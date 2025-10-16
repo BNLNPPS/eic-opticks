@@ -287,6 +287,7 @@ int main(int argc , char** argv )
     int rc(0) ;
 
     /** 
+    rc = test_OKConfCheck();
     rc = test_tpmt();
     rc = test_RC(77);
     LOG(info) << argv[0] << " rc " << rc ; 

@@ -17,6 +17,7 @@ generate-input-photons
 
 export GEOM=RaindropRockAirWater
 export G4CXOpticks__setGeometry_saveGeometry=$HOME/.opticks/GEOM/$GEOM
+export CSGOptiX__optixpath=/opt/eic-opticks/ptx/CSGOptiX_generated_CSGOptiX7.cu.ptx
 
 ctest --test-dir $OPTICKS_BUILD/sysrap -E STTFTest
 ctest --test-dir $OPTICKS_BUILD/g4cx -E G4CXRenderTest

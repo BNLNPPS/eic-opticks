@@ -168,7 +168,8 @@ set(HEADERS
 
     schrono.h
     stimer.h
-    sstamp.h 
+    sstamp.h
+    ssystime.h
 
     SBnd.h
     SPrd.h
@@ -193,8 +194,9 @@ set(HEADERS
     slist.h
     sfreq.h 
     snode.h
-    stree.h 
-    suniquename.h 
+    stree.h
+    s_unique.h
+    suniquename.h
 
     sstandard.h
     sprop.h 
@@ -376,6 +378,9 @@ set(HEADERS
 
     SCMD.h
 
+    SRecord.h
+    SGen.h
+
     SGLM.h
     SGLM_Parse.h
     SGLM_Modifiers.h
@@ -389,10 +394,16 @@ set(HEADERS
 
     SGLFW.h
     SGLFW_Keys.h
-    SGLFW_Extras.h
+    SGLFW_check.h
+    SGLFW_Buffer.h
+    SGLFW_VAO.h
+    SGLFW_Attrib.h
     SGLFW_Program.h
     SGLFW_Mesh.h
     SGLFW_Scene.h
+    SGLFW_Record.h
+    SGLFW_Gen.h
+    SGLFW_Evt.h
     SGLFW_GLEQ.h
 
     SGLDisplay.h
@@ -475,10 +486,12 @@ set(HEADERS
     SGeoConfig.hh
 
     np.h
-    NP.hh  
-    NPU.hh 
-    NPX.h 
-    NPFold.h 
+    NP.hh
+    NP_nanobind.h
+
+    NPU.hh
+    NPX.h
+    NPFold.h
     SSim.hh
     SPropMockup.h
 

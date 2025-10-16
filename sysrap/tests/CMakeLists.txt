@@ -74,11 +74,9 @@ set(TEST_SOURCES
    SOpticksTest.cc
    SOpticksKeyTest.cc
 
-   SRngSpecTest.cc 
 
    CheckGeoTest.cc
 
-   SGLFW_tests.cc
    SGLMTest.cc
 
    SConstantTest.cc
@@ -108,6 +106,7 @@ set(TEST_SOURCES
    SGeoConfigTest.cc
 
 
+
    SEvtTest.cc
    SEvtLoadTest.cc
    SEvt__UU_BURN_Test.cc
@@ -118,8 +117,6 @@ set(TEST_SOURCES
 
    SNameTest.cc
 
-   scontext_test.cc
-   sdevice_test.cc
    SProfTest.cc
 
    SEvt_test.cc
@@ -130,6 +127,8 @@ set(TEST_SOURCES
    sbuild_test.cc
 
    SCurandStateMonolithicTest.cc
+
+   SEvt__createInputGenstep_configuredTest.cc
 
 )
 
@@ -146,6 +145,8 @@ set(BASH_RUN_TEST_SOURCES
     SEnvTest_PASS.cc
     SSimTest.cc
     SBndTest.cc
+
+    SSceneLoadTest.cc
 )
 
 if(NLJSON_FOUND)

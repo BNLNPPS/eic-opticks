@@ -38,6 +38,8 @@ void G4CXOpticks::SetSensorIdentifier( U4SensorIdentifier* sid ){ SensorIdentifi
 
 G4CXOpticks* G4CXOpticks::INSTANCE = nullptr ; 
 G4CXOpticks* G4CXOpticks::Get(){ return INSTANCE ; } 
+const U4Tree* G4CXOpticks::GetU4Tree(){ return INSTANCE ? INSTANCE->tr : nullptr ; }
+
 
 /**
 G4CXOpticks::SetGeometry
@@ -53,6 +55,16 @@ G4CXOpticks* G4CXOpticks::SetGeometry()
     g4cx->setGeometry(); 
     return g4cx ; 
 }
+
+G4CXOpticks* G4CXOpticks::SetGeometryFromGDML()
+{
+    G4CXOpticks* g4cx = new G4CXOpticks ;
+    g4cx->setGeometryFromGDML();
+    return g4cx ;
+}
+
+
+
 G4CXOpticks* G4CXOpticks::SetGeometry(const G4VPhysicalVolume* world)
 {
     G4CXOpticks* g4cx = new G4CXOpticks ;
@@ -77,9 +89,6 @@ G4CXOpticks* G4CXOpticks::SetGeometry_JUNO(const G4VPhysicalVolume* world, const
 {
     LOG(LEVEL) << "[" ; 
 
-    int opticksMode = SEventConfig::IntegrationMode();
-    if(opticksMode == 2) SetNoGPU() ;
-
     // boot SSim adding extra juno PMT info 
     SSim::CreateOrReuse();   // done previously by G4CXOpticks::G4CXOpticks in opticksMode > 0 or here in opticksMode:0 
     SSim::AddExtraSubfold("jpmt", jpmt );
@@ -87,12 +96,15 @@ G4CXOpticks* G4CXOpticks::SetGeometry_JUNO(const G4VPhysicalVolume* world, const
 
     SEvt::CreateOrReuse() ;  // creates 1/2 SEvt depending on OPTICKS_INTEGRATION_MODE (which via above assert matches opticksMode)
 
-    LOG(info) << "[ WITH_G4CXOPTICKS opticksMode " << opticksMode << " sd " << sd  ;   
 
+    int opticksMode = SEventConfig::IntegrationMode();
+    if(opticksMode == 0 || opticksMode == 2) SetNoGPU() ;
+
+    LOG(info) << "[ WITH_G4CXOPTICKS opticksMode " << opticksMode << " sd " << sd  ;   
 
     G4CXOpticks* gx = nullptr ;  
 
-    if( opticksMode == 1 || opticksMode == 3 || opticksMode == 2 ) 
+    if( opticksMode == 0 || opticksMode == 1 || opticksMode == 3 || opticksMode == 2 )
     {
         gx = SetGeometry(world) ; 
         SaveGeometry(); 
@@ -193,46 +205,43 @@ std::string G4CXOpticks::desc() const
 }
 
 /**
-G4CXOpticks::setGeometry 
----------------------------
-
-Without argument method geometry source depends on existance of envvars : SomeGDMLPath, CFBASE, GEOM
-
-When not loading geometry from a CFBASE directory the CSGFoundry::save() method
-is which saves the geometry to "$DefaultOutputDir/CSGFoundry" 
-for use from python for example. 
+G4CXOpticks::setGeometryFromGDML
+-----------------------------------
 
 **/
 
+void G4CXOpticks::setGeometryFromGDML()
+{
+    LOG(LEVEL) << " argumentless " ;
+
+    if(spath::has_CFBaseFromGEOM())
+    {
+        LOG(LEVEL) << " has_CFBaseFromGEOM " ;
+        setGeometry(spath::Resolve("$CFBaseFromGEOM/origin.gdml"));
+    }
+    else
+    {
+        LOG(fatal) << " failed to setGeometryFromGDML " ;
+        assert(0);
+    }
+}
+
+
 void G4CXOpticks::setGeometry()
 {
-    LOG(LEVEL) << " argumentless " ; 
-
-    if(ssys::hasenv_(SOpticksResource::OpticksGDMLPath_))
+    if(spath::has_CFBaseFromGEOM())
     {
-        LOG(LEVEL) << " OpticksGDMLPath " ; 
-        setGeometry(SOpticksResource::OpticksGDMLPath()); 
-    }
-    else if(ssys::hasenv_(SOpticksResource::SomeGDMLPath_))
-    {
-        LOG(LEVEL) << " SomeGDMLPath " ; 
-        setGeometry(SOpticksResource::SomeGDMLPath()); 
-    }
-    else if(ssys::hasenv_(SOpticksResource::CFBASE_))
-    {
-        LOG(LEVEL) << " CFBASE " ; 
-        setGeometry(CSGFoundry::Load()); 
+        LOG(LEVEL) << " SomeGDMLPath " ;
+        setGeometry(SOpticksResource::SomeGDMLPath());
     }
     else if(ssys::hasenv_("GEOM"))
     {
-       // this may load GDML using U4VolumeMaker::PVG if "${GEOM}_GDMLPath" is defined   
-        LOG(LEVEL) << " GEOM/U4VolumeMaker::PV " ; 
-        setGeometry( U4VolumeMaker::PV() );  
+       // this may load GDML using U4VolumeMaker::PVG if "${GEOM}_GDMLPath" is defined
+        LOG(LEVEL) << " GEOM/U4VolumeMaker::PV " ;
+        setGeometry( U4VolumeMaker::PV() );
     }
     else if(SOpticksResource::CFBaseFromGEOM())
     {
-        LOG(LEVEL) << "[ CFBASEFromGEOM " ; 
-
         LOG(LEVEL) << "[ CSGFoundry::Load " ; 
         CSGFoundry* cf = CSGFoundry::Load() ;
         LOG(LEVEL) << "] CSGFoundry::Load " ; 
@@ -240,15 +249,6 @@ void G4CXOpticks::setGeometry()
         LOG(LEVEL) << "[ setGeometry(cf)  " ; 
         setGeometry(cf); 
         LOG(LEVEL) << "] setGeometry(cf)  " ; 
-
-        LOG(LEVEL) << "] CFBASEFromGEOM " ; 
-    }
-    else if(SOpticksResource::GDMLPathFromGEOM())
-    {
-        // may load GDML directly if "${GEOM}_GDMLPathFromGEOM" is defined
-        LOG(LEVEL) << "[ GDMLPathFromGEOM " ; 
-        setGeometry(SOpticksResource::GDMLPathFromGEOM()) ; 
-        LOG(LEVEL) << "] GDMLPathFromGEOM " ; 
     }
     else
     {
@@ -256,6 +256,8 @@ void G4CXOpticks::setGeometry()
         assert(0); 
     }
 }
+
+
 
 void G4CXOpticks::setGeometry(const char* gdmlpath)
 {
@@ -375,7 +377,7 @@ void G4CXOpticks::setGeometry_(CSGFoundry* fd_)
     fd = fd_ ; 
     LOG(LEVEL) << "[ fd " << fd ; 
 
-    // init_SEvt();   MOVED THIS DOWN TO CSGOptiX::InitEvt
+    bool hasDevice = SEventConfig::HasDevice();
 
     if(NoGPU == false)
     {
@@ -385,7 +387,11 @@ void G4CXOpticks::setGeometry_(CSGFoundry* fd_)
     }
     else
     {
-        LOG(LEVEL) << " skip CSGOptiX::Create as NoGPU has been set " ;  
+        LOG(info)
+            << " skip CSGOptiX::Create as NoGPU set OR failed to detect CUDA capable device "
+            << " NoGPU " << NoGPU
+            << " hasDevice " << ( hasDevice ? "YES" : "NO " )
+            ;
     }
 
     qs = cx ? cx->sim : nullptr ;   // QSim 
@@ -630,26 +636,37 @@ The Geant4 call order gleaned from g4-cls G4EventManager
 with the related calls to G4CXOpticks and U4Recorder
 that were used previously::
 
-    G4VSensitiveDetector::Initialize      
+    G4VSensitiveDetector::Initialize(G4HCofThisEvent*HCE)
+    (eg junoSD_PMT_v2::Initialize)
 
     G4UserEventAction::BeginOfEventAction  ==> U4Recorder::BeginOfEventAction
 
        
-    G4VSensitiveDetector::EndOfEvent       ==> G4CXOpticks::simulate : AS HITS NEEDED HERE
+    G4VSensitiveDetector::EndOfEvent(G4HCofThisEvent*HCE)   ==> G4CXOpticks::simulate : AS HITS NEEDED HERE
+    (eg junoSD_PMT_v2::EndOfEvent)
 
     G4UserEventAction::EndOfEventAction    ==> U4Recorder::EndOfEventAction 
 
 
-The old call order presented complications as the simulate call needs the gensteps 
+
+
+The above old call order is problematic as the simulate call needs the gensteps
 from the SEvt::ECPU that is only wrapped up at U4Recorder::EndOfEventAction.
+
+
+
+
+
 This SensitiveDetector pair of methods enables rearranging the order::
 
     G4VSensitiveDetector::Initialize       ==> U4Recorder::BeginOfEventAction
+    (eg junoSD_PMT_v2::Initialize)
 
     G4UserEventAction::BeginOfEventAction  
 
        
     G4VSensitiveDetector::EndOfEvent       ==> U4Recorder::EndOfEventAction,  
+    (eg junoSD_PMT_v2::EndOfEvent)
                                            ==> G4CXOpticks::simulate : AS HITS NEEDED HERE
 
     G4UserEventAction::EndOfEventAction   

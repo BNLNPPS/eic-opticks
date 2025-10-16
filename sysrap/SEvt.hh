@@ -244,6 +244,7 @@ struct SYSRAP_API SEvt : public SCompProvider
     unsigned genstep_total ;
     unsigned photon_total ;
     unsigned hit_total ;
+    unsigned addGenstep_array ;
 
 
     // [--- these vectors are cleared by SEvt::clear_genstep_vector
@@ -325,19 +326,22 @@ public:
     static const char* ResolveInputArray(const char* spec, const char* dir) ;
     static NP* LoadInputArray(const char* path) ;
 
-    static NP* LoadInputGenstep(int idx);
-    static NP* LoadInputGenstep(const char* spec);
+    static NP* LoadInputGenstep_array(int idx);
+    static NP* LoadInputGenstep_array(const char* spec);
 
     static NP* LoadInputPhoton();
     static NP* LoadInputPhoton(const char* spec);
+    static bool IsInputPhotonRecord(   const char* spec );
+    static NP* LoadInputPhoton_photon( const char* spec);
+    static NP* LoadInputPhoton_record( const char* spec);
 
 
-
-    void initInputGenstep();
-    void setInputGenstep(NP* g);
-    NP* getInputGenstep() const ;
-    bool hasInputGenstep() const ;
-    bool hasInputGenstepPath() const ;
+    // NB these _array methods are lower level than createInputGenstep_configured
+    void initInputGenstep_array();
+    void setInputGenstep_array(NP* g);
+    NP* getInputGenstep_array() const ;
+    bool hasInputGenstep_array() const ;
+    bool hasInputGenstep_arrayPath() const ;
 
 
     void initInputPhoton();
@@ -373,7 +377,12 @@ public:
     static const bool transformInputPhoton_WIDE ;
     void transformInputPhoton();
 
+
+    NP* createInputGenstep_simtrace();
+    NP* createInputGenstep_simulate();
+    NP* createInputGenstep_configured();
     void addInputGenstep();
+
     void assertZeroGenstep();
 
 
@@ -482,6 +491,8 @@ public:
 
     void beginOfEvent(int eventID);
     void endOfEvent(int eventID);
+    void reset_counter();
+
     void endMeta();
 
 
@@ -599,6 +610,7 @@ public:
     quad6* getGenstepVecData() const ;
     int    getGenstepVecSize() const ;
     NP*    makeGenstepArrayFromVector() const ;   // formerly misnamed getGenstepArray
+    std::string descGenstepArrayFromVector() const;
 
 
     bool haveGenstepVec() const ;

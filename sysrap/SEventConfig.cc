@@ -92,12 +92,17 @@ const char* SEventConfig::_SaveCompDefault = SComp::ALL_ ;
 float SEventConfig::_PropagateEpsilonDefault = 0.05f ;
 float SEventConfig::_PropagateEpsilon0Default = 0.05f ;
 const char* SEventConfig::_PropagateEpsilon0MaskDefault = "TO,CK,SI,SC,RE" ;
+unsigned SEventConfig::_PropagateRefineDefault = 0u ;
+float SEventConfig::_PropagateRefineDistanceDefault = 5000.f ;
+
 
 const char* SEventConfig::_InputGenstepDefault = nullptr ;
 const char* SEventConfig::_InputGenstepSelectionDefault = nullptr ;
 const char* SEventConfig::_InputPhotonDefault = nullptr ;
 const char* SEventConfig::_InputPhotonFrameDefault = nullptr ;
-
+float       SEventConfig::_InputPhotonChangeTimeDefault = -1.f ;   // -ve time means leave ASIS
+const char* SEventConfig::_InputPhotonRecordTimeDefault = nullptr ;   // ns
+const char* SEventConfig::_InputPhotonRecordSliceDefault = nullptr ;
 
 int         SEventConfig::_IntegrationMode = ssys::getenvint(kIntegrationMode, _IntegrationModeDefault );
 const char* SEventConfig::_EventMode = ssys::getenvvar(kEventMode, _EventModeDefault );
@@ -276,11 +281,16 @@ float SEventConfig::_PropagateEpsilon = ssys::getenvfloat(kPropagateEpsilon, _Pr
 float SEventConfig::_PropagateEpsilon0 = ssys::getenvfloat(kPropagateEpsilon0, _PropagateEpsilon0Default ) ;
 unsigned SEventConfig::_PropagateEpsilon0Mask  = OpticksPhoton::GetFlagMask(ssys::getenvvar(kPropagateEpsilon0Mask, _PropagateEpsilon0MaskDefault )) ;
 std::string SEventConfig::PropagateEpsilon0MaskLabel(){  return OpticksPhoton::FlagMaskLabel( _PropagateEpsilon0Mask ) ; }
+unsigned SEventConfig::_PropagateRefine = ssys::getenvunsigned(kPropagateRefine, _PropagateRefineDefault ) ;
+float SEventConfig::_PropagateRefineDistance = ssys::getenvfloat(kPropagateRefineDistance, _PropagateRefineDistanceDefault ) ;
 
 const char* SEventConfig::_InputGenstep = ssys::getenvvar(kInputGenstep, _InputGenstepDefault );
 const char* SEventConfig::_InputGenstepSelection = ssys::getenvvar(kInputGenstepSelection, _InputGenstepSelectionDefault );
 const char* SEventConfig::_InputPhoton = ssys::getenvvar(kInputPhoton, _InputPhotonDefault );
 const char* SEventConfig::_InputPhotonFrame = ssys::getenvvar(kInputPhotonFrame, _InputPhotonFrameDefault );
+float       SEventConfig::_InputPhotonChangeTime = ssys::getenvfloat(kInputPhotonChangeTime, _InputPhotonChangeTimeDefault ) ;
+const char* SEventConfig::_InputPhotonRecordTime = ssys::getenvvar(kInputPhotonRecordTime, _InputPhotonRecordTimeDefault ) ;
+const char* SEventConfig::_InputPhotonRecordSlice = ssys::getenvvar(kInputPhotonRecordSlice, _InputPhotonRecordSliceDefault );
 
 
 int         SEventConfig::IntegrationMode(){ return _IntegrationMode ; }
@@ -390,6 +400,8 @@ unsigned SEventConfig::SaveComp(){    return _SaveComp ; }
 float SEventConfig::PropagateEpsilon(){ return _PropagateEpsilon ; }
 float SEventConfig::PropagateEpsilon0(){ return _PropagateEpsilon0 ; }
 unsigned SEventConfig::PropagateEpsilon0Mask(){ return _PropagateEpsilon0Mask ; }
+unsigned SEventConfig::PropagateRefine(){         return _PropagateRefine ; }
+float    SEventConfig::PropagateRefineDistance(){ return _PropagateRefineDistance ; }
 
 
 /**
@@ -467,7 +479,10 @@ using MOI style specification eg "NNVT:0:1000"
 
 
 **/
-const char* SEventConfig::InputPhotonFrame(){   return _InputPhotonFrame ; }
+const char* SEventConfig::InputPhotonFrame(){       return _InputPhotonFrame ; }
+float       SEventConfig::InputPhotonChangeTime(){  return _InputPhotonChangeTime ; }
+const char* SEventConfig::InputPhotonRecordTime(){  return _InputPhotonRecordTime ; }
+const char* SEventConfig::InputPhotonRecordSlice(){ return _InputPhotonRecordSlice ; }
 
 
 int SEventConfig::RGMode(){  return _RGMode ; }
@@ -593,11 +608,16 @@ void SEventConfig::SetRGMode( const char* mode)
 void SEventConfig::SetPropagateEpsilon(float eps){ _PropagateEpsilon = eps ; LIMIT_Check() ; }
 void SEventConfig::SetPropagateEpsilon0(float eps){ _PropagateEpsilon0 = eps ; LIMIT_Check() ; }
 void SEventConfig::SetPropagateEpsilon0Mask(const char* abrseq, char delim){ _PropagateEpsilon0Mask = OpticksPhoton::GetFlagMask(abrseq,delim) ; }
+void SEventConfig::SetPropagateRefine(        unsigned refine){       _PropagateRefine         = refine ; LIMIT_Check() ; }
+void SEventConfig::SetPropagateRefineDistance(float refine_distance){ _PropagateRefineDistance = refine_distance ; LIMIT_Check() ; }
 
 void SEventConfig::SetInputGenstep(const char* ig){   _InputGenstep = ig ? strdup(ig) : nullptr ; LIMIT_Check() ; }
 void SEventConfig::SetInputGenstepSelection(const char* igsel){   _InputGenstepSelection = igsel ? strdup(igsel) : nullptr ; LIMIT_Check() ; }
 void SEventConfig::SetInputPhoton(const char* ip){   _InputPhoton = ip ? strdup(ip) : nullptr ; LIMIT_Check() ; }
 void SEventConfig::SetInputPhotonFrame(const char* ip){   _InputPhotonFrame = ip ? strdup(ip) : nullptr ; LIMIT_Check() ; }
+void SEventConfig::SetInputPhotonChangeTime(float t0){    _InputPhotonChangeTime = t0 ; LIMIT_Check() ; }
+void SEventConfig::SetInputPhotonRecordTime(const char* rt){    _InputPhotonRecordTime = rt ? strdup(rt) : nullptr ; LIMIT_Check() ; }
+void SEventConfig::SetInputPhotonRecordSlice(const char* rs){   _InputPhotonRecordSlice = rs ? strdup(rs) : nullptr ; LIMIT_Check() ; }
 
 void SEventConfig::SetGatherComp_(unsigned mask){ _GatherComp = mask ; }
 void SEventConfig::SetGatherComp(const char* names, char delim){  SetGatherComp_( SComp::Mask(names,delim)) ; }
@@ -827,6 +847,12 @@ std::string SEventConfig::Desc()
        << std::setw(25) << ""
        << std::setw(20) << " PropagateEpsilon0MaskLabel " << " : " << PropagateEpsilon0MaskLabel()
        << std::endl
+       << std::setw(25) << kPropagateRefine
+       << std::setw(20) << " PropagateRefine " << " : " << PropagateRefine()
+       << std::endl
+       << std::setw(25) << kPropagateRefineDistance
+       << std::setw(20) << " PropagateRefineDistance " << " : " << PropagateRefineDistance()
+       << std::endl
        << std::setw(25) << kInputGenstep
        << std::setw(20) << " InputGenstep " << " : " << ( InputGenstep() ? InputGenstep() : "-" )
        << std::endl
@@ -835,6 +861,15 @@ std::string SEventConfig::Desc()
        << std::endl
        << std::setw(25) << kInputPhoton
        << std::setw(20) << " InputPhoton " << " : " << ( InputPhoton() ? InputPhoton() : "-" )
+       << std::endl
+       << std::setw(25) << kInputPhotonChangeTime
+       << std::setw(20) << " InputPhotonChangeTime " << " : " << InputPhotonChangeTime()
+       << std::endl
+       << std::setw(25) << kInputPhotonRecordTime
+       << std::setw(20) << " InputPhotonRecordTime " << " : " << ( InputPhotonRecordTime() ? InputPhotonRecordTime() : "-" )
+       << std::endl
+       << std::setw(25) << kInputPhotonRecordSlice
+       << std::setw(20) << " InputPhotonRecordSlice " << " : " << ( InputPhotonRecordSlice() ? InputPhotonRecordSlice() : "-" )
        << std::endl
        << std::setw(25) << "RecordLimit() "
        << std::setw(20) << " (sseq::SLOTS) " << " : " << RecordLimit()
@@ -1317,6 +1352,15 @@ NP* SEventConfig::Serialize() // static
 
     const char* ipf = InputPhotonFrame() ;
     if(ipf) meta->set_meta<std::string>("InputPhotonFrame", ipf );
+
+    meta->set_meta<float>("InputPhotonChangeTime", InputPhotonChangeTime() );
+
+    const char* iprt = InputPhotonRecordTime();
+    if(iprt) meta->set_meta<std::string>("InputPhotonRecordTime", iprt );
+
+    const char* iprs = InputPhotonRecordSlice() ;
+    if(iprs) meta->set_meta<std::string>("InputPhotonRecordSlice", iprs );
+
 
     meta->set_meta<int>("RGMode", RGMode() );
 
