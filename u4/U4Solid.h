@@ -786,7 +786,7 @@ inline void U4Solid::init_Trap()
     double fx2 = trap->GetXHalfLength2() / CLHEP::mm;
     double ft = trap->GetTanAlpha1() / CLHEP::mm;
 
-    root = sn::Trap(fx, fy, fz);
+    root = sn::Trap(fz, fy, fx1, fx2, ft);
 }
 
 inline void U4Solid::init_Tubs()
