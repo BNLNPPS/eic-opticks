@@ -317,9 +317,9 @@ CSGPrim* CSGImport::importPrim(int primIdx, const snode& node )
 
     // 2. count total subs for any listnodes of this lvid
 
-    std::vector<const sn*> lns ; 
-    sn::GetLVListnodes( lns, lvid ); 
-    int num_sub_total = sn::GetChildTotal( lns ); 
+    std::vector<const sn *> lns;
+    sn::GetLVListnodes(lns, lvid);
+    int num_sub_total = sn::GetChildTotal(lns);
     // 2. count total subs for any listnodes of this lvid
 
     std::vector<const sn*> lns ;
