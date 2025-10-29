@@ -347,7 +347,7 @@ struct SteppingAction : G4UserSteppingAction
         unsigned flag = U4StepPoint::Flag<G4OpBoundaryProcess>(post, true, tir);
         bool is_detect_flag = OpticksPhoton::IsSurfaceDetectFlag(flag);
 
-        current_photon.iindex =
+        current_photon.orient_iindex =
             is_detect_flag ? U4Touchable::ImmediateReplicaNumber(touch) : U4Touchable::AncestorReplicaNumber(touch);
 
         U4StepPoint::Update(current_photon, post);
