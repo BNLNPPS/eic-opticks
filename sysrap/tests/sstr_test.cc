@@ -6,6 +6,7 @@ sstr_test.cc
 
 TEST=Format ~/opticks/sysrap/tests/sstr_test.sh
 TEST=ParseIntSpecList32   ~/opticks/sysrap/tests/sstr_test.sh
+TEST=ParseIntSpecList64   ~/opticks/sysrap/tests/sstr_test.sh
 TEST=ParseIntSpecListDemo ~/opticks/sysrap/tests/sstr_test.sh
 
 **/
@@ -292,9 +293,37 @@ void test_empty()
 template<typename T>
 void test_ParseIntSpecList()
 {
-     const char* _spec = "1,2,3,100,200,h1,h5,6,7,K1,K10,11,12,M1,2,3,K1,2,M1,H1,2,G2,h1:4" ;
+     const char* _spec = "1,2,3,100,200,h1,h5,6,7,K1,K10,11,12,M1,2,3,K1,2,M1,H1,2,G2,T1,2,h1:4" ;
 
-     std::vector<T> expect = {1,2,3,100,200,100,500,600,700,1000,10000,11000,12000,1000000,2000000,3000000,1000,2000,1000000,100000,200000,2000000000,100,200,300,400 } ;
+     std::vector<T> expect = {                1,
+                                              2,
+                                              3,
+                                            100,
+                                            200,
+                                            100,
+                                            500,
+                                            600,
+                                            700,
+                                          1'000,
+                                         10'000,
+                                         11'000,
+                                         12'000,
+                                      1'000'000,
+                                      2'000'000,
+                                      3'000'000,
+                                          1'000,
+                                          2'000,
+                                      1'000'000,
+                                        100'000,
+                                        200'000,
+                                  2'000'000'000,
+                              1'000'000'000'000,
+                              2'000'000'000'000,
+                                            100,
+                                            200,
+                                            300,
+                                            400
+                                                };
      int num_expect = expect.size();
 
      std::vector<std::string> spec ;
@@ -324,6 +353,17 @@ void test_ParseIntSpecList()
      assert( num_ls == num_expect );
 
      int pass = 0 ;
+
+     std::cout
+          << std::setw(16) << "spec_input"
+          << std::setw(16) << "expected"
+          << std::setw(16) << "parsed"
+          << std::setw(16) << "ls_parsed"
+          << std::setw(20) << "match"
+          << std::endl
+          ;
+
+
      for(int i=0 ; i < num_value ; i++)
      {
          const char* s = i < num_spec ? spec[i].c_str() : nullptr ;
@@ -335,29 +375,17 @@ void test_ParseIntSpecList()
 
          pass += int(match) ;
          std::cout
-              << std::setw(11) << ( s ? s : "-" )
-              << std::setw(11) << e
-              << std::setw(11) << v
-              << std::setw(11) << l
-              << ( match ? " " : " ERROR MISMATCH" )
+              << std::setw(16) << ( s ? s : "-" )
+              << std::setw(16) << e
+              << std::setw(16) << v
+              << std::setw(16) << l
+              << std::setw(20) << ( match ? " YES " : " NO  " )
               << std::endl
               ;
 
      }
      assert( pass == num_value );
 }
-
-/**
-
-epsilon:opticks blyth$ ~/opticks/sysrap/tests/sstr_test.sh
-        M1:5,K1:2 :  [1000000 2000000 3000000 4000000 5000000 1000 2000  ]
-  M1,2,3,4,5,K1,2 :  [1000000 2000000 3000000 4000000 5000000 1000 2000  ]
-            h1:10 :  [100 200 300 400 500 600 700 800 900 1000  ]
-            K1:10 :  [1000 2000 3000 4000 5000 6000 7000 8000 9000 10000  ]
-            H1:10 :  [100000 200000 300000 400000 500000 600000 700000 800000 900000 1000000  ]
-            M1:10 :  [1000000 2000000 3000000 4000000 5000000 6000000 7000000 8000000 9000000 10000000  ]
-
-**/
 
 
 template<typename T>
@@ -563,6 +591,9 @@ void test_IsInteger()
 
 struct sstr_test
 {
+    static constexpr const uint64_t M = 1000000 ;
+    static constexpr const uint64_t G = 1000000000 ;
+
     static constexpr const char* BLANK = "" ;
     static std::vector<std::string> STRS ;
     static std::vector<std::string> STRS2 ;
@@ -573,6 +604,7 @@ struct sstr_test
 
     static int StartsWithElem();
     static int split();
+    static int ParseInt();
 
 
     static int Main();
@@ -667,6 +699,43 @@ int sstr_test::split()
      return 0;
 }
 
+
+int sstr_test::ParseInt()
+{
+    std::vector<std::string> src = {{
+        "M1",
+        "G1",
+        "G2",
+        "G3",
+        "X0",
+        "X1",
+        "X2",
+        "X4",
+        "X8",
+        "X16",
+        "X31",
+        "X32",
+        "X63",
+        "X64"
+    }} ;
+
+    for(unsigned i=0 ; i < src.size() ; i++)
+    {
+        const char* st = src[i].c_str();
+        uint64_t value = sstr::ParseInt<uint64_t>(st) ;
+        std::cout
+            << " spec  " << std::setw(5) << st
+            << " value " << std::setw(20) << value
+            << " value/M " << std::setw(20) << value/M
+            << " value/G " << std::setw(20) << value/G
+            << "\n"
+            ;
+    }
+    return 0 ;
+}
+
+
+
 int sstr_test::Main()
 {
     //const char* test = "TrimString" ;
@@ -687,8 +756,8 @@ int sstr_test::Main()
     else if(strcmp(TEST, "nullchar")==0 )   test_nullchar(true);
     else if(strcmp(TEST, "Write")==0 )      test_Write();
     else if(strcmp(TEST, "ParseIntSpecList64")==0 )   test_ParseIntSpecList<int64_t>();
-    else if(strcmp(TEST, "ParseIntSpecList32")==0 )   test_ParseIntSpecList<int>();
-    else if(strcmp(TEST, "ParseIntSpecListDemo")==0 ) test_ParseIntSpecList_demo<int>();
+    //else if(strcmp(TEST, "ParseIntSpecList32")==0 )   test_ParseIntSpecList<int>();
+    else if(strcmp(TEST, "ParseIntSpecListDemo")==0 ) test_ParseIntSpecList_demo<int64_t>();
     else if(strcmp(TEST, "snprintf")==0 )             test_snprintf();
     else if(strcmp(TEST, "Format") == 0 )             test_Format();
     else if(strcmp(TEST, "TAG")==0 )                  test_TAG();
@@ -704,6 +773,7 @@ int sstr_test::Main()
     if(ALL||0==strcmp(TEST,"prefix_suffix"))  rc += prefix_suffix();
     if(ALL||0==strcmp(TEST,"StartsWithElem")) rc += StartsWithElem();
     if(ALL||0==strcmp(TEST,"split"))          rc += split();
+    if(ALL||0==strcmp(TEST,"ParseInt"))       rc += ParseInt();
 
     return rc ;
 }

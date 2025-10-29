@@ -206,10 +206,10 @@ int QEvent::setGenstepUpload_NP(const NP* gs_, const sslice* gss_ )
         << SGenstep::Desc(gs, 10)
         ;
 
-    int num_gs = gs ? gs->shape[0] : 0 ;
+    int64_t num_gs = gs ? gs->shape[0] : 0 ;
 
-    int gs_start = gss ? gss->gs_start : 0 ;
-    int gs_stop  = gss ? gss->gs_stop  : num_gs ;
+    int64_t gs_start = gss ? gss->gs_start : 0 ;
+    int64_t gs_stop  = gss ? gss->gs_stop  : num_gs ;
 
     assert( gs_start >= 0 && gs_start <  num_gs );
     assert( gs_stop  >= 1 && gs_stop  <= num_gs );
@@ -230,7 +230,7 @@ int QEvent::setGenstepUpload_NP(const NP* gs_, const sslice* gss_ )
         << " gss_consistent " << ( gss_consistent ? "YES" : "NO " ) << "\n"
         ;
 
-    int last_rng_state_idx = gss->ph_offset + gss->ph_count ;
+    int64_t last_rng_state_idx = gss->ph_offset + gss->ph_count ;
     bool in_range = last_rng_state_idx <= evt->max_curand ;
 
     LOG_IF(fatal, !in_range)
@@ -250,9 +250,10 @@ int QEvent::setGenstepUpload_NP(const NP* gs_, const sslice* gss_ )
 }
 
 
-int QEvent::getPhotonSlotOffset() const
+unsigned long long QEvent::get_photon_slot_offset() const
 {
-    return gss ? gss->ph_offset : 0 ;
+    typedef unsigned long long ULL ;
+    return gss ? ULL(gss->ph_offset) : 0ull ;   // (sslice)gss::ph_offset is int64_t
 }
 
 
@@ -852,11 +853,7 @@ QEvent::gatherHit
 ------------------
 
 1. on device count *evt.num_hit* passing the photon *selector*
-2. allocate *evt.hit* GPU buffer
-3. copy_if from *evt.photon* to *evt.hit* using the photon *selector*
-4. host allocate the NP hits array
-5. copy hits from device to the host NP hits array
-6. free *evt.hit* on device
+
 7. return NP hits array to caller, who becomes owner of the array
 
 Note that the device hits array is allocated and freed for each launch.
@@ -905,6 +902,21 @@ NP* QEvent::gatherHit() const
     return hit ;
 }
 
+/**
+QEvent::gatherHit_
+--------------------
+
+1. allocate *evt.hit* GPU buffer using *evt.num_hit*
+2. SU::copy_if_device_to_device_presized_sphoton from *evt.photon* to *evt.hit* using the photon *selector*
+3. host allocate the NP hits array using *evt.num_hit*
+4. copy hits from device to the host NP hits array
+5. free *evt.hit* on device
+
+
+**/
+
+
+
 NP* QEvent::gatherHit_() const
 {
     LOG_IF(info, LIFECYCLE) ;
@@ -929,7 +941,7 @@ NP* QEvent::gatherHit_() const
 QEvent::getMeta
 -----------------
 
-SCompProvider method
+SCompProvider method, canonically used from SEvt::endOfEvent/SEvt::gather_metadata
 
 **/
 

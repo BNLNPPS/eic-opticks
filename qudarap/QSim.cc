@@ -411,12 +411,15 @@ bool QSim::KEEP_SUBFOLD = ssys::getenvbool(QSim__simulate_KEEP_SUBFOLD);
 
 double QSim::simulate(int eventID, bool reset_)
 {
+    assert( SEventConfig::IsRGModeSimulate() );
+
+
+    int64_t tot_ph = 0 ;
+
     double tot_dt = 0. ;
 
     int64_t tot_idt = 0 ;
     int64_t tot_gdt = 0 ;
-
-    uint64_t tot_ph = 0 ;
 
     int64_t t_HEAD = SProf::Add("QSim__simulate_HEAD");
 
@@ -431,17 +434,26 @@ double QSim::simulate(int eventID, bool reset_)
     MaybeSaveIGS(eventID, igs);
 
     std::vector<sslice> igs_slice ;
-    SGenstep::GetGenstepSlices( igs_slice, igs, SEventConfig::MaxSlot() );
+    int64_t tot_ph_0 = SGenstep::GetGenstepSlices( igs_slice, igs, SEventConfig::MaxSlot() );
+
+    //bool xxl = tot_ph_0 > SGenstep::MAX_SLOT_PER_SLICE ;
+    bool xxl = tot_ph_0 > 100*M ;
+
     int num_slice = igs_slice.size();
-    LOG(LEVEL)
+
+    LOG(xxl ? info : LEVEL)
         << " eventID " << std::setw(6) << eventID
         << " igs " << ( igs ? igs->sstr() : "-" )
+        << " tot_ph_0 " << tot_ph_0
+        << " tot_ph_0/M " << tot_ph_0/M
+        << " xxl " << ( xxl ? "YES" : "NO " )
         << " MaxSlot " << SEventConfig::MaxSlot()
-        << " MaxSlot/M " << SEventConfig::MaxSlot()/1000000
+        << " MaxSlot/M " << SEventConfig::MaxSlot()/M
         << " sslice::Desc(igs_slice)\n"
         << sslice::Desc(igs_slice)
         << " num_slice " << num_slice
         ;
+
 
     int64_t t_LBEG = SProf::Add("QSim__simulate_LBEG");
 
@@ -467,7 +479,9 @@ double QSim::simulate(int eventID, bool reset_)
         SProf::Add("QSim__simulate_PREL");
 
         sev->t_PreLaunch = sstamp::Now() ;
+
         double dt = rc == 0 && cx != nullptr ? cx->simulate_launch() : -1. ;  //SCSGOptiX protocol
+
         sev->t_PostLaunch = sstamp::Now() ;
         sev->t_Launch = dt ;
 
@@ -475,6 +489,13 @@ double QSim::simulate(int eventID, bool reset_)
         tot_dt += dt ;
         tot_ph += sl.ph_count ;
 
+        LOG( xxl ? info : LEVEL )
+            << " eventID " << eventID
+            << " xxl " << ( xxl ? "YES" : "NO " )
+            << " i " << std::setw(4) << i
+            << " dt " << std::setw(11) << std::fixed << std::setprecision(6) << dt
+            << " slice " << sl.idx_desc(i)
+            ;
 
         int64_t t_POST = SProf::Add("QSim__simulate_POST");
 
@@ -501,6 +522,7 @@ double QSim::simulate(int eventID, bool reset_)
     int64_t t_PCAT = SProf::Add("QSim__simulate_PCAT");
 
     int tot_ht = sev->getNumHit() ;  // NB from fold, so requires hits array gathering to be configured to get non-zero
+    std::string counts = sev->getCounts();  // collect counts before reset
 
     LOG_IF(info, SEvt::MINIMAL)
         << " eventID " << eventID
@@ -513,9 +535,15 @@ double QSim::simulate(int eventID, bool reset_)
         << " reset_ " << ( reset_ ? "YES" : "NO " )
         ;
 
-    int64_t t_BRES  = SProf::Add("QSim__simulate_BRES");
+
+    assert( tot_ph == tot_ph_0 );
+
+    int64_t t_BRES  = SProf::Add("QSim__simulate_BRES", counts.c_str() );
     if(reset_) reset(eventID) ;
+
     int64_t t_TAIL  = SProf::Add("QSim__simulate_TAIL");
+
+    SProf::Write(); // per-event write, so have something in case of crash
 
     LOG_IF(info, SEvt::MINTIME) << "\n"
         << SEvt::SEvt__MINTIME
@@ -675,9 +703,9 @@ or equal the number of states uploaded.
 
 
 
-int QSim::getPhotonSlotOffset() const
+unsigned long long QSim::get_photon_slot_offset() const
 {
-    return event->getPhotonSlotOffset() ;
+    return event->get_photon_slot_offset() ;
 }
 
 
@@ -719,6 +747,9 @@ Collected genstep are uploaded and the CSGOptiX kernel is launched to generate a
 
 double QSim::simtrace(int eventID)
 {
+    assert( SEventConfig::IsRGModeSimtrace() );
+
+
     sev->beginOfEvent(eventID);
 
     NP* igs = sev->makeGenstepArrayFromVector();

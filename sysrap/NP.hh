@@ -48,6 +48,7 @@ but the headers are also copied into opticks/sysrap.
 #include <map>
 #include <functional>
 #include <locale>
+#include <optional>
 
 #include "NPU.hh"
 
@@ -361,6 +362,7 @@ struct NP
     template<typename T>
     static int ParseSliceIndexString(T& start, T& stop, T& step, const char* _sli, bool dump=false );
     static bool LooksLikeSliceIndexString(const char* _sli );
+    static bool LooksLikeSliceIndexStringIsEmpty(const char* _sli );
     static bool LooksLikeSliceIndexStringSuffix(const char* _sli, char** body, char** suffix );
 
 
@@ -505,7 +507,7 @@ struct NP
     typedef std::vector<int64_t> VT ;
 
 
-    NP* makeMetaKVProfileArray(const char* ptn=nullptr) const ;
+    static NP* MakeMetaKVProfileArray(const std::string& meta, const char* ptn=nullptr);
     static void GetMetaKV_( const char* metadata    , VS* keys, VS* vals, bool only_with_profile, const char* ptn=nullptr );
     static void GetMetaKV(  const std::string& meta , VS* keys, VS* vals, bool only_with_profile, const char* ptn=nullptr );
 
@@ -606,6 +608,7 @@ struct NP
 
     static bool   HasChar( const char* buffer, size_t size, char q);
     static size_t FindChar(const char* buffer, size_t size, char q);
+    static std::optional<size_t> FindChar_(const char* buffer, size_t size, char q);
 
 
     void load_data( std::ifstream* fp, const char* sli );
@@ -1011,6 +1014,10 @@ inline NP* NP::Linspace( T x0, T x1, unsigned nx, INT npayload )  // static
 /**
 NP::DeltaColumn
 ------------------
+
+* for input array *a* of shape (ni,nj) returns array *b* of the same shape
+  with all columns subtracted from the *jcol* column which default to zero for first column,
+  this is useful to convert epoch-relative-timestamps to first-timestamp-within-each-event-relative-timestamps
 
 ::
 
@@ -1466,7 +1473,7 @@ inline size_t NP::ReadToBufferCallback(char* buffer, size_t size, size_t nitems,
     if(dump) std::cout
          << "[NP::ReadToBufferCallback"
          << " arr.sstr " << ( arr ? arr->sstr() : "-" )
-         << " arr.position " << ( arr ? arr->position : -1 )
+         << " arr.position " << ( arr ? arr->position : 0 )
          << " hdr_size " << hdr_size
          << " data_size " << data_size
          << " meta_size " << meta_size
@@ -1886,7 +1893,7 @@ inline NP::INT NP::num_items() const { return shape[0] ;  }
 inline NP::INT NP::num_values() const { return NPS::size(shape) ;  }
 inline NP::INT NP::num_itemvalues() const { return NPS::itemsize(shape) ;  }
 inline NP::INT  NP::arr_bytes()  const {  return NPS::size(shape)*ebyte ; }
-inline NP::UINT NP::uarr_bytes()  const { return NPS::size(shape)*ebyte ; }
+inline NP::UINT NP::uarr_bytes()  const { return NPS::usize(shape)*UINT(ebyte) ; }
 inline NP::UINT NP::serialize_bytes()  const { return uhdr_bytes() + uarr_bytes() + umeta_bytes() ; }
 
 inline NP::INT NP::item_bytes() const { return NPS::itemsize(shape)*ebyte ; }
@@ -2157,10 +2164,14 @@ inline void NP::_change_shape_ni(INT ni, bool data_resize)
 {
     unsigned ndim = shape.size() ;
     assert( ndim > 0 );
-    assert( ni <= shape[0] );
 
-    shape[0] = ni ;
-    size = NPS::size(shape);    // product of shape dimensions
+    if(!data_resize) // eg from NP::LoadSlice when the slice is larger than the array
+    {
+        assert( ni <= shape[0] );
+    }
+
+    shape[0] = std::min( ni, shape[0] ) ;       // slicing can only keep the same or reduce
+    size = NPS::size(shape);                    // product of shape dimensions
     if(data_resize) data.resize(size*ebyte) ;   // data is now just char
 }
 
@@ -3451,6 +3462,17 @@ inline bool NP::LooksLikeSliceIndexString(const char* _sli ) //
     bool end_br = _sli[strlen(_sli)-1] == ']' ;
     return start_br && end_br ;
 }
+
+inline bool NP::LooksLikeSliceIndexStringIsEmpty(const char* _sli ) //
+{
+    if(_sli == nullptr) return true ;
+    if(strcmp(_sli, "") == 0) return true ;
+    if(strcmp(_sli, "[]") == 0) return true ;
+    return false ;
+}
+
+
+
 
 /**
 NP::LooksLikeSliceIndexStringSuffix
@@ -6156,16 +6178,21 @@ inline std::string NP::get_meta_string(const std::string& meta, const char* key)
 }
 
 /**
-NP::makeMetaKVProfileArray
+NP::MakeMetaKVProfileArray
 ----------------------------
 
-1. finds metadata lines looking like profile stamps with keys containing the ptn,
-   a nullptr ptn matches all lines
+::
+
+    (ok) A[blyth@localhost ALL1_Debug_Philox_ref1]$ grep Index SProf.txt
+    A000_SEvt__setIndex:1760707886287057,7316444,1222084
+    A000_SEvt__endIndex:1760707886541457,8373000,1334844
+
+1. finds metadata lines looking like profile stamps with keys containing the ptn (eg "Index"), nullptr matches all lines
 2. create (N,3) int64_t array filled with the stamps (t[us],vm[kb],rs[kb])
 
 **/
 
-inline NP* NP::makeMetaKVProfileArray(const char* ptn) const
+inline NP* NP::MakeMetaKVProfileArray(const std::string& meta, const char* ptn)
 {
     std::vector<std::string> keys ;
     std::vector<std::string> vals ;
@@ -6180,7 +6207,12 @@ inline NP* NP::makeMetaKVProfileArray(const char* ptn) const
 
     NP* prof = ni > 0 ? NP::Make<int64_t>(ni, nj ) : nullptr  ;
     int64_t* pp = prof ? prof->values<int64_t>() : nullptr ;
-    if(prof) prof->labels = new std::vector<std::string> {"st[us]", "vm[kb]", "rs[kb]" } ;
+    if(prof)
+    {
+        prof->labels = new std::vector<std::string> {"st[us]", "vm[kb]", "rs[kb]" } ;
+        prof->meta = meta ;
+    }
+
     for(INT i=0 ; i < ni ; i++)
     {
         const char* k = keys[i].c_str();
@@ -6209,7 +6241,6 @@ inline NP* NP::makeMetaKVProfileArray(const char* ptn) const
         pp[nj*i + 2 ] = rs ;
         prof->names.push_back(k) ;
     }
-    prof->meta = meta ;
     return prof ;
 }
 
@@ -7502,7 +7533,7 @@ inline NP* NP::Concatenate(const std::vector<T*>& aa )  // static
     {
         auto a = aa[i] ;
 
-        unsigned nv = a->num_itemvalues() ;
+        unsigned nv = a->num_itemvalues() ;   // values after first dimension, eg 16 for (n,4,4)
         bool compatible = nv == nv0 && strcmp(dtype0, a->dtype) == 0 ;
         if(!compatible)
             std::cout
@@ -7518,7 +7549,7 @@ inline NP* NP::Concatenate(const std::vector<T*>& aa )  // static
         if(VERBOSE) std::cout << "NP::Concatenate " << std::setw(3) << i << " " << a->desc() << " nv " << nv << std::endl ;
     }
 
-    unsigned ni_total = 0 ;
+    UINT ni_total = 0 ;
     for(unsigned i=0 ; i < aa.size() ; i++) ni_total += aa[i]->shape[0] ;
     if(VERBOSE) std::cout << "NP::Concatenate ni_total " << ni_total << std::endl ;
 
@@ -7526,18 +7557,22 @@ inline NP* NP::Concatenate(const std::vector<T*>& aa )  // static
     NPS::copy_shape( comb_shape, a0->shape );
     comb_shape[0] = ni_total ;
 
+    if(VERBOSE) std::cout << "NP::Concatenate c = new NP " << std::endl ;
     NP* c = new NP(a0->dtype);
+    if(VERBOSE) std::cout << "NP::Concatenate c.set_shape " << std::endl ;
     c->set_shape(comb_shape);
     if(VERBOSE) std::cout << "NP::Concatenate c " << c->desc() << std::endl ;
 
-    unsigned offset_bytes = 0 ;
+    UINT offset_bytes = 0 ;   // uint64_t needed here to avoid clocking offset_bytes for large array handling
     for(unsigned i=0 ; i < aa.size() ; i++)
     {
         auto a = aa[i];
-        unsigned a_bytes = a->arr_bytes() ;
+        UINT a_bytes = a->uarr_bytes() ;
         memcpy( c->data.data() + offset_bytes ,  a->data.data(),  a_bytes );
         offset_bytes += a_bytes ;
-        //a->clear(); // HUH: THAT WAS IMPOLITE : ASSUMING CALLER DOESNT WANT TO USE INPUTS
+        // clocking offset_bytes here (when used only 32 bit unsigned) resulted in the tail of the array
+        // being unfilled (left as zero) and the addressed portion of the array being overwritten
+        // potentially multiple times
     }
     return c ;
 }
@@ -7881,7 +7916,26 @@ inline bool NP::HasChar(const char* buffer, size_t size, char q)  // static
 inline size_t NP::FindChar(const char* buffer, size_t size, char q)  // static
 {
     const char* qptr = (const char*)memchr(buffer, q, size);
-    return qptr ? (size_t)(qptr - buffer) : -1;
+    return qptr ? (size_t)(qptr - buffer) : std::numeric_limits<size_t>::max() ;
+}
+
+/**
+NP::FindChar_
+----------------
+
+Usage::
+
+     auto result = NP::FindChar("hello", 5, 'l')
+     if( result.has_value() ) std::cout << " HAS VALUE : " << result.value()  << "\n";
+     else                     std::cout << "Character not found\n";
+
+
+**/
+
+inline std::optional<size_t> NP::FindChar_(const char* buffer, size_t size, char q)
+{
+    const char* qptr = (const char*)memchr(buffer, q, size);
+    return qptr ? std::optional<size_t>(qptr - buffer) : std::nullopt;
 }
 
 
@@ -7903,7 +7957,7 @@ inline void NP::load_data( std::ifstream* fp, const char* _sli )
     if(nodata && VERBOSE) std::cerr << "NP::load_data SKIP reading data as nodata:true : data.size() " << data.size() << "\n" ;
     if(nodata) return ;
 
-    if( _sli == nullptr )
+    if(LooksLikeSliceIndexStringIsEmpty(_sli) )  // eg nullptr OR "" OR "[]"
     {
         fp->read(bytes(), arr_bytes() );
     }

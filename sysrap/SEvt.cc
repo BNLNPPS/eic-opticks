@@ -60,6 +60,7 @@ bool SEvt::EPH_ = ssys::getenvbool(SEvt__EPH) ;
 bool SEvt::RUNMETA = ssys::getenvbool(SEvt__RUNMETA) ;
 
 bool SEvt::SAVE_NOTHING = ssys::getenvbool(SEvt__SAVE_NOTHING);
+bool SEvt::SAVE_RUNDIR = ssys::getenvbool(SEvt__SAVE_RUNDIR);
 
 
 const char* SEvt::descStage() const
@@ -93,13 +94,17 @@ SEvt::Init_RUN_META
 As this is a static it happens just as libSysRap is loaded,
 very soon after starting the executable.
 
+Now using SProf for profile stamps, previously included with run_meta.txt::
+
+   run_meta->set_meta<std::string>("SEvt__Init_RUN_META", sprof::Now() );
+
 **/
 
 
 NP* SEvt::Init_RUN_META() // static
 {
     NP* run_meta = NP::Make<float>(1);
-    run_meta->set_meta<std::string>("SEvt__Init_RUN_META", sprof::Now() );
+    SProf::Add("SEvt__Init_RUN_META");
     return run_meta ;
 }
 
@@ -211,9 +216,9 @@ SEvt::SEvt()
     gather_done(false),
     is_loaded(false),
     is_loadfail(false),
-    numgenstep_collected(0u),   // updated by addGenstep
-    numphoton_collected(0u),   // updated by addGenstep
-    numphoton_genstep_max(0u),
+    numgenstep_collected(0),   // updated by addGenstep
+    numphoton_collected(0),   // updated by addGenstep
+    numphoton_genstep_max(0),
     clear_genstep_vector_count(0),
     clear_output_vector_count(0),
     gather_total(0),
@@ -1558,8 +1563,8 @@ void SEvt::SaveGenstepLabels(const char* dir, const char* name)
 
 void SEvt::BeginOfRun()
 {
-    SetRunProf("SEvt__BeginOfRun");
-    SaveRunMeta();  // HMM: for crash debug, RunMeta is saved at BeginOfRun EndOfRun and endOfEvent
+    SProf::Add("SEvt__BeginOfRun");
+    SProf::Write();
 }
 
 
@@ -1567,18 +1572,9 @@ void SEvt::BeginOfRun()
 
 void SEvt::EndOfRun()
 {
-    SetRunProf("SEvt__EndOfRun");
-    SaveRunMeta();
-
-    if(EndOfRun_SProf == 1 )
-    {
-        bool append = false ;
-        SProf::Write("SEvt__EndOfRun_SProf.txt", append ) ;
-    }
+    SProf::Add("SEvt__EndOfRun");
+    SProf::Write();
 }
-
-
-const int SEvt::EndOfRun_SProf = ssys::getenvint("SEvt__EndOfRun_SProf",-1) ;
 
 
 
@@ -1604,7 +1600,7 @@ void SEvt::SetRunMetaString(const char* k, const char* v ) // static
 }
 
 
-
+/*
 void SEvt::SetRunProf(const char* k, const sprof& v) // static
 {
     SetRunMeta<std::string>( k, sprof::Serialize(v) );
@@ -1613,13 +1609,12 @@ void SEvt::SetRunProf(const char* k)   // static
 {
     SetRunMeta<std::string>( k, sprof::Now() );
 }
-
 void SEvt::setRunProf_Annotated(const char* hdr) const
 {
     std::string eid = getIndexString_(hdr) ;
     SetRunMeta<std::string>( eid.c_str(), sprof::Now() );
 }
-
+*/
 
 
 
@@ -1651,11 +1646,24 @@ when jobs are prone to memory failure. So
 better to save at the end of every event, not
 just the last.
 
+The directory to save run.npy and run_meta.txt
+can be controlled by::
+
+    SEvt__SAVE_RUNDIR
+
+When save into the RunDir one level above the event folders A000 etc..
+
+When SEvt__SAVE_RUNDIR is not defined save into the invoking directory
+together with the logfile and SProf.txt
+This simple approach makes more sense in production when event arrays
+are not saved.
+
 **/
 
 void SEvt::SaveRunMeta(const char* base)
 {
     const char* dir = RunDir(base);
+    const char* name = "run.npy" ;
 
     bool is_save_nothing = IsSaveNothing();
 
@@ -1664,10 +1672,24 @@ void SEvt::SaveRunMeta(const char* base)
         << " is_save_nothing " << ( is_save_nothing ? "YES" : "NO " )
         << " base " << ( base ? base : "-" )
         << " dir " << ( dir ? dir : "-" )
+        << " name " << name
+        << " SAVE_RUNDIR " << ( SAVE_RUNDIR ? "YES" : "NO " )
         ;
 
-    if(!is_save_nothing) RUN_META->save(dir, "run.npy") ;
+    if(is_save_nothing) return ;
+
+    if(SAVE_RUNDIR)
+    {
+        RUN_META->save(dir, name) ;
+    }
+    else
+    {
+        RUN_META->save(name) ;
+    }
 }
+
+
+
 
 void SEvt::setMetaString(const char* k, const char* v)
 {
@@ -1757,7 +1779,7 @@ as still need to collect the gensteps.
 void SEvt::beginOfEvent(int eventID)
 {
     if(isFirstEvtInstance() && eventID == 0) BeginOfRun() ;
-    if(eventID == 0) SetRunProf( isEGPU() ? "SEvt__beginOfEvent_FIRST_EGPU" : "SEvt__beginOfEvent_FIRST_ECPU" ) ;
+    if(eventID == 0) SProf::Add( isEGPU() ? "SEvt__beginOfEvent_FIRST_EGPU" : "SEvt__beginOfEvent_FIRST_ECPU" ) ;
 
     setStage(SEvt__beginOfEvent);
     sprof::Stamp(p_SEvt__beginOfEvent_0);
@@ -1778,8 +1800,9 @@ void SEvt::beginOfEvent(int eventID)
     }
 
 
-    setMeta<int>("NumPhotonCollected", numphoton_collected );
-    setMeta<int>("NumGenstepCollected", numgenstep_collected );
+    setMeta<int64_t>("NumPhotonCollected", numphoton_collected );
+    setMeta<int64_t>("NumGenstepCollected", numgenstep_collected );
+
     setMeta<int>("MaxBounce", evt->max_bounce );
 
     LOG_IF(info, LIFECYCLE)
@@ -1895,13 +1918,13 @@ S4RandomArray* SEvt::GetRandomArray(int idx)
 }
 
 
-int SEvt::GetNumPhotonCollected(int idx){    return Exists(idx) ? Get(idx)->getNumPhotonCollected() : UNDEF ; }
-int SEvt::GetNumPhotonGenstepMax(int idx){   return Exists(idx) ? Get(idx)->getNumPhotonGenstepMax() : UNDEF ; }
-int SEvt::GetNumPhotonFromGenstep(int idx){  return Exists(idx) ? Get(idx)->getNumPhotonFromGenstep() : UNDEF ; }
-int SEvt::GetNumGenstepFromGenstep(int idx){ return Exists(idx) ? Get(idx)->getNumGenstepFromGenstep() : UNDEF ; }
-int SEvt::GetNumHit(int idx){                return Exists(idx) ? Get(idx)->getNumHit() : UNDEF ; }
-int SEvt::GetNumHit_EGPU(){  return GetNumHit(EGPU) ; }
-int SEvt::GetNumHit_ECPU(){  return GetNumHit(ECPU) ; }
+int64_t SEvt::GetNumPhotonCollected(int idx){    return Exists(idx) ? Get(idx)->getNumPhotonCollected() : UNDEF ; }
+int64_t SEvt::GetNumPhotonGenstepMax(int idx){   return Exists(idx) ? Get(idx)->getNumPhotonGenstepMax() : UNDEF ; }
+int64_t SEvt::GetNumPhotonFromGenstep(int idx){  return Exists(idx) ? Get(idx)->getNumPhotonFromGenstep() : UNDEF ; }
+int64_t SEvt::GetNumGenstepFromGenstep(int idx){ return Exists(idx) ? Get(idx)->getNumGenstepFromGenstep() : UNDEF ; }
+int64_t SEvt::GetNumHit(int idx){                return Exists(idx) ? Get(idx)->getNumHit() : UNDEF ; }
+int64_t SEvt::GetNumHit_EGPU(){  return GetNumHit(EGPU) ; }
+int64_t SEvt::GetNumHit_ECPU(){  return GetNumHit(ECPU) ; }
 
 
 
@@ -1970,9 +1993,9 @@ SEvt::clear_genstep_vector
 
 void SEvt::clear_genstep_vector()
 {
-    numgenstep_collected = 0u ;
-    numphoton_collected = 0u ;
-    numphoton_genstep_max = 0u ;
+    numgenstep_collected = 0 ;
+    numphoton_collected = 0 ;
+    numphoton_genstep_max = 0 ;
 
     clear_genstep_vector_count += 1 ;
 
@@ -2102,7 +2125,8 @@ void SEvt::setIndex(int index_arg)
     index = SEventConfig::EventIndex(index_arg) ;
     t_BeginOfEvent = sstamp::Now();                // moved here from the static
 
-    setRunProf_Annotated("SEvt__setIndex_" );
+    //setRunProf_Annotated("SEvt__setIndex_" );
+    SProf::Add("SEvt__setIndex");
 }
 void SEvt::endIndex(int index_arg)
 {
@@ -2117,7 +2141,8 @@ void SEvt::endIndex(int index_arg)
     assert( consistent );
     t_EndOfEvent = sstamp::Now();
 
-    setRunProf_Annotated("SEvt__endIndex_" );
+    //setRunProf_Annotated("SEvt__endIndex_" );
+    SProf::Add("SEvt__endIndex");
 }
 
 /**
@@ -2188,7 +2213,7 @@ after which must get the count from the genstep array
 
 **/
 
-unsigned SEvt::getNumGenstepFromGenstep() const
+int64_t SEvt::getNumGenstepFromGenstep() const
 {
     assert( genstep.size() == gs.size() );
     return genstep.size() ;
@@ -2204,22 +2229,22 @@ SEvt::getNumPhotonCollected is faster.
 
 **/
 
-unsigned SEvt::getNumPhotonFromGenstep() const
+int64_t SEvt::getNumPhotonFromGenstep() const
 {
-    unsigned tot = 0 ;
+    int64_t tot = 0 ;
     for(unsigned i=0 ; i < genstep.size() ; i++) tot += genstep[i].numphoton() ;
     return tot ;
 }
 
-unsigned SEvt::getNumGenstepCollected() const
+int64_t SEvt::getNumGenstepCollected() const
 {
     return numgenstep_collected ;  // updated by addGenstep
 }
-unsigned SEvt::getNumPhotonCollected() const
+int64_t SEvt::getNumPhotonCollected() const
 {
     return numphoton_collected ;   // updated by addGenstep
 }
-unsigned SEvt::getNumPhotonGenstepMax() const
+int64_t SEvt::getNumPhotonGenstepMax() const
 {
     return numphoton_genstep_max ;
 }
@@ -2343,11 +2368,11 @@ sgs SEvt::addGenstep(const quad6& q_)
 
 
 #ifdef SEVT_NUMPHOTON_FROM_GENSTEP_CHECK
-    unsigned numphoton_from_genstep = getNumPhotonFromGenstep() ; // sum numphotons from all previously collected gensteps (since last clear)
+    int64_t numphoton_from_genstep = getNumPhotonFromGenstep() ; // sum numphotons from all previously collected gensteps (since last clear)
     assert( numphoton_from_genstep == numphoton_collected );
 #endif
 
-    unsigned q_numphoton = q.numphoton() ;          // numphoton in this genstep
+    int64_t q_numphoton = q.numphoton() ;          // numphoton in this genstep
     if(q_numphoton > numphoton_genstep_max) numphoton_genstep_max = q_numphoton ;
 
 
@@ -2365,7 +2390,7 @@ sgs SEvt::addGenstep(const quad6& q_)
     numphoton_collected += q_numphoton ;  // keep running total for all gensteps collected, since last clear
 
 
-    int tot_photon = s.offset+s.photons ;
+    int64_t tot_photon = s.offset+s.photons ;
 
     LOG_IF(debug, enabled) << " s.desc " << s.desc() << " gidx " << gidx << " enabled " << enabled << " tot_photon " << tot_photon ;
 
@@ -2420,11 +2445,10 @@ needed to accommodate the photons from the last genstep collected.
 
 **/
 
-void SEvt::setNumPhoton(unsigned num_photon)
+void SEvt::setNumPhoton(int64_t num_photon)
 {
     //LOG_IF(info, LIFECYCLE) << id() << " num_photon " << num_photon ;
-    bool num_photon_allowed = num_photon <= (unsigned)(evt->max_photon) ;   // evt->max_slot ?
-    const int M = 1000000 ;
+    bool num_photon_allowed = num_photon <= evt->max_photon ;  // NOW THIS IS ARBITRARY AND VERY HIGH LIMIT
 
     LOG_IF(fatal, !num_photon_allowed)
         << " num_photon/M " << num_photon/M
@@ -2470,9 +2494,9 @@ SEvt::setNumSimtrace
 
 **/
 
-void SEvt::setNumSimtrace(unsigned num_simtrace)
+void SEvt::setNumSimtrace(int64_t num_simtrace)
 {
-    bool num_simtrace_allowed = int(num_simtrace) <= evt->max_simtrace ;
+    bool num_simtrace_allowed = num_simtrace <= evt->max_simtrace ;
     LOG_IF(fatal, !num_simtrace_allowed) << " num_simtrace " << num_simtrace << " evt.max_simtrace " << evt->max_simtrace ;
     assert( num_simtrace_allowed );
     LOG(LEVEL) << " num_simtrace " << num_simtrace ;
@@ -2705,7 +2729,7 @@ void SEvt::beginPhoton(const spho& label)
     LOG(LEVEL) ;
     LOG(LEVEL) << label.desc() ;
 
-    unsigned idx = label.id ;
+    unsigned idx = label.id ;  // WIP: label.id is int, should be unsigned
 
     bool in_range = idx < pho.size() ;
     LOG_IF(error, !in_range)
@@ -2747,7 +2771,7 @@ void SEvt::beginPhoton(const spho& label)
     ctx.evt = evt ;
     ctx.prd = &current_prd ;   // current_prd is populated by InstrumentedG4OpBoundaryProcess::PostStepDoIt
 
-    ctx.p.set_idx(idx);
+    ctx.p.index = idx ;
     ctx.p.set_flag(genflag);
 
     bool flagmask_one_bit = ctx.p.flagmask_count() == 1  ;
@@ -2881,7 +2905,7 @@ void SEvt::rjoinPhoton(const spho& label)
     // NB: within scintillator, photons of any gentype may undergo reemission
 
     const sphoton& parent_photon = photon[idx] ;
-    unsigned parent_idx = parent_photon.idx() ;
+    unsigned parent_idx = parent_photon.index ;
     bool parent_idx_expect = parent_idx == idx  ;
     assert( parent_idx_expect );
     if(!parent_idx_expect) std::raise(SIGINT);
@@ -2942,8 +2966,8 @@ void SEvt::rjoinPhoton(const spho& label)
 
 void SEvt::rjoinRecordCheck(const sphoton& rj, const sphoton& ph  ) const
 {
-    assert( rj.idx() == ph.idx() );
-    unsigned idx = rj.idx();
+    assert( rj.get_index() == ph.get_index() );
+    uint64_t idx = rj.get_index();
     bool d12match = sphoton::digest_match( rj, ph, 12 );
     if(!d12match) dbg->d12match_fail++ ;
     if(!d12match) ComparePhotonDump(rj, ph) ;
@@ -3835,6 +3859,10 @@ Note thet QEvent::setGenstep invoked SEvt::clear so the genstep vectors
 are clear when this gets called. So must rely on the contents of the
 fold to get the stats.
 
+
+Q: Where does the SEvt::meta get passed to the NPFold ?
+
+
 **/
 
 void SEvt::gather_components()   // *GATHER*
@@ -3905,9 +3933,20 @@ void SEvt::gather_components()   // *GATHER*
 SEvt::gather_metadata
 ----------------------
 
-Lots of timing metadata, so try calling from SEvt::endOfEvent not SEvt::gather
+Sets ((NPFold)topfold).meta to SEvt::meta
 
-HMM: replaces fold.meta with metadata from provider : either this SEvt or QEvent ?
+This is invoked from SEvt::endOfEvent (not SEvt::gather) because the metadata
+contains timing information, so gathering immediately prior to
+save allows the metadata to be more complete.
+
+Note that while the SCompProvider is QEvent(GPU) or this SEvt(CPU)
+in both cases the metadata is from SEvt::meta (potentially different
+instances of SEvt when doing both CPU and GPU running).
+This is because QEvent::getMeta returns SEvt::meta for from
+the associated QEvt::sev (SEvt) instance.
+
+Note that because SEvt::save is typically not done in production,
+the SProf.hh metadata data recording is more generally useful.
 
 **/
 
@@ -4658,7 +4697,30 @@ std::string SEvt::descSimulate() const
     return str ;
 }
 
+/**
+SEvt::getCounts
+----------------
 
+**/
+
+std::string SEvt::getCounts() const
+{
+    int64_t gs = getNumGenstepCollected();
+    int64_t ph = getNumPhotonCollected();
+    int64_t ht = getNumHit();
+
+    std::stringstream ss ;
+    ss
+      << "numGenstepCollected=" << gs
+      << ","
+      << "numPhotonCollected=" << ph
+      << ","
+      << "numHit=" << ht
+      ;
+
+    std::string str = ss.str();
+    return str ;
+}
 
 
 
@@ -4794,7 +4856,7 @@ using the same geometry as the server anyhow.
 void SEvt::getLocalHit(sphit& ht, sphoton& lp, unsigned idx) const
 {
     getHit(lp, idx);   // copy *idx* hit from NP array (starts global frame) into sphoton& lp struct of caller
-    int iindex = lp.iindex ;
+    int iindex = lp.iindex() ;
 
     const glm::tmat4x4<double>* tr = tree ? tree->get_iinst(iindex) : nullptr ;
 
@@ -4839,7 +4901,7 @@ instance
 void SEvt::getPhotonFrame( sframe& fr, const sphoton& p ) const
 {
     assert(cf);
-    cf->getFrame(fr, p.iindex);
+    cf->getFrame(fr, p.iindex() );
     fr.prepare();
 }
 
