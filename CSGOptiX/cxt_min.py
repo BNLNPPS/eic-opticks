@@ -89,6 +89,13 @@ from opticks.sysrap.sevt import SEvt
 from opticks.ana.p import cf    # load CSGFoundry geometry info
 from opticks.CSG.CSGFoundry import KeyNameConfig
 
+try:
+    from scipy.spatial import KDTree
+except ImportError:
+    KDTree = None
+pass
+
+
 MODE = int(os.environ.get("MODE","2"))
 NORMAL = int(os.environ.get("NORMAL","0"))
 NORMAL_FILTER = int(os.environ.get("NORMAL_FILTER","10000")) # modulo scaledown for normal presentation
@@ -107,6 +114,7 @@ POINT = np.fromstring(os.environ["POINT"],sep=",").reshape(-1,3) if "POINT" in o
 POINTSIZE = float(os.environ.get("POINTSIZE",1.))
 APOINTSIZE = float(os.environ.get("APOINTSIZE",10.))
 BPOINTSIZE = float(os.environ.get("BPOINTSIZE",10.))
+
 
 
 if MODE in [2,3]:
@@ -146,7 +154,13 @@ class UniqueTable(object):
 
 if __name__ == '__main__':
 
-    print("GLOBAL:%d MODE:%d" % (GLOBAL,MODE))
+    logging.basicConfig(
+           level=logging.INFO,
+           format='%(asctime)s - %(message)s',
+           datefmt='%H:%M:%S'   # .%f
+    )
+
+    log.info("GLOBAL:%d MODE:%d" % (GLOBAL,MODE))
 
     prn_config = KeyNameConfig.Parse("$HOME/.opticks/GEOM/cxt_min.ini", "key_prim_regexp")
 
@@ -238,12 +252,47 @@ if __name__ == '__main__':
 
 
     ust = st[presel]   ## example ust shape (13812151, 4, 4)
+    ## for simtrace layout see sysrap/sevent.h
 
-    gp_bn = ust[:,2,3].view(np.int32)    ## simtrace intersect boundary indices
-    gp = gp_bn >> 16      ## globalPrimIdx
-    bn = gp_bn & 0xffff   ## boundary
+    _ii = ust[:,3,3].view(np.int32)   ## instanceIndex
+    _gp_bn = ust[:,2,3].view(np.int32)    ## simtrace intersect boundary indices
+    _gp = _gp_bn >> 16      ## globalPrimIdx
+    _bn = _gp_bn & 0xffff   ## boundary
 
-    ii = ust[:,3,3].view(np.int32)   ## instanceIndex
+    gnrm = ust[:,0].copy()
+    gpos = ust[:,1].copy()
+
+    gnrm[...,3] = 0.   ## surface normal transforms as vector
+    gpos[...,3] = 1.   ## intersect position transforms as position
+
+    ## transform from global to local frame
+    lnrm = np.dot( gnrm, w2m )
+    lpos = np.dot( gpos, w2m )
+
+    elu_m2w = m2w if GLOBAL else np.eye(4)   ## try to make EYE,LOOK,UP stay local even in GLOBAL
+    _unrm = gnrm if GLOBAL else lnrm
+    _upos = gpos if GLOBAL else lpos
+
+    if "BOXSEL" in os.environ:
+        BOXSEL = np.fromstring(os.environ.get("BOXSEL","-1000,1000,-1000,1000,-1000,1000"),sep=",").reshape(3,2)
+        boxsel = np.all( (_upos[:,:3] > BOXSEL[:,0]) & (_upos[:,:3] < BOXSEL[:,1]), axis=1)
+        upos = _upos[boxsel]
+        unrm = _unrm[boxsel]
+
+        ii = _ii[boxsel]
+        gp = _gp[boxsel]
+        bn = _bn[boxsel]
+    else:
+        upos = _upos
+        unrm = _unrm
+        ii = _ii
+        gp = _gp
+        bn = _bn
+    pass
+
+
+
+
 
     EXPR = list(map(str.strip,textwrap.dedent(r"""
     st.shape
@@ -258,6 +307,11 @@ if __name__ == '__main__':
         if expr == "" or expr[0] == "#": continue
         print(repr(eval(expr)))
     pass
+
+
+
+
+
 
 
     idtab = UniqueTable("idtab", ii, None)
@@ -280,6 +334,7 @@ if __name__ == '__main__':
         KK = None
     pass
 
+    ## analyse frequencies of occurence of the label integers
     cxtb, btab = cf.simtrace_boundary_analysis(bn, KEY)
     print(repr(cxtb))
     print(repr(btab))
@@ -291,20 +346,6 @@ if __name__ == '__main__':
     cxtable = cxtp if PRIMTAB==1 else cxtb
 
 
-    ## for simtrace layout see sysrap/sevent.h
-    gnrm = ust[:,0].copy()
-    gpos = ust[:,1].copy()
-
-    gnrm[...,3] = 0.   ## surface normal transforms as vector
-    gpos[...,3] = 1.   ## intersect position transforms as position
-
-    ## transform from global to local frame
-    lnrm = np.dot( gnrm, w2m )
-    lpos = np.dot( gpos, w2m )
-
-    elu_m2w = m2w if GLOBAL else np.eye(4)   ## try to make EYE,LOOK,UP stay local even in GLOBAL
-    unrm = gnrm if GLOBAL else lnrm
-    upos = gpos if GLOBAL else lpos
 
     ASLICE = None
     AIDX = int(os.environ.get("AIDX","0"))
@@ -362,10 +403,16 @@ if __name__ == '__main__':
              NORMAL_FILTER
 
         """
-        def __init__(self, pl, cxtable):
+        def __init__(self, pl, cxtable, hide=False):
+            """
+            :param pl: pyvista plotter
+            :param cxtable: analysis of simtrace integer such as boundary or globalPrimIdx
+            """
             self.cxtable = cxtable
             pl.enable_point_picking(callback=self, use_picker=True, show_message=False)
             pcloud = {}
+            pts = {}
+            nrm = {}
             pcinfo = np.zeros( (len(cxtable.wdict),3), dtype=np.int64 )
             i = 0
             keys = np.array(list(cxtable.wdict.keys()))
@@ -378,7 +425,20 @@ if __name__ == '__main__':
                     if skip1: continue
                 pass
                 label = self.get_label(k)
-                pcloud[k] = pvp.pvplt_add_points(pl, upos[w,:3], color=k, label=label )
+
+                # example KEYOFF "honeydew:0,0,-1000"
+                if os.environ.get("KEYOFF","").startswith(k+":"):
+                    KEYOFF = np.fromstring(os.environ["KEYOFF"][len(k+":"):],sep=",").reshape(3)
+                else:
+                    KEYOFF = np.array([0,0,0], dtype=np.float32)
+                pass
+                pts[k] = upos[w,:3] + KEYOFF
+                nrm[k] = unrm[w,:3]
+                if not hide:
+                    pcloud[k] = pvp.pvplt_add_points(pl, pts[k], color=k, label=label )
+                else:
+                    pcloud[k] = None
+                pass
                 n_verts = pcloud[k].n_verts if not pcloud[k] is None else 0
                 pcinfo[i,0] = n_verts
                 if NORMAL > 0: pvp.pvplt_add_delta_lines(pl, upos[w,:3][::NORMAL_FILTER], 20*unrm[w,:3][::NORMAL_FILTER], color=k, pickable=False )
@@ -389,6 +449,8 @@ if __name__ == '__main__':
             self.pcloud = pcloud
             self.pcinfo = pcinfo
             self.keys = keys
+            self.pts = pts
+            self.nrm = nrm
 
         def get_label(self, k):
             cxtable = self.cxtable
@@ -416,6 +478,10 @@ if __name__ == '__main__':
         pass
     pass
 
+
+
+
+
     if MODE == 2:
         pl = pvp.mpplt_plotter(label=label)
         fig, axs = pl
@@ -436,9 +502,77 @@ if __name__ == '__main__':
         pl = pvp.pvplt_plotter(label)
 
         pvp.pvplt_viewpoint(pl, verbose=True, m2w=elu_m2w)   # sensitive to EYE, LOOK, UP envvars
+
+
         if FRAME: pvp.pvplt_frame(pl, sf, local=not GLOBAL, pickable=False )
 
-        spl = SimtracePlot(pl, cxtable)
+
+        HIDE="HIDE" in os.environ
+        spl = SimtracePlot(pl, cxtable, hide=HIDE)
+
+
+        if "OVERLAP" in os.environ and len(spl.pcloud) == 2 and not KDTree is None:
+            overlap_tol = float(os.environ["OVERLAP"]) # eg 1 0.1 0.01 0.001 or 1e-3
+            assert overlap_tol > 0
+            close_tol = overlap_tol*10
+            print("OVERLAP check overlap_tol : %s close_tol %s " % (overlap_tol, close_tol  ))
+            k0, k1 = list(spl.pts.keys())
+            pt0 = spl.pts[k0]    # eg (547840, 3)
+            pt1 = spl.pts[k1]    # eg (259548, 3)
+            nr0 = spl.nrm[k0]    # eg (547840, 3)
+            nr1 = spl.nrm[k1]    # eg (259548, 3)
+
+
+            log.info("-OVERLAP-form KDTree kt0 pt0.shape %s" % (str(pt0.shape)))
+            kt0 = KDTree(pt0)
+            log.info("-OVERLAP-form KDTree kt1 pt1.shape %s" % (str(pt1.shape)))
+            kt1 = KDTree(pt1)
+
+            # query nearest neighbors between two clouds
+            log.info("-OVERLAP-kt0.query pt1.shape %s " % (str(pt1.shape)))
+            dist_1to0, idx_1to0 = kt0.query(pt1, k=1) # pt1: (259548, 3) dist_1to0: (259548,)  idx_1to0:(259548,)
+            log.info("-OVERLAP-kt0.query.DONE")
+            log.info("-OVERLAP-kt1.query pt0.shape %s " % (str(pt0.shape)))
+            dist_0to1, idx_0to1 = kt1.query(pt0, k=1) #                  dist_0to1: (547840,)
+            log.info("-OVERLAP-kt1.query.DONE")
+
+            close_0 = dist_0to1 < close_tol
+            close_1 = dist_1to0 < close_tol
+
+            close_pt0 = pt0[close_0]
+            close_pt1 = pt1[close_1]
+            close_pt = np.unique(np.vstack([close_pt0, close_pt1]), axis=0)
+
+            all_sd0 = np.sum( (pt0 - pt1[idx_0to1])*nr1[idx_0to1], axis=1 )
+            all_sd1 = np.sum( (pt1 - pt0[idx_1to0])*nr0[idx_1to0], axis=1 )
+
+            close_sd0 = np.sum( (pt0 - pt1[idx_0to1])[close_0]*nr1[idx_0to1][close_0], axis=1 )
+            close_sd1 = np.sum( (pt1 - pt0[idx_1to0])[close_1]*nr0[idx_1to0][close_1], axis=1 )
+
+
+            #overlap_pt0 = pt0[all_sd0 < -overlap_tol]
+            #overlap_pt1 = pt1[all_sd1 < -overlap_tol]
+            overlap_pt0 = pt0[close_0][close_sd0 < -overlap_tol]
+            overlap_pt1 = pt1[close_1][close_sd1 < -overlap_tol]
+
+
+            overlap_pt = np.unique(np.vstack([overlap_pt0, overlap_pt1]), axis=0)
+
+            cegs_npy = os.environ.get("CEGS_NPY","")  # eg /tmp/overlap_pt.npy see SFrameGenstep::MakeCenterExtentGenstep_FromFrame
+            if cegs_npy.endswith(".npy"):
+                np.save(cegs_npy, overlap_pt)
+            pass
+
+            close_label = "close_pt  %s " % (len(close_pt))
+            overlap_label = "overlap_pt  %s " % (len(overlap_pt))
+
+            #pvp.pvplt_add_points(pl, close_pt,   color="yellow", label=close_label,   copy_mesh=True, point_size=5 ) # HUH setting pointsize here effects all points
+            pvp.pvplt_add_points(pl, overlap_pt, color="yellow", label=overlap_label, copy_mesh=True, point_size=5 ) # HUH setting pointsize here effects all points
+        else:
+            close_pd = None
+        pass
+
+
 
         if GSGRID: pl.add_points(ugrid[:,:3], color="r", pickable=False )
 
@@ -455,6 +589,8 @@ if __name__ == '__main__':
         pass
         pl.track_click_position(callback_click_position)
         if not POINT is None: pl.add_points(POINT, color="r", label="POINT") # point_size=POINTSIZE, render_points_as_spheres=True)
+
+        #pl.reset_camera() # avoids blank start screen, but resets view to include all points - not what want
 
         cp = pvp.pvplt_show(pl, incpoi=-5, legend=True, title=None )
     else:

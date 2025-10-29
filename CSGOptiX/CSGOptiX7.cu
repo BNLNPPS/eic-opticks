@@ -350,6 +350,23 @@ Params
 
 COMPARE WITH qsim::mock_propagate
 
+
+
+Is cycling of the launch_idx.x (unsigned)idx possible here ? NOT YET
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* 0xffffffff/1e9 = 4.29 billion photons in one launch would need VRAM of 275 GB::
+
+    In [102]: (0xffffffff*4*4*4)/1e9
+    Out[102]: 274.87790688   # 275 GB of photons in one launch ?
+
+
+* suggests should limit max_slot to 0xffffffff (4.29 billion, on top of VRAM requirements)
+* current heuristic limit of 250M photons when limited by 32 GB VRAM
+
+* NOTE THE ABSOLUTE photon_idx IS LIKELY BEING CYCLED HOWEVER
+
+
 **/
 
 static __forceinline__ __device__ void simulate( const uint3& launch_idx, const uint3& dim, quad2* prd )
@@ -362,7 +379,9 @@ static __forceinline__ __device__ void simulate( const uint3& launch_idx, const 
     const quad6& gs = evt->genstep[genstep_idx] ;
     // genstep needs the raw index, from zero for each genstep slice sub-launch
 
-    unsigned photon_idx = params.photon_slot_offset + idx ;
+    unsigned long long photon_idx = params.photon_slot_offset + idx ;
+    // 2025/10/20 change from unsigned to avoid clocking photon_idx and duplicating
+    //
     // rng_state access and array recording needs the absolute photon_idx
     // for multi-launch and single-launch simulation to match.
     // The offset hides the technicality of the multi-launch from output.
@@ -477,7 +496,7 @@ static __forceinline__ __device__ void simtrace( const uint3& launch_idx, const 
     // photon_idx same as idx for first launch, offset beyond first for multi-launch
 
 #if defined(DEBUG_PIDX)
-    if(photon_idx == 0) printf("//CSGOptiX7.cu : simtrace idx %d photon_idx %d  genstep_idx %d evt->num_simtrace %d \n", idx, photon_idx, genstep_idx, evt->num_simtrace );
+    if(photon_idx == 0) printf("//CSGOptiX7.cu : simtrace idx %d photon_idx %d  genstep_idx %d evt->num_simtrace %ld \n", idx, photon_idx, genstep_idx, evt->num_simtrace );
 #endif
 
     const quad6& gs = evt->genstep[genstep_idx] ;
@@ -719,6 +738,7 @@ extern "C" __global__ void __closesthit__ch()
         // HMM: could use P to give the local position ?
 
         float lposcost = normalize_z(P); // scuda.h  "cosTheta" z/len of local frame position
+        //float lposphi = atan2f( P.y, P.x );
 
 #ifdef WITH_PRD
         quad2* prd = SOPTIX_getPRD<quad2>();
@@ -822,7 +842,10 @@ extern "C" __global__ void __intersection__is()
     bool valid_isect = intersect_prim(isect, node, plan, itra, t_min , ray_origin, ray_direction, dumpxyz );
     if(valid_isect)
     {
-        const float lposcost = normalize_z(ray_origin + isect.w*ray_direction ) ;  // scuda.h cosTheta z/len of local(aka Object) frame position
+        const float3 lpos = ray_origin + isect.w*ray_direction ;
+        const float lposcost = normalize_z(lpos) ;  // scuda.h cosTheta z/len of local(aka Object) frame position
+        //const float lposphi = atan2f( lpos.y, lpos.x );
+
         const unsigned hitKind = 0u ;     // only up to 127:0x7f : could use to customize how attributes interpreted
         const unsigned boundary = node->boundary() ;  // all CSGNode in the tree for one CSGPrim tree have same boundary
         const unsigned globalPrimIdx_boundary = (( globalPrimIdx & 0xffffu ) << 16 ) | ( boundary & 0xffffu ) ;

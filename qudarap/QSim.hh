@@ -2,6 +2,8 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
+
 #include "QUDARAP_API_EXPORT.hh"
 #include "plog/Severity.h"
 
@@ -55,7 +57,9 @@ struct SCSGOptiX ;
 
 struct QUDARAP_API QSim
 {
-    static constexpr const int M = 1000000 ;
+    static constexpr const int64_t M = 1000000 ;
+    static constexpr const int64_t G = 1000000000 ;
+
     static const plog::Severity LEVEL ;
     static const char* PREFIX ;
     static QSim* INSTANCE ;
@@ -122,7 +126,7 @@ public:
 
     static void MaybeSaveIGS(int eventID, NP* igs);
 
-    int    getPhotonSlotOffset() const ;
+    unsigned long long get_photon_slot_offset() const ;
 
     void   reset( int eventID);
 

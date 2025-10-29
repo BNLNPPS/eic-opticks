@@ -220,6 +220,7 @@ inline void net_hdr::unpack( char* data, unsigned num_bytes, std::vector<unsigne
 struct NPS
 {
     typedef std::int64_t INT ;
+    typedef std::uint64_t UINT ;
     static constexpr const INT ONE = 1 ;  // -std=c++11 SOMETIMES GIVES LINK ERRORS : but NOT -std=c++17
 
     NPS(std::vector<INT>& shape_ ) : shape(shape_) {}  ;
@@ -360,6 +361,16 @@ struct NPS
         for(INT i=0; i<ndim; ++i) sz *= shape[i] ;
         return ndim == 0 ? 0 : sz ;
     }
+
+    static NPS::UINT usize(const std::vector<INT>& shape)
+    {
+        INT ndim = INT(shape.size());
+        UINT sz = 1;
+        for(INT i=0; i<ndim; ++i) sz *= shape[i] ;
+        return ndim == 0 ? 0 : sz ;
+    }
+
+
 
     static size_t size(const std::vector<size_t>& shape)
     {
@@ -576,7 +587,11 @@ struct U
 
     template<typename T>
     static std::vector<T>* GetEnvVec(const char* ekey, const char* fallback, char delim=',');
-    static int         GetEnvInt( const char* envkey, int fallback );
+    static int         GetEnvInt(  const char* envkey, int fallback );
+
+    static size_t StringToSize(const std::string& str);
+    static size_t GetEnvSize(const char* envkey, size_t fallback);
+
     static const char* GetEnv(    const char* envkey, const char* fallback);
     static bool        HasEnv( const char* envkey );
 
@@ -611,8 +626,11 @@ struct U
 
     static const char* ReadString( const char* dir, const char* reldir, const char* name);
     static const char* ReadString( const char* dir, const char* name);
+
+    static std::string ReadString_( const char* path_ );
     static const char* ReadString( const char* path );
 
+    static std::string ReadString2_( const char* path_ );
     static const char* ReadString2( const char* path );
 
     static uint64_t Now();
@@ -625,7 +643,8 @@ struct U
     static std::string Format(uint64_t t=0, const char* fmt="%FT%T.", int _wsubsec=3 );
 
     static constexpr const char* LOG_FMT = "%Y-%m-%d %H:%M:%S" ;
-    static std::string FormatLog();
+    static std::string FormatLog(const char* msg=nullptr);
+    static std::string Log(const char* msg=nullptr);
 
     static std::string FormatInt(int64_t t, int wid );
 
@@ -832,6 +851,38 @@ inline int U::GetEnvInt(const char* envkey, int fallback)
     int ival = val ? std::atoi(val) : fallback ;
     return ival ;
 }
+
+
+inline size_t U::StringToSize(const std::string& str)
+{
+    try
+    {
+        size_t pos;
+        size_t result = std::stoul(str, &pos);
+        if (pos != str.length()) throw std::invalid_argument("U::StringToSize - string contains invalid characters");
+        return result;
+    } catch (const std::invalid_argument&) {
+        throw std::invalid_argument("U::StringToSize - Invalid input: not a valid number");
+    } catch (const std::out_of_range&) {
+        throw std::out_of_range("Number out of range for size_t");
+    }
+}
+
+
+inline size_t U::GetEnvSize(const char* envkey, size_t fallback)
+{
+    char* val = std::getenv(envkey);
+    if (!val) return fallback;
+    try
+    {
+        return StringToSize(val);
+    }
+    catch (const std::exception&)
+    {
+        return fallback; // Return fallback on invalid input
+    }
+}
+
 
 inline const char* U::GetEnv(const char* envkey, const char* fallback)
 {
@@ -1837,7 +1888,8 @@ inline const char* U::ReadString( const char* dir, const char* name) // static
     return ReadString(path.c_str());
 }
 
-inline const char* U::ReadString( const char* path_ )  // static
+
+inline std::string U::ReadString_( const char* path_ )  // static
 {
     const char* path = Resolve(path_);
     std::vector<std::string> lines ;
@@ -1852,16 +1904,29 @@ inline const char* U::ReadString( const char* path_ )  // static
         if( i < num_lines - 1 ) ss << std::endl ;
     }
     std::string str = ss.str();
+    return str ;
+}
+
+inline const char* U::ReadString( const char* path_ )  // static
+{
+    std::string str = ReadString_(path_);
     return str.empty() ? nullptr : strdup(str.c_str()) ;
 }
 
-inline const char* U::ReadString2(const char* path_)  // static
+
+inline std::string U::ReadString2_(const char* path_)  // static
 {
     const char* path = Resolve(path_);
     std::ifstream ifs(path);
     std::stringstream ss ;
     ss << ifs.rdbuf();
     std::string str = ss.str();
+    return str ;
+}
+
+inline const char* U::ReadString2(const char* path_)  // static
+{
+    std::string str = ReadString2_(path_);
     return str.empty() ? nullptr : strdup(str.c_str()) ;
 }
 
@@ -1944,10 +2009,29 @@ inline bool U::LooksLikeProfileTriplet(const char* str) // static
 }
 
 
-inline std::string U::FormatLog() // static
+inline std::string U::FormatLog(const char* msg) // static
 {
-    return U::Format(0, LOG_FMT, 3);
+    std::string line = U::Format(0, LOG_FMT, 3);
+    if(msg)
+    {
+        line += " " ;
+        line += msg ;
+    }
+    return line ;
 }
+
+inline std::string U::Log(const char* msg) // static
+{
+    std::string line = U::Format(0, LOG_FMT, 3);
+    if(msg)
+    {
+        line += " " ;
+        line += msg ;
+    }
+    return line ;
+}
+
+
 
 inline std::string U::Format(uint64_t t, const char* fmt, int _wsubsec) // static
 {
@@ -2074,6 +2158,8 @@ U::GetMetaKVS_   (formerly NP::GetMetaKVS_)
 
 Note that for only_with_stamp:false placeholder timestamp values of zero are provided
 for lines without stamps or profile triplets.
+
+Note that when a timestamp is detected both a string and integer version of it are provided.
 
 **/
 

@@ -4,6 +4,7 @@ sdigest_test.sh
 ================
 
 ~/o/sysrap/tests/sdigest_test.sh
+~/o/sysrap/tests/sdigest_test.sh info_build_hit
 
 
 EOU
@@ -39,6 +40,17 @@ if [ "${arg/run}" != "$arg" ]; then
    $bin
    [ $? -ne 0 ] && echo $BASH_SOURCE run error && exit 2
 fi
+
+
+if [ "${arg/hit}" != "$arg" ]; then
+
+   export HITFOLD=/data1/blyth/tmp/GEOM/J25_4_0_opticks_Debug/CSGOptiXSMTest/ALL1_Debug_Philox_vvvlarge_evt/A000
+   TEST=Hit $bin
+   [ $? -ne 0 ] && echo $BASH_SOURCE hit error && exit 2
+fi
+
+
+
 
 exit 0 
 

@@ -53,7 +53,7 @@ inline void U4HitGet::ConvertFromPhoton(U4Hit& hit,  const sphoton& global, cons
     hit.nodeIndex = -1 ;
 
     hit.boundary = global.boundary() ;
-    hit.photonIndex = global.idx() ;
+    hit.photonIndex = global.get_index() ;
     hit.flag_mask = global.flagmask ;
     hit.is_cerenkov = global.is_cerenkov() ;
     hit.is_reemission = global.is_reemit() ;
@@ -71,6 +71,10 @@ U4HitGet::FromEvt
 HMM: this is awkward for Opticks-as-a-service as do not want to return both global and local ?
 Better to define a composite hit array serialization that can be formed on the server,
 to avoid doubling the size of hit array that needs to be returned.
+
+The Opticks-client will be receiving global hit(sphoton)
+from which it needs to do something like SEvt::getLocalHit
+to apply the appropriate transforms to get the local hit.
 
 **/
 
