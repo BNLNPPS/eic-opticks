@@ -30,11 +30,12 @@ A: WIP: moving the QSim methods to be called via CSGOptiX
 #include "CSGFoundry.h"
 
 #include "CSGOptiX.h"
+
+
+#ifdef WITH_QS
 #include "QSim.hh"
-
-
-#ifdef WITH_CUSTOM4
 #endif
+
 
 #include "G4CXOpticks.hh"
 
@@ -147,7 +148,7 @@ void G4CXOpticks::Finalize() // static
     LOG(LEVEL);
 }
 
-bool G4CXOpticks::NoGPU = false ; 
+bool G4CXOpticks::NoGPU = false ;
 void G4CXOpticks::SetNoGPU(bool no_gpu){ NoGPU = no_gpu ; }
 bool G4CXOpticks::IsNoGPU(){  return NoGPU ; }
 
@@ -174,7 +175,9 @@ G4CXOpticks::G4CXOpticks()
     wd(nullptr),
     fd(nullptr),
     cx(nullptr),
+#ifdef WITH_QS
     qs(nullptr),
+#endif
     t0(schrono::stamp())
 {
     init();
@@ -208,7 +211,9 @@ std::string G4CXOpticks::desc() const
        << " wd " << ( wd ? "Y" : "N" )
        << " fd " << ( fd ? "Y" : "N" )
        << " cx " << ( cx ? "Y" : "N" )
+#ifdef WITH_QS
        << " qs " << ( qs ? "Y" : "N" )
+#endif
        ;
     std::string s = ss.str();
     return s ;
@@ -404,6 +409,7 @@ void G4CXOpticks::setGeometry_(CSGFoundry* fd_)
             ;
     }
 
+#ifdef WITH_QS
     qs = cx ? cx->sim : nullptr ;   // QSim
 
     QSim* qsg = QSim::Get()  ;
@@ -415,6 +421,7 @@ void G4CXOpticks::setGeometry_(CSGFoundry* fd_)
         ;
 
     assert( qs == qsg );
+#endif
 
 
     LOG(LEVEL) << "] fd " << fd ;
@@ -466,7 +473,12 @@ void G4CXOpticks::simulate(int eventID, bool reset_ )
 
     assert(cx);
 
+#ifdef WITH_QS
+    assert(qs);
+    qs->simulate(eventID, reset_ );
+#else
     cx->simulate(eventID, reset_);
+#endif
 
 
     LOG(LEVEL) << "] " << eventID ;
@@ -494,7 +506,12 @@ void G4CXOpticks::reset(int eventID)
     unsigned num_hit_0 = SEvt::GetNumHit_EGPU() ;
     LOG(LEVEL) << "[ " << eventID << " num_hit_0 " << num_hit_0  ;
 
+#ifdef WITH_QS
+    assert(qs);
+    qs->reset(eventID);
+#else
     cx->reset(eventID);
+#endif
 
     unsigned num_hit_1 = SEvt::GetNumHit_EGPU() ;
     LOG(LEVEL) << "] " << eventID << " num_hit_1 " << num_hit_1  ;
@@ -511,8 +528,13 @@ void G4CXOpticks::simtrace(int eventID)
 
     LOG(LEVEL) << "[" ;
 
+#ifdef WITH_QS
+    assert(qs);
+    qs->simtrace(eventID);
+#else
     assert(cx);
     cx->simtrace(eventID);
+#endif
 
 
     LOG(LEVEL) << "]" ;
