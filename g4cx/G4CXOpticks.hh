@@ -1,6 +1,6 @@
 #pragma once
 /**
-Temporarily : G4CXOpticks, Aiming to replace G4Opticks
+G4CXOpticks, Replaced G4Opticks
 =========================================================
 
 * KEEP THIS MINIMAL : PROVIDING TOP LEVEL INTERFACE AND COORDINARION
@@ -23,14 +23,14 @@ class G4VPhysicalVolume ;
 struct CSGFoundry ;
 struct CSGOptiX ;
 struct SSim ;
+
+#ifdef WITH_QS
 struct QSim ;
+#endif
 
 #include "schrono.h"
 #include "plog/Severity.h"
 #include "G4CX_API_EXPORT.hh"
-
-#include <filesystem>
-
 
 struct G4CX_API G4CXOpticks
 {
@@ -61,7 +61,11 @@ struct G4CX_API G4CXOpticks
     const G4VPhysicalVolume* wd ;
     CSGFoundry*              fd ;
     CSGOptiX*                cx ;
+
+#ifdef WITH_QS
     QSim*                    qs ;
+#endif
+
     schrono::TP              t0 ;
 
 
@@ -87,7 +91,6 @@ public:
 
     void simulate( int eventID, bool reset );
     void reset(    int eventID );
-
     void simtrace(int eventID);
     void render();
 
@@ -100,5 +103,3 @@ public:
 
 };
 
-
-void from_gdml(std::filesystem::path gdml_file, std::filesystem::path out_prefix = "csg");
