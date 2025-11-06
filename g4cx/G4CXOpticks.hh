@@ -32,6 +32,9 @@ struct QSim ;
 #include "plog/Severity.h"
 #include "G4CX_API_EXPORT.hh"
 
+#include <filesystem>
+
+
 struct G4CX_API G4CXOpticks
 {
     static const plog::Severity LEVEL ;
