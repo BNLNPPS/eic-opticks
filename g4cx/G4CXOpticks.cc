@@ -38,6 +38,7 @@ A: WIP: moving the QSim methods to be called via CSGOptiX
 
 #include "G4CXOpticks.hh"
 
+using namespace std;
 
 const plog::Severity G4CXOpticks::LEVEL = SLOG::EnvLevel("G4CXOpticks", "DEBUG");
 
