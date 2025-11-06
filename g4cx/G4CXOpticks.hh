@@ -1,6 +1,6 @@
 #pragma once
 /**
-Temporarily : G4CXOpticks, Aiming to replace G4Opticks
+G4CXOpticks, Replaced G4Opticks
 =========================================================
 
 * KEEP THIS MINIMAL : PROVIDING TOP LEVEL INTERFACE AND COORDINARION
@@ -87,7 +87,6 @@ public:
 
     void simulate( int eventID, bool reset );
     void reset(    int eventID );
-
     void simtrace(int eventID);
     void render();
 
