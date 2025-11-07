@@ -160,7 +160,7 @@ if(PMTSim_standalone_FOUND)
 endif()
 
 
-install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${name})
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/${name})
 
 install(TARGETS ${name}
         EXPORT ${PROJECT_NAME}Targets

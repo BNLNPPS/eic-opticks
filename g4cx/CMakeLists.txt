@@ -22,7 +22,7 @@ target_include_directories( ${name} PUBLIC
 
 target_compile_definitions( ${name} PUBLIC OPTICKS_G4CX )
 
-install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${name})
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/${name})
 
 install(TARGETS ${name}
         EXPORT ${PROJECT_NAME}Targets
