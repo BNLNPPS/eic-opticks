@@ -87,12 +87,13 @@ target_compile_definitions( ${name} PRIVATE WITH_THRUST )
 target_include_directories( ${name} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/CSGOptiX>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>
 )
 
 target_link_libraries(${name} PUBLIC OptiX::OptiX CSG QUDARap SysRap)
 
 install(FILES $<TARGET_OBJECTS:CSGOptiX7.cu> DESTINATION ptx RENAME CSGOptiX_generated_CSGOptiX7.cu.ptx)
-install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${name})
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/${name})
 
 install(TARGETS ${name}
         EXPORT ${PROJECT_NAME}Targets
