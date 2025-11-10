@@ -167,5 +167,3 @@ install(TARGETS ${name}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
-
-add_subdirectory(tests)

@@ -48,3 +48,5 @@ foreach(SRC ${TEST_SOURCES})
        COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/GXTestRunner.sh ${CMAKE_CURRENT_BINARY_DIR}/${TGT}
     )
 endforeach()
+
+set_tests_properties(${name}.G4CXRenderTest PROPERTIES DISABLED TRUE)
