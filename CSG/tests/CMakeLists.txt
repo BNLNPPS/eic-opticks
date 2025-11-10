@@ -72,6 +72,7 @@ foreach(SRC ${TEST_SOURCES})
        NAME ${name}.${TGT} 
        COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/CSGTestRunner.sh ${CMAKE_CURRENT_BINARY_DIR}/${TGT}
     )
+    set_tests_properties(${name}.${TGT} PROPERTIES DEPENDS "G4CXTest.G4CXOpticks_setGeometry_Test")
 endforeach()
 
 set(TGT CSGDemoTest)
