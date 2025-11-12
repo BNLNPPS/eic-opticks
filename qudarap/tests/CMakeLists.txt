@@ -11,7 +11,7 @@ set(TEST_SOURCES
    QPolyTest.cc
    QSimDescTest.cc
    QPropTest.cc 
-   QEvent_Lifecycle_Test.cc
+   QEvt_Lifecycle_Test.cc
    QSimCreateTest.cc 
    QUTest.cc
    QTexMakerTest.cc
@@ -26,7 +26,7 @@ set(TEST_SOURCES
 )
 
 
-## THESE NEED REJIG : THEY FAIL FOR LACK OF DEPENDENCIES 
+## THESE NEED REJIG : THEY FAIL FOR LACK OF DEPENDENCIES
 set(KNOWN_FAIL_TEST_SOURCES
    QCerenkovTest.cc
    QBndTest.cc 

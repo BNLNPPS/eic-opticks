@@ -22,8 +22,8 @@ set(SOURCES
     QPMT.cc
     QPMT.cu 
 
-    QEvent.cc
-    QEvent.cu
+    QEvt.cc
+    QEvt.cu
 
     QDebug.cc
     QState.cc
@@ -89,7 +89,7 @@ SET(HEADERS
     qgs.h
     qprop.h
  
-    QEvent.hh
+    QEvt.hh
 
     QDebug.hh
     qdebug.h
