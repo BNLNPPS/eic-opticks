@@ -5,7 +5,6 @@ find_package(nlohmann_json REQUIRED)
 find_package(plog REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glfw3 REQUIRED)
-find_package(glm REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 find_package(OpenSSL REQUIRED)
 
@@ -615,7 +614,6 @@ target_link_libraries(${name}
     nlohmann_json::nlohmann_json
     CUDA::cudart
     GLEW::GLEW
-    glm::glm
     glfw
     OpenSSL::SSL
     OpenSSL::Crypto

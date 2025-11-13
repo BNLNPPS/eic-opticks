@@ -17,7 +17,7 @@ RUN apt update \
 RUN apt update \
  && apt install -y libssl-dev \
     nlohmann-json3-dev \
-    libglfw3-dev libglu1-mesa-dev libxmu-dev libglew-dev \
+    libglfw3-dev libglu1-mesa-dev libxmu-dev libglew-dev libglm-dev \
     cmake qtbase5-dev libxerces-c-dev libexpat1-dev \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
@@ -31,12 +31,6 @@ RUN mkdir -p /opt/clhep/src && curl -sL https://gitlab.cern.ch/CLHEP/CLHEP/-/arc
  && cmake -S /opt/clhep/src -B /opt/clhep/build \
  && cmake --build /opt/clhep/build --parallel --target install \
  && rm -fr /opt/clhep
-
-
-RUN mkdir -p /opt/glm/src && curl -sL https://github.com/g-truc/glm/archive/refs/tags/1.0.1.tar.gz | tar -xz --strip-components 1 -C /opt/glm/src \
- && cmake -S /opt/glm/src -B /opt/glm/build \
- && cmake --build /opt/glm/build --parallel --target install \
- && rm -fr /opt/glm
 
 RUN mkdir -p /opt/plog/src && curl -sL https://github.com/SergiusTheBest/plog/archive/refs/tags/1.1.10.tar.gz | tar -xz --strip-components 1 -C /opt/plog/src \
  && cmake -S /opt/plog/src -B /opt/plog/build \
