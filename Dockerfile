@@ -61,11 +61,8 @@ EOF
 RUN cat /etc/bash.nonint >> /etc/bash.bashrc
 
 ENV BASH_ENV=/etc/bash.nonint
-ENV OPTICKS_PREFIX=/opt/eic-opticks
 ENV OPTICKS_HOME=/src/eic-opticks
 ENV OPTICKS_BUILD=/opt/eic-opticks/build
-ENV LD_LIBRARY_PATH=${OPTICKS_PREFIX}/lib:${LD_LIBRARY_PATH}
-ENV PATH=${OPTICKS_PREFIX}/bin:${PATH}
 ENV NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
 
 WORKDIR $OPTICKS_HOME
@@ -82,7 +79,7 @@ RUN apt update && apt install -y x11-apps mesa-utils vim
 
 COPY . $OPTICKS_HOME
 
-RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Debug \
+RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_BUILD_TYPE=Debug \
  && cmake --build $OPTICKS_BUILD --parallel --target install
 
 
@@ -90,5 +87,5 @@ FROM base AS release
 
 COPY . $OPTICKS_HOME
 
-RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Release \
+RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_BUILD_TYPE=Release \
  && cmake --build $OPTICKS_BUILD --parallel --target install
