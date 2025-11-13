@@ -17,7 +17,7 @@ RUN apt update \
 RUN apt update \
  && apt install -y libssl-dev \
     nlohmann-json3-dev \
-    libglfw3-dev libglu1-mesa-dev libxmu-dev \
+    libglfw3-dev libglu1-mesa-dev libxmu-dev libglew-dev \
     cmake qtbase5-dev libxerces-c-dev libexpat1-dev \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
@@ -32,10 +32,6 @@ RUN mkdir -p /opt/clhep/src && curl -sL https://gitlab.cern.ch/CLHEP/CLHEP/-/arc
  && cmake --build /opt/clhep/build --parallel --target install \
  && rm -fr /opt/clhep
 
-RUN mkdir -p /opt/glew/src && curl -sL https://github.com/nigels-com/glew/releases/download/glew-2.2.0/glew-2.2.0.tgz | tar -xz --strip-components 1 -C /opt/glew/src \
- && cmake -S /opt/glew/src/build/cmake -B /opt/glew/build \
- && cmake --build /opt/glew/build --parallel --target install \
- && rm -fr /opt/glew
 
 RUN mkdir -p /opt/glm/src && curl -sL https://github.com/g-truc/glm/archive/refs/tags/1.0.1.tar.gz | tar -xz --strip-components 1 -C /opt/glm/src \
  && cmake -S /opt/glm/src -B /opt/glm/build \

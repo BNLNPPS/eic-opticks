@@ -43,15 +43,17 @@ foreach(SRC ${SINGLE_SOURCES})
 endforeach()
 
 
-find_package(glew)
+find_package(GLEW)
 find_package(glfw3)
+find_package(OpenGL)
 
 foreach(SRC ${VIZ_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT}
           CSGOptiX
-          GLEW::glew
+          OpenGL::GL
+          GLEW::GLEW
           glfw
           CUDA::cudart
          )
