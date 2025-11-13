@@ -3,7 +3,7 @@ set(desc "System Level Utilities depending")
 
 find_package(nlohmann_json REQUIRED)
 find_package(plog REQUIRED)
-find_package(glew REQUIRED)
+find_package(GLEW REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
 find_package(CUDAToolkit REQUIRED)
@@ -614,7 +614,7 @@ target_link_libraries(${name}
     plog::plog
     nlohmann_json::nlohmann_json
     CUDA::cudart
-    GLEW::glew
+    GLEW::GLEW
     glm::glm
     glfw
     OpenSSL::SSL
