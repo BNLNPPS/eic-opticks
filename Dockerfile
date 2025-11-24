@@ -1,16 +1,11 @@
 # syntax=docker/dockerfile:latest
 
-FROM nvcr.io/nvidia/cuda:12.4.0-runtime-ubuntu22.04 AS base
+FROM nvcr.io/nvidia/cuda:12.4.0-devel-ubuntu22.04 AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt update \
- && apt install -y g++ gcc gzip tar python3 python-is-python3 python3-pip \
- && apt clean \
- && rm -rf /var/lib/apt/lists/*
-
-RUN apt update \
- && apt install -y curl cuda-nvcc-12-4 libcurand-dev-12-4 \
+ && apt install -y g++ gcc gzip tar python3 python-is-python3 python3-pip curl \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
 
