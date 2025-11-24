@@ -37,7 +37,7 @@ RUN mkdir -p /opt/clhep/src && curl -sL https://gitlab.cern.ch/CLHEP/CLHEP/-/arc
  && cmake --build /opt/clhep/build --parallel --target install \
  && rm -fr /opt/clhep
 
-RUN mkdir -p /opt/plog/src && curl -sL https://github.com/SergiusTheBest/plog/archive/refs/tags/1.1.10.tar.gz | tar -xz --strip-components 1 -C /opt/plog/src \
+RUN mkdir -p /opt/plog/src && curl -sL https://github.com/SergiusTheBest/plog/archive/refs/tags/1.1.11.tar.gz | tar -xz --strip-components 1 -C /opt/plog/src \
  && cmake -S /opt/plog/src -B /opt/plog/build \
  && cmake --build /opt/plog/build --parallel --target install \
  && rm -fr /opt/plog
