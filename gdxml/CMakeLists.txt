@@ -34,7 +34,7 @@ target_include_directories( ${name} PUBLIC
 
 target_compile_definitions( ${name} PUBLIC OPTICKS_GDXML )
 
-install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/${name})
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/gdxml)
 
 install(TARGETS ${name}
         EXPORT ${PROJECT_NAME}Targets
