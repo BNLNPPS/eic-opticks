@@ -1,8 +1,15 @@
 # syntax=docker/dockerfile:latest
 
-FROM nvcr.io/nvidia/cuda:12.4.0-devel-ubuntu22.04 AS base
+ARG OS=ubuntu22.04
+ARG CUDA_VERSION=12.4.0
 
-ARG DEBIAN_FRONTEND=noninteractive
+FROM nvidia/cuda:${CUDA_VERSION}-devel-${OS} AS base
+
+ARG OPTIX_VERSION=7.7.0
+ARG GEANT4_VERSION=11.3.2
+ARG CMAKE_VERSION=4.1.2
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt update \
  && apt install -y g++ gcc gzip tar python3 python-is-python3 python3-pip curl \
@@ -17,12 +24,12 @@ RUN apt update \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /opt/cmake/src && curl -sL https://github.com/Kitware/CMake/releases/download/v4.1.2/cmake-4.1.2.tar.gz | tar -xz --strip-components 1 -C /opt/cmake/src \
+RUN mkdir -p /opt/cmake/src && curl -sL https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz | tar -xz --strip-components 1 -C /opt/cmake/src \
  && cmake -S /opt/cmake/src -B /opt/cmake/build \
  && cmake --build /opt/cmake/build --parallel --target install \
  && rm -fr /opt/cmake
 
-RUN mkdir -p /opt/geant4/src && curl -sL https://github.com/Geant4/geant4/archive/refs/tags/v11.3.2.tar.gz | tar -xz --strip-components 1 -C /opt/geant4/src \
+RUN mkdir -p /opt/geant4/src && curl -sL https://github.com/Geant4/geant4/archive/refs/tags/v${GEANT4_VERSION}.tar.gz | tar -xz --strip-components 1 -C /opt/geant4/src \
  && cmake -S /opt/geant4/src -B /opt/geant4/build -DGEANT4_USE_OPENGL_X11=ON -DGEANT4_USE_QT=ON -DGEANT4_USE_GDML=ON -DGEANT4_INSTALL_DATA=ON -DGEANT4_BUILD_MULTITHREADED=ON \
  && cmake --build /opt/geant4/build --parallel --target install \
  && rm -fr /opt/geant4
@@ -37,7 +44,7 @@ RUN mkdir -p /opt/plog/src && curl -sL https://github.com/SergiusTheBest/plog/ar
  && cmake --build /opt/plog/build --parallel --target install \
  && rm -fr /opt/plog
 
-RUN mkdir -p /opt/optix && curl -sL https://github.com/NVIDIA/optix-dev/archive/refs/tags/v7.7.0.tar.gz | tar -xz --strip-components 1 -C /opt/optix
+RUN mkdir -p /opt/optix && curl -sL https://github.com/NVIDIA/optix-dev/archive/refs/tags/v${OPTIX_VERSION}.tar.gz | tar -xz --strip-components 1 -C /opt/optix
 
 SHELL ["/bin/bash", "-l", "-c"]
 
