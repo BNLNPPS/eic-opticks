@@ -18,6 +18,7 @@ target_link_libraries(${name} PUBLIC U4 CSGOptiX)
 target_include_directories( ${name} PUBLIC 
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> 
    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/CSGOptiX>
+   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/g4cx>
 )
 
 target_compile_definitions( ${name} PUBLIC OPTICKS_G4CX )
