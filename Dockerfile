@@ -62,6 +62,7 @@ ENV OPTICKS_BUILD=/opt/eic-opticks/build
 ENV LD_LIBRARY_PATH=${OPTICKS_PREFIX}/lib:${LD_LIBRARY_PATH}
 ENV PATH=${OPTICKS_PREFIX}/bin:${PATH}
 ENV NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
+ENV CSGOptiX__optixpath=${OPTICKS_PREFIX}/ptx/CSGOptiX_generated_CSGOptiX7.cu.ptx
 
 WORKDIR $OPTICKS_HOME
 
