@@ -79,6 +79,14 @@ COPY optiphy $OPTICKS_HOME/optiphy
 RUN python -m pip install --upgrade pip && pip install -e $OPTICKS_HOME
 
 
+FROM base AS release
+
+COPY . $OPTICKS_HOME
+
+RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Release \
+ && cmake --build $OPTICKS_BUILD --parallel --target install
+
+
 FROM base AS develop
 
 RUN apt update && apt install -y x11-apps mesa-utils vim
@@ -86,12 +94,4 @@ RUN apt update && apt install -y x11-apps mesa-utils vim
 COPY . $OPTICKS_HOME
 
 RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Debug \
- && cmake --build $OPTICKS_BUILD --parallel --target install
-
-
-FROM base AS release
-
-COPY . $OPTICKS_HOME
-
-RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Release \
  && cmake --build $OPTICKS_BUILD --parallel --target install
