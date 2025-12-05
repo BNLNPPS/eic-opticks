@@ -97,8 +97,8 @@ int main(int argc, char **argv)
 
     G4App *g4app = new G4App(gdml_file);
 
-    ActionInitialization *ActionInit = new ActionInitialization(g4app);
-    run_mgr->SetUserInitialization(ActionInit);
+    ActionInitialization *actionInit = new ActionInitialization(g4app);
+    run_mgr->SetUserInitialization(actionInit);
     run_mgr->SetUserInitialization(g4app->det_cons_);
 
     G4UIExecutive *uix = nullptr;
