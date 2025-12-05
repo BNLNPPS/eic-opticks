@@ -100,7 +100,6 @@ int main(int argc, char **argv)
     ActionInitialization *ActionInit = new ActionInitialization(g4app);
     run_mgr->SetUserInitialization(ActionInit);
     run_mgr->SetUserInitialization(g4app->det_cons_);
-    // run_mgr->Initialize();
 
     G4UIExecutive *uix = nullptr;
     G4VisManager *vis = nullptr;
