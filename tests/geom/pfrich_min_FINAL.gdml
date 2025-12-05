@@ -2037,7 +2037,6 @@
       </physvol>
 
 
-  &gt;&gt;&gt;�~T~
   <physvol copynumber="308" name="MirrorPyramidEdge_308">
         <volumeref ref="MirrorPyramidAbsorbing" />
         <position name="MirrorPyramidEdge_208_pos" unit="mm" x="-246" y="615" z="202.325" />
