@@ -77,7 +77,7 @@ ENV VIRTUAL_ENV=$OPTICKS_HOME/.venv
 WORKDIR $OPTICKS_HOME
 
 # Install Python dependencies
-COPY pyproject.toml $OPTICKS_HOME/
+COPY pyproject.toml uv.lock $OPTICKS_HOME/
 COPY optiphy $OPTICKS_HOME/optiphy
 RUN uv sync
 
