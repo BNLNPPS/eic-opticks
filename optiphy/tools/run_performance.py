@@ -1,7 +1,7 @@
 import argparse
 import subprocess
 import re
-
+import os
 from pathlib import Path
 
 run_mac_template = """
@@ -11,6 +11,8 @@ run_mac_template = """
 /run/initialize
 /run/beamOn 50000
 """
+
+os.environ["OPTICKS_EVENT_MODE"] = "Minimal"
 
 def parse_real_time(time_str):
     # Parses 'real\t0m41.149s' to seconds
