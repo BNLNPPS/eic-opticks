@@ -46,7 +46,7 @@ RUN mkdir -p /opt/plog/src && curl -sL https://github.com/SergiusTheBest/plog/ar
 
 RUN mkdir -p /opt/optix && curl -sL https://github.com/NVIDIA/optix-dev/archive/refs/tags/v${OPTIX_VERSION}.tar.gz | tar -xz --strip-components 1 -C /opt/optix
 
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_BIN=/usr/local/bin sh
 
 SHELL ["/bin/bash", "-l", "-c"]
 
@@ -69,10 +69,10 @@ ENV OPTICKS_PREFIX=/opt/eic-opticks
 ENV OPTICKS_HOME=/src/eic-opticks
 ENV OPTICKS_BUILD=/opt/eic-opticks/build
 ENV LD_LIBRARY_PATH=${OPTICKS_PREFIX}/lib:${LD_LIBRARY_PATH}
-ENV PATH=${OPTICKS_PREFIX}/bin:/root/.local/bin:$OPTICKS_HOME/.venv/bin:${PATH}
+ENV VIRTUAL_ENV=${OPTICKS_HOME}/.venv
+ENV PATH=${OPTICKS_PREFIX}/bin:${VIRTUAL_ENV}/bin:${PATH}
 ENV NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
 ENV CSGOptiX__optixpath=${OPTICKS_PREFIX}/ptx/CSGOptiX_generated_CSGOptiX7.cu.ptx
-ENV VIRTUAL_ENV=$OPTICKS_HOME/.venv
 
 WORKDIR $OPTICKS_HOME
 
