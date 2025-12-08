@@ -46,7 +46,7 @@ RUN mkdir -p /opt/plog/src && curl -sL https://github.com/SergiusTheBest/plog/ar
 
 RUN mkdir -p /opt/optix && curl -sL https://github.com/NVIDIA/optix-dev/archive/refs/tags/v${OPTIX_VERSION}.tar.gz | tar -xz --strip-components 1 -C /opt/optix
 
-RUN curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_BIN=/usr/local/bin sh
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
 
 SHELL ["/bin/bash", "-l", "-c"]
 
