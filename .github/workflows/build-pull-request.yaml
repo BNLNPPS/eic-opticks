@@ -50,6 +50,9 @@ jobs:
           - target: release
             os: ubuntu24.04
             cuda_version: 13.0.2
+            optix_version: 8.1.0
+            geant4_version: 11.3.2
+            cmake_version: 4.2.1
 
     steps:
       - name: Define environment variables
