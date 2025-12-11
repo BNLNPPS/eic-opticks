@@ -14,6 +14,14 @@ run_mac_template = """
 
 os.environ["OPTICKS_EVENT_MODE"] = "Minimal"
 
+def get_opticks_home():
+    """Get OPTICKS_HOME from environment, warn if not set."""
+    opticks_home = os.environ.get("OPTICKS_HOME")
+    if opticks_home is None:
+        print("Warning: $OPTICKS_HOME is not defined, so this script should be called from the eic-opticks directory.")
+        return Path(".")
+    return Path(opticks_home)
+
 def parse_real_time(time_str):
     # Parses 'real\t0m41.149s' to seconds
     match = re.search(r'real\s+(\d+)m([\d.]+)s', time_str)
@@ -29,16 +37,26 @@ def parse_sim_time(output):
         return float(match.group(1))
     return None
 
-
 def main():
+    opticks_home = get_opticks_home()
+    
     parser = argparse.ArgumentParser()
-    parser.add_argument('-g', '--gdml', type=Path, default=Path('tests/geom/pfrich_min_FINAL.gdml'), help="Path to a custom GDML geometry file")
+    parser.add_argument('-g', '--gdml', type=Path, default=None, help="Path to a custom GDML geometry file (relative to current directory)")
     parser.add_argument('-o', '--outpath', type=Path, default=Path('./'), help="Path where the output file will be saved")
-
     args = parser.parse_args()
 
-    geant_file = args.outpath/"timing_geant.txt"
-    optix_file = args.outpath/"timing_optix.txt"
+    # If gdml not provided, use default path relative to OPTICKS_HOME
+    if args.gdml is None:
+        gdml_path = opticks_home / 'tests/geom/pfrich_min_FINAL.gdml'
+    else:
+        # User-provided path is used as-is (relative to current directory or absolute)
+        gdml_path = args.gdml
+
+    # run.mac is created in OPTICKS_HOME
+    run_mac_path = opticks_home / "run.mac"
+
+    geant_file = args.outpath / "timing_geant.txt"
+    optix_file = args.outpath / "timing_optix.txt"
 
     with open(geant_file, "w") as gfile, open(optix_file, "w") as ofile:
         for threads in range(50, 0, -1):
@@ -46,10 +64,11 @@ def main():
             sim_time_true = None
             for flag in ['true', 'false']:
                 # Write run.mac with current flag
-                with open("run.mac", "w") as rm:
+                with open(run_mac_path, "w") as rm:
                     rm.write(run_mac_template.format(threads=threads, flag=flag))
+
                 # Run with time in bash to capture real/user/sys
-                cmd = f"time simg4oxmt -g {args.gdml} -m run.mac"
+                cmd = f"time simg4oxmt -g {gdml_path} -m {run_mac_path}"
                 print(f"Running {threads} threads: {cmd}")
                 result = subprocess.run(
                     ["bash", "-c", cmd],
@@ -82,7 +101,6 @@ def main():
                 print(f"[!] Missing times for threads={threads}")
 
     print("Done.")
-
 
 if __name__ == '__main__':
     main()
