@@ -9,7 +9,7 @@ run_mac_template = """
 /run/verbose 1
 /process/optical/cerenkov/setStackPhotons {flag}
 /run/initialize
-/run/beamOn 50000
+/run/beamOn 500
 """
 
 os.environ["OPTICKS_EVENT_MODE"] = "Minimal"
