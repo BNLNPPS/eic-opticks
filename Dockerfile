@@ -82,6 +82,20 @@ COPY optiphy $OPTICKS_HOME/optiphy
 RUN uv sync
 
 
+FROM base AS devenv
+
+ARG USERNAME
+ARG USER_UID
+ARG USER_GID
+
+ENV USERNAME=${USERNAME:-devenv}
+ENV USER_UID=${USER_UID:-1000}
+ENV USER_GID=${USER_GID:-1000}
+
+RUN groupadd --gid "${USER_GID}" "${USERNAME}" || groupadd "${USERNAME}"
+RUN useradd --uid "${USER_UID}" --gid "${USER_GID}" -m -s /bin/bash "${USERNAME}"
+
+
 FROM base AS release
 
 COPY . $OPTICKS_HOME
