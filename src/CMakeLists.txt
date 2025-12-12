@@ -32,6 +32,14 @@ target_include_directories(simg4ox PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
 )
 
+# simg4ox runs Geant4 and OptiX simulations
+add_executable(simg4oxmt simg4oxmt.cpp g4appmt.h)
+target_link_libraries(simg4oxmt gphox)
+target_include_directories(simg4oxmt PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+)
+
 # simtox creates a numpy file with initial photons for simulation
 add_executable(simtox simtox.cpp)
 
@@ -42,7 +50,7 @@ target_include_directories(simtox PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
 )
 
-install(TARGETS consgeo simg4ox simtox gphox
+install(TARGETS consgeo simg4ox simg4oxmt simtox gphox
     EXPORT ${PROJECT_NAME}Targets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

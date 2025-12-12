@@ -119,5 +119,3 @@ void intersect_leaf_newcone( bool& valid_isect, float4& isect, const quad& q0, c
         isect.w = t_cand ; 
     }
 }
-
-
