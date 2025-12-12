@@ -47,7 +47,7 @@ def main():
 
     # If gdml not provided, use default path relative to OPTICKS_HOME
     if args.gdml is None:
-        gdml_path = opticks_home / 'tests/geom/pfrich_min_FINAL.gdml'
+        gdml_path = opticks_home / 'tests/geom/opticks_raindrop.gdml'
     else:
         # User-provided path is used as-is (relative to current directory or absolute)
         gdml_path = args.gdml
