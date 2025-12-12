@@ -140,9 +140,19 @@ There are certain user defined inputs that the user/developer has to define. In 
 /run/beamOn 500
 ```
 
-Here if the setStackPhotons defines **whether G4 will propagate optical photons or not**. In production Opticks (GPU) takes care of the optical photon propagation. Additionally the user has to define the **starting position**, **momentum** etc of the primary particles define in the **GeneratePrimaries** function in ``src/g4appmt.h```. The hits of the optical photons are returned in the **EndOfRunAction** function. If more photons are simulated than can fit in the GPU RAM the execution of a GPU call should be moved to **EndOfEventAction** together with retriving the hits.
+Here setStackPhotons defines **whether G4 will propagate optical photons or not**. In production Opticks (GPU) takes care of the optical photon propagation. Additionally the user has to define the **starting position**, **momentum** etc of the primary particles define in the **GeneratePrimaries** function in ``src/g4appmt.h```. The hits of the optical photons are returned in the **EndOfRunAction** function. If more photons are simulated than can fit in the GPU RAM the execution of a GPU call should be moved to **EndOfEventAction** together with retriving the hits.
 
 ### Loading in geometry into EIC-Opticks
+
+EIC-Opticks can import geometries with GDML format automatically. There are about 10 primitives supported now, eg. G4Box. G4Trd or G4Trap are not supported yet, we are working on them. ```src/simg4oxmt``` takes GDML files through arguments, eg. ```src/simg4oxmt -g mygdml.gdml```.
+
+The GDML must define all optical properties of surfaces of materials including:
+- Efficiency (used by EIC-Opticks to specify detection efficiency and assign sensitive surfaces)
+- Refractive index
+- Group velocity
+- Reflectivity
+- Etc.
+
 
 ## Performance studies
 
