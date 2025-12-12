@@ -8,7 +8,7 @@ endif()
 
 # Default CMAKE_BUILD_TYPE=Debug for single-config generators (Ninja/Makefiles) when not specified
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type")
 endif()
 
 project(eic-opticks VERSION 0.1.0 LANGUAGES CXX CUDA)
