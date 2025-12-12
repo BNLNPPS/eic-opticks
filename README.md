@@ -125,7 +125,24 @@ Process](https://geant4-userdoc.web.cern.ch/UsersGuides/ForApplicationDeveloper/
   ...
 </gdml>
 ```
+## User/developer defined inputs
 
+### Defining primary particles
+
+There are certain user defined inputs that the user/developer has to define. In the ```src/simg4oxmt``` example that imports ```src/g4appmt.h``` we provide a working example with a simple geometry. The User/developer has to change the following details:
+**Number of primary particles** to simulate in a macro file and the **number of G4 threads**. For example:
+
+```
+/run/numberOfThreads {threads}
+/run/verbose 1
+/process/optical/cerenkov/setStackPhotons {flag}
+/run/initialize
+/run/beamOn 500
+```
+
+Here if the setStackPhotons defines **whether G4 will propagate optical photons or not**. In production Opticks (GPU) takes care of the optical photon propagation. Additionally the user has to define the **starting position**, **momentum** etc of the primary particles define in the **GeneratePrimaries** function in ``src/g4appmt.h```. The hits of the optical photons are returned in the **EndOfRunAction** function. If more photons are simulated than can fit in the GPU RAM the execution of a GPU call should be moved to **EndOfEventAction** together with retriving the hits.
+
+### Loading in geometry into EIC-Opticks
 
 ## Performance studies
 
