@@ -57,8 +57,9 @@ def main():
 
     geant_file = args.outpath / "timing_geant.txt"
     optix_file = args.outpath / "timing_optix.txt"
+    log_file = args.outpath / "g4logs.txt"
 
-    with open(geant_file, "w") as gfile, open(optix_file, "w") as ofile:
+    with open(geant_file, "w") as gfile, open(optix_file, "w") as ofile, open(log_file, "w") as logfile:
         for threads in range(50, 0, -1):
             times = {}
             sim_time_true = None
@@ -76,6 +77,13 @@ def main():
                 )
                 stdout = result.stdout
                 stderr = result.stderr
+                # Save full output to log file
+                logfile.write(f"\n{'='*60}\n")
+                logfile.write(f"Threads: {threads}, StackPhotons: {flag}\n")
+                logfile.write(f"{'='*60}\n")
+                logfile.write(f"--- STDOUT ---\n{stdout}\n")
+                logfile.write(f"--- STDERR ---\n{stderr}\n")
+                logfile.flush()
 
                 # Save simulation time for true run only
                 if flag == 'true':
