@@ -156,6 +156,8 @@ The GDML must define all optical properties of surfaces of materials including:
 
 ## Performance studies
 
+In order to quantify the speed-up achieved by EIC-Opticks compared to G4 we provide a python code that runs the same G4 simulation with and without tracking optical photons in G4. The difference of the runs will yield the time required to simulate photons. Meanwhile the same photons are simulated on GPU with EIC-Opticks and the simulation time is saved.
+
 ```
 mkdir -p /tmp/out/dev
 mkdir -p /tmp/out/rel
