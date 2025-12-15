@@ -3,11 +3,18 @@
   "build": {
     "dockerfile": "../Dockerfile",
     "context": "..",
-    "target": "base",
+    "target": "devenv",
+    "args": {
+      "USERNAME": "${localEnv:USER}",
+      "USER_UID": "${localEnv:UID}",
+      "USER_GID": "${localEnv:GID}"
+    },
     "cacheFrom": [
       "ghcr.io/bnlnpps/eic-opticks:base"
     ]
   },
+  "remoteUser": "${localEnv:USER}",
+  "updateRemoteUserUID": true,
   "workspaceFolder": "/src/eic-opticks",
   // Mount the project into the container
   "mounts": [
