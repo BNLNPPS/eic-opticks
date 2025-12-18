@@ -66,7 +66,7 @@ RUN cat /etc/bash.nonint >> /etc/bash.bashrc
 
 ENV BASH_ENV=/etc/bash.nonint
 ENV OPTICKS_PREFIX=/opt/eic-opticks
-ENV OPTICKS_HOME=/src/eic-opticks
+ENV OPTICKS_HOME=/workspaces/eic-opticks
 ENV OPTICKS_BUILD=/opt/eic-opticks/build
 ENV LD_LIBRARY_PATH=${OPTICKS_PREFIX}/lib:${LD_LIBRARY_PATH}
 ENV VIRTUAL_ENV=${OPTICKS_HOME}/.venv
