@@ -1,0 +1,4 @@
+{
+  "name": "eic-opticks (codespace)",
+  "image": "ghcr.io/bnlnpps/eic-opticks:base"
+}
