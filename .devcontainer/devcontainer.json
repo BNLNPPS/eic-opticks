@@ -1,6 +1,5 @@
 {
   "name": "eic-opticks",
-  "image": "ghcr.io/bnlnpps/eic-opticks:base",
   "build": {
     "dockerfile": "../Dockerfile",
     "context": "..",
