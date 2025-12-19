@@ -12,7 +12,7 @@ ARG CMAKE_VERSION=4.2.1
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt update \
- && apt install -y g++ gcc gzip tar python3 python-is-python3 python3-pip curl \
+ && apt install -y g++ gcc gzip tar python3 python-is-python3 python3-pip curl git \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
 
