@@ -1,0 +1,2677 @@
+<?xml version='1.0' encoding='utf-8'?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://service-spi.web.cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+  <define>
+    <matrix coldim="2" name="ZEROREF" values="2.034*eV 0 2.068*eV 0 11.0*eV 0 11.6*eV 0" />
+    <matrix coldim="2" name="EFFICIENCY" values="2.034*eV 1 2.068*eV 1 2.103*eV 1 2.139*eV 1 2.177*eV 1 2.216*eV 1 2.256*eV 1 2.298*eV 1 2.341*eV 1 2.386*eV 1 2.433*eV 1 2.481*eV 1 2.532*eV 1 2.585*eV 1 2.64*eV 1 2.697*eV 1 2.757*eV 1 2.82*eV 1 2.885*eV 1 2.954*eV 1 3.026*eV 1 3.102*eV 1 3.181*eV  1 3.265*eV 1 3.353*eV 1 3.446*eV 1 3.545*eV 1 3.649*eV 1 3.76*eV 1 3.877*eV 1 4.002*eV 1 4.136*eV 1 5.0*eV 1 6.0*eV 1 7.0*eV 1 8.0*eV 1 9.0*eV 1 9.0*eV 1 10.0*eV 1 11.0*eV 1 11.6*eV 1" />
+    <matrix coldim="2" name="RINDEX0x56008bf06450" values="1.675e-06 1.03864 1.85e-06 1.03877 2.025e-06 1.03889 2.2e-06 1.03905 2.375e-06 1.03921 2.55e-06 1.03939 2.725e-06 1.03958 2.9e-06 1.03979 3.075e-06 1.04001 3.25e-06 1.04024 3.425e-06 1.04049 3.6e-06 1.04076 3.775e-06 1.04105 3.95e-06 1.04135 4.125e-06 1.04167 4.3e-06 1.04201 4.475e-06 1.04238 4.65e-06 1.04276 4.825e-06 1.04315 5e-06 1.04358 5.175e-06 1.04376 5.35e-06 1.04443 5.525e-06 1.04485 5.7e-06 1.04531 5.875e-06 1.04579 6.05e-06 1.0463 6.225e-06 1.04684 6.4e-06 1.04736 6.575e-06 1.04795 6.75e-06 1.04851 6.925e-06 1.04906 7.1e-06 1.04968 7.275e-06 1.05027 7.45e-06 1.05094" />
+    <matrix coldim="2" name="GROUPVEL0x56008bf06770" values="1.675e-06 288.303 1.7625e-06 288.286 1.9375e-06 288.204 2.1125e-06 287.995 2.2875e-06 287.941 2.4625e-06 287.775 2.6375e-06 287.593 2.8125e-06 287.439 2.9875e-06 287.254 3.1625e-06 287.082 3.3375e-06 286.848 3.5125e-06 286.598 3.6875e-06 286.332 3.8625e-06 286.081 4.0375e-06 285.85 4.2125e-06 285.478 4.3875e-06 285.152 4.5625e-06 284.846 4.7375e-06 284.529 4.9125e-06 284.046 5.0875e-06 285.815 5.2625e-06 281.736 5.4375e-06 283.442 5.6125e-06 282.826 5.7875e-06 282.444 5.9625e-06 281.913 6.1375e-06 281.361 6.3125e-06 281.269 6.4875e-06 280.353 6.6625e-06 280.249 6.8375e-06 280.16 7.0125e-06 279.03 7.1875e-06 279.083 7.45e-06 277.81" />
+    <matrix coldim="2" name="RAYLEIGH0x56008bf092d0" values="1.675e-06 417.21 1.85e-06 311.297 2.025e-06 234.939 2.2e-06 178.908 2.375e-06 137.277 2.55e-06 105.973 2.725e-06 82.4892 2.9e-06 65.3436 3.075e-06 52.1505 3.25e-06 41.799 3.425e-06 33.7534 3.6e-06 27.3718 3.775e-06 22.1409 3.95e-06 18.0172 4.125e-06 14.533 4.3e-06 11.9133 4.475e-06 9.74584 4.65e-06 8.05542 4.825e-06 6.71077 5e-06 5.57279 5.175e-06 4.85635 5.35e-06 4.2514 5.525e-06 3.7379 5.7e-06 3.2996 5.875e-06 2.92355 6.05e-06 2.5997 6.225e-06 2.31955 6.4e-06 2.07595 6.575e-06 1.8637 6.75e-06 1.6778 6.925e-06 1.51455 7.1e-06 1.3707 7.275e-06 1.24345 7.45e-06 1.13065" />
+    <matrix coldim="2" name="RAYLEIGH0x00000001" values="    1.68*eV  417.210*mm    1.85*eV  311.297*mm    2.02*eV  234.939*mm    2.20*eV  178.908*mm    2.38*eV  137.277*mm    2.55*eV  105.973*mm    2.73*eV   82.489*mm    2.90*eV   65.344*mm    3.08*eV   52.151*mm    3.25*eV   41.799*mm    3.42*eV   33.753*mm    3.60*eV   27.372*mm    3.77*eV   22.141*mm    3.95*eV   18.017*mm    4.12*eV   14.533*mm    4.30*eV   11.913*mm    4.47*eV    9.746*mm    4.65*eV    8.055*mm    4.83*eV    6.711*mm    5.00*eV    5.573*mm    5.17*eV    4.856*mm    5.35*eV    4.251*mm    5.53*eV    3.738*mm    5.70*eV    3.300*mm    5.88*eV    2.924*mm    6.05*eV    2.600*mm    6.22*eV    2.320*mm    6.40*eV    2.076*mm    6.58*eV    1.864*mm    6.75*eV    1.678*mm    6.92*eV    1.515*mm    7.10*eV    1.371*mm    7.28*eV    1.243*mm    7.45*eV    1.131*mm" />
+    <matrix coldim="2" name="ABSLENGTH0x00000001" values=" 1.63*eV  178.646*mm    1.73*eV  177.265*mm    1.86*eV  178.447*mm    2.02*eV  179.624*mm    2.20*eV  182.134*mm    2.43*eV  187.362*mm    2.64*eV  184.580*mm    2.84*eV  192.689*mm    3.07*eV  205.574*mm    3.32*eV  217.744*mm    3.52*eV  201.034*mm    3.75*eV  177.724*mm    3.95*eV  139.950*mm    4.10*eV  104.014*mm    4.26*eV   72.958*mm    4.39*eV   50.078*mm    4.67*eV   36.948*mm    4.97*eV   27.659*mm    5.18*eV   21.314*mm    5.42*eV   15.841*mm    5.92*eV   11.858*mm    6.89*eV    5.772*mm    7.75*eV    1.644*mm" />
+    <matrix coldim="2" name="ABSLENGTH0x56008bf07b30" values="1.6319e-06 178.646 1.73105e-06 177.265 1.8568e-06 178.447 2.02323e-06 179.624 2.19992e-06 182.134 2.42725e-06 187.362 2.63718e-06 184.58 2.84431e-06 192.689 3.07036e-06 205.574 3.31636e-06 217.744 3.52495e-06 201.034 3.74539e-06 177.724 3.95e-06 139.95 4.09951e-06 104.014 4.26089e-06 72.9579 4.3907e-06 50.0776 4.6747e-06 36.9479 4.96937e-06 27.6585 5.17722e-06 21.314 5.42017e-06 15.8411 5.91945e-06 11.8578 6.88889e-06 5.77248 7.75e-06 1.64386" />
+    <matrix coldim="2" name="RINDEX0x56008bf0c1e0" values="4.13281e-06 1.5017 4.22099e-06 1.5017 4.30916e-06 1.5017 4.39734e-06 1.5017 4.48552e-06 1.5017 4.57369e-06 1.5017 4.66187e-06 1.5017 4.75005e-06 1.5017 4.83822e-06 1.5017 4.9264e-06 1.5017 5.01458e-06 1.5017 5.10275e-06 1.5017 5.19093e-06 1.5017 5.27911e-06 1.5017 5.36728e-06 1.5017 5.45546e-06 1.5017 5.54364e-06 1.5017 5.63181e-06 1.5017 5.71999e-06 1.5017 5.80817e-06 1.5017 5.89634e-06 1.5017 5.98452e-06 1.5017 6.0727e-06 1.5017 6.16087e-06 1.5017 6.24905e-06 1.5017 6.33723e-06 1.5017 6.4254e-06 1.5017 6.51358e-06 1.5017 6.60176e-06 1.5017 6.68993e-06 1.5017 6.77811e-06 1.5017 6.86629e-06 1.5017 6.95446e-06 1.5017 7.04264e-06 1.5017 7.13082e-06 1.5017 7.21899e-06 1.5017 7.30717e-06 1.5017 7.39535e-06 1.5017 7.48353e-06 1.5017 7.5717e-06 1.5017 7.65988e-06 1.5017 7.74806e-06 1.5017 7.83623e-06 1.5017 7.92441e-06 1.5017 8.01259e-06 1.5017 8.10076e-06 1.5017 8.18894e-06 1.5017 8.27712e-06 1.5017 8.36529e-06 1.5017 8.45347e-06 1.5017" />
+    <matrix coldim="2" name="GROUPVEL0x56008bf0c600" values="4.13281e-06 199.635 4.1769e-06 199.635 4.26507e-06 199.635 4.35325e-06 199.635 4.44143e-06 199.635 4.5296e-06 199.635 4.61778e-06 199.635 4.70596e-06 199.635 4.79413e-06 199.635 4.88231e-06 199.635 4.97049e-06 199.635 5.05866e-06 199.635 5.14684e-06 199.635 5.23502e-06 199.635 5.32319e-06 199.635 5.41137e-06 199.635 5.49955e-06 199.635 5.58772e-06 199.635 5.6759e-06 199.635 5.76408e-06 199.635 5.85225e-06 199.635 5.94043e-06 199.635 6.02861e-06 199.635 6.11678e-06 199.635 6.20496e-06 199.635 6.29314e-06 199.635 6.38131e-06 199.635 6.46949e-06 199.635 6.55767e-06 199.635 6.64584e-06 199.635 6.73402e-06 199.635 6.8222e-06 199.635 6.91037e-06 199.635 6.99855e-06 199.635 7.08673e-06 199.635 7.1749e-06 199.635 7.26308e-06 199.635 7.35126e-06 199.635 7.43944e-06 199.635 7.52761e-06 199.635 7.61579e-06 199.635 7.70397e-06 199.635 7.79214e-06 199.635 7.88032e-06 199.635 7.9685e-06 199.635 8.05667e-06 199.635 8.14485e-06 199.635 8.23303e-06 199.635 8.3212e-06 199.635 8.45347e-06 199.635" />
+    <matrix coldim="2" name="RAYLEIGH0x56008bf0cbf0" values="4.13281e-06 1e+06 4.22099e-06 1e+06 4.30916e-06 1e+06 4.39734e-06 1e+06 4.48552e-06 1e+06 4.57369e-06 1e+06 4.66187e-06 1e+06 4.75005e-06 1e+06 4.83822e-06 1e+06 4.9264e-06 1e+06 5.01458e-06 1e+06 5.10275e-06 1e+06 5.19093e-06 1e+06 5.27911e-06 1e+06 5.36728e-06 1e+06 5.45546e-06 1e+06 5.54364e-06 1e+06 5.63181e-06 1e+06 5.71999e-06 1e+06 5.80817e-06 1e+06 5.89634e-06 1e+06 5.98452e-06 1e+06 6.0727e-06 1e+06 6.16087e-06 1e+06 6.24905e-06 1e+06 6.33723e-06 1e+06 6.4254e-06 1e+06 6.51358e-06 1e+06 6.60176e-06 1e+06 6.68993e-06 1e+06 6.77811e-06 1e+06 6.86629e-06 1e+06 6.95446e-06 1e+06 7.04264e-06 1e+06 7.13082e-06 1e+06 7.21899e-06 1e+06 7.30717e-06 1e+06 7.39535e-06 1e+06 7.48353e-06 1e+06 7.5717e-06 1e+06 7.65988e-06 1e+06 7.74806e-06 1e+06 7.83623e-06 1e+06 7.92441e-06 1e+06 8.01259e-06 1e+06 8.10076e-06 1e+06 8.18894e-06 1e+06 8.27712e-06 1e+06 8.36529e-06 1e+06 8.45347e-06 1e+06" />
+    <matrix coldim="2" name="ABSLENGTH0x56008bf0c7d0" values="       1240*eV/1100 2631*mm       1240*eV/1000 2631*mm       1240*eV/900  2631*mm       1240*eV/800  2631*mm       1240*eV/700  2500*mm       1240*eV/600  2272*mm       1240*eV/500  2000*mm       1240*eV/400  1315*mm       1240*eV/300  1613*mm       1240*eV/250  740*mm       1240*eV/225  125*mm       1240*eV/210  10*mm      1240*eV/200  0*mm" />
+    <matrix coldim="2" name="RINDEX0x56008be8cd60" values="1.54975e-06 1.0003 1.80804e-06 1.0003 2.06633e-06 1.0003 2.32462e-06 1.0003 2.58292e-06 1.0003 2.84121e-06 1.0003 3.0995e-06 1.0003 3.35779e-06 1.00031 3.61608e-06 1.00031 3.87437e-06 1.00031 4.13267e-06 1.00031 4.39096e-06 1.00032 4.64925e-06 1.00032 4.90754e-06 1.00032 5.16583e-06 1.00032 5.42412e-06 1.00033 5.68242e-06 1.00033 5.94071e-06 1.00034 6.199e-06 1.00034 6.45729e-06 1.00035 6.71558e-06 1.00035 6.97387e-06 1.00036 7.23217e-06 1.00036 7.49046e-06 1.00037 7.74875e-06 1.00038 8.00704e-06 1.00039 8.26533e-06 1.00039" />
+    <matrix coldim="2" name="GROUPVEL0x56008be8d000" values="1.54975e-06 299.702 1.6789e-06 299.702 1.93719e-06 299.701 2.19548e-06 299.7 2.45377e-06 299.699 2.71206e-06 299.697 2.97035e-06 299.696 3.22865e-06 299.694 3.48694e-06 299.692 3.74523e-06 299.69 4.00352e-06 299.688 4.26181e-06 299.685 4.5201e-06 299.682 4.7784e-06 299.679 5.03669e-06 299.676 5.29498e-06 299.672 5.55327e-06 299.668 5.81156e-06 299.664 6.06985e-06 299.659 6.32815e-06 299.653 6.58644e-06 299.647 6.84473e-06 299.64 7.10302e-06 299.633 7.36131e-06 299.625 7.6196e-06 299.615 7.8779e-06 299.605 8.26533e-06 299.592" />
+    <matrix coldim="2" name="REFLECTIVITY0x56008bfb3580" values="1.54975e-06 1 8.26533e-06 1" />
+    <matrix coldim="2" name="REFLECTIVITY0x56008bfb3581" values="1.54975e-06 0.05 8.26533e-06 0.05" />
+    <matrix coldim="2" name="ABSORPTION0x56008bfb3582" values="1.54975e-06 0.05 8.26533e-06 0.05" />
+    <matrix coldim="2" name="REFLECTIVITY0x56008bfa8460" values="1.54975e-06 0.9 1.80804e-06 0.9 2.06633e-06 0.9 2.32462e-06 0.9 2.58292e-06 0.9 2.84121e-06 0.9 3.0995e-06 0.9 3.35779e-06 0.9 3.61608e-06 0.9 3.87437e-06 0.9 4.13267e-06 0.9 4.39096e-06 0.9 4.64925e-06 0.9 4.90754e-06 0.9 5.16583e-06 0.9 5.42412e-06 0.9 5.68242e-06 0.9 5.94071e-06 0.9 6.199e-06 0.9 6.45729e-06 0.9 6.71558e-06 0.9 6.97387e-06 0.9 7.23217e-06 0.9 7.49046e-06 0.9 7.74875e-06 0.9 8.00704e-06 0.9 8.26533e-06 0.9" />
+    <matrix coldim="2" name="REFLECTIVITY0x56008bfab320" values="1.54975e-06 0.9 1.80804e-06 0.9 2.06633e-06 0.9 2.32462e-06 0.9 2.58292e-06 0.9 2.84121e-06 0.9 3.0995e-06 0.9 3.35779e-06 0.9 3.61608e-06 0.9 3.87437e-06 0.9 4.13267e-06 0.9 4.39096e-06 0.9 4.64925e-06 0.9 4.90754e-06 0.9 5.16583e-06 0.9 5.42412e-06 0.9 5.68242e-06 0.9 5.94071e-06 0.9 6.199e-06 0.9 6.45729e-06 0.9 6.71558e-06 0.9 6.97387e-06 0.9 7.23217e-06 0.9 7.49046e-06 0.9 7.74875e-06 0.9 8.00704e-06 0.9 8.26533e-06 0.9" />
+    <matrix coldim="2" name="RINDEX0x56008be8f830" values="1.26531e-06 1.45067 1.37017e-06 1.45168 1.45523e-06 1.45247 1.45882e-06 1.4525 1.49398e-06 1.45282 1.58974e-06 1.45367 1.65333e-06 1.45424 1.78597e-06 1.45542 1.83323e-06 1.45585 1.85075e-06 1.45601 1.88938e-06 1.45637 1.90769e-06 1.45653 1.91624e-06 1.45661 1.92606e-06 1.45671 1.95276e-06 1.45695 1.95954e-06 1.45702 1.97452e-06 1.45716 2.02647e-06 1.45765 2.08719e-06 1.45824 2.10419e-06 1.4584 2.11028e-06 1.45846 2.14459e-06 1.4588 2.27065e-06 1.46008 2.28151e-06 1.46019 2.33083e-06 1.46071 2.41011e-06 1.46156 2.42852e-06 1.46176 2.4716e-06 1.46223 2.49748e-06 1.46252 2.54098e-06 1.46301 2.55092e-06 1.46313 2.58333e-06 1.4635 2.60231e-06 1.46372 2.62323e-06 1.46397 2.66209e-06 1.46443 2.70801e-06 1.46498 2.80797e-06 1.46622 2.84534e-06 1.4667 2.98077e-06 1.46847 3.064e-06 1.46961 3.40847e-06 1.47472 3.49591e-06 1.47612 3.53176e-06 1.47671 3.53276e-06 1.47672 3.67843e-06 1.47919 3.81538e-06 1.48164 4.02597e-06 1.48564 4.66165e-06 1.49968 4.8249e-06 1.50383 5e-06 1.50855 5.08197e-06 1.51086 6.42487e-06 1.56077 6.88889e-06 1.58568 7.75e-06 1.64769 8.85714e-06 1.79928" />
+    <matrix coldim="2" name="GROUPVEL0x56008be93fb0" values="1.26531e-06 204.867 1.31774e-06 204.796 1.4127e-06 204.61 1.45703e-06 204.684 1.4764e-06 204.483 1.54186e-06 204.368 1.62154e-06 204.151 1.71965e-06 203.924 1.8096e-06 203.65 1.84199e-06 203.559 1.87006e-06 203.44 1.89854e-06 203.52 1.91197e-06 203.324 1.92115e-06 203.081 1.93941e-06 203.35 1.95615e-06 202.949 1.96703e-06 203.184 2.0005e-06 203.074 2.05683e-06 202.846 2.09569e-06 202.831 2.10724e-06 202.674 2.12743e-06 202.602 2.20762e-06 202.309 2.27608e-06 202.127 2.30617e-06 201.912 2.37047e-06 201.67 2.41931e-06 201.48 2.45006e-06 201.376 2.48454e-06 201.174 2.51923e-06 201.049 2.54595e-06 200.685 2.56712e-06 200.85 2.59282e-06 200.71 2.61277e-06 200.521 2.64266e-06 200.465 2.68505e-06 200.281 2.75799e-06 199.887 2.82666e-06 199.494 2.91306e-06 199.111 3.02238e-06 198.481 3.23623e-06 197.215 3.45219e-06 195.855 3.51383e-06 195.4 3.53226e-06 198.293 3.6056e-06 194.786 3.74691e-06 193.735 3.92068e-06 192.41 4.34381e-06 188.735 4.74328e-06 184.792 4.91245e-06 182.956 5.04098e-06 181.499 5.75342e-06 171.44 6.65688e-06 155.297 7.31944e-06 139.883 8.85714e-06 102.161" />
+    <matrix coldim="2" name="RINDEX0x56008bf127f0" values="1.54975e-06 2.8 1.80804e-06 2.8 2.06633e-06 2.8 2.32462e-06 2.8 2.58292e-06 2.8 2.84121e-06 2.8 3.0995e-06 2.8 3.35779e-06 2.8 3.61608e-06 2.8 3.87437e-06 2.8 4.13267e-06 2.8 4.39096e-06 2.8 4.64925e-06 2.8 4.90754e-06 2.8 5.16583e-06 2.8 5.42412e-06 2.8 5.68242e-06 2.8 5.94071e-06 2.8 6.199e-06 2.8 6.45729e-06 2.8 6.71558e-06 2.8 6.97387e-06 2.8 7.23217e-06 2.8 7.49046e-06 2.8 7.74875e-06 2.8 8.00704e-06 2.8 8.26533e-06 2.8" />
+    <matrix coldim="2" name="RINDEX0x56008bf127f9" values=" 1.68*eV  1.03864    1.85*eV  1.03877    2.02*eV  1.03889    2.20*eV  1.03905    2.38*eV  1.03921    2.55*eV  1.03939    2.73*eV  1.03958    2.90*eV  1.03979    3.08*eV  1.04001    3.25*eV  1.04024    3.42*eV  1.04049    3.60*eV  1.04076    3.77*eV  1.04105    3.95*eV  1.04135    4.12*eV  1.04167    4.30*eV  1.04201    4.47*eV  1.04238    4.65*eV  1.04276    4.83*eV  1.04315    5.00*eV  1.04358    5.17*eV  1.04376    5.35*eV  1.04443    5.53*eV  1.04485    5.70*eV  1.04531    5.88*eV  1.04579    6.05*eV  1.04630    6.22*eV  1.04684    6.40*eV  1.04736    6.58*eV  1.04795    6.75*eV  1.04851    6.92*eV  1.04906    7.10*eV  1.04968    7.28*eV  1.05027    7.45*eV  1.05094" />
+    <matrix coldim="2" name="GROUPVEL0x56008bf12a90" values="1.54975e-06 107.069 1.6789e-06 107.069 1.93719e-06 107.069 2.19548e-06 107.069 2.45377e-06 107.069 2.71206e-06 107.069 2.97035e-06 107.069 3.22865e-06 107.069 3.48694e-06 107.069 3.74523e-06 107.069 4.00352e-06 107.069 4.26181e-06 107.069 4.5201e-06 107.069 4.7784e-06 107.069 5.03669e-06 107.069 5.29498e-06 107.069 5.55327e-06 107.069 5.81156e-06 107.069 6.06985e-06 107.069 6.32815e-06 107.069 6.58644e-06 107.069 6.84473e-06 107.069 7.10302e-06 107.069 7.36131e-06 107.069 7.6196e-06 107.069 7.8779e-06 107.069 8.26533e-06 107.069" />
+  </define>
+  <materials>
+    <isotope N="12" Z="6" name="C120x56008be749f0">
+      <atom unit="g/mole" value="12" />
+    </isotope>
+    <isotope N="13" Z="6" name="C130x56008be74a70">
+      <atom unit="g/mole" value="13.0034" />
+    </isotope>
+    <element name="C0x56008be74ac0">
+      <fraction n="0.9893" ref="C120x56008be749f0" />
+      <fraction n="0.0107" ref="C130x56008be74a70" />
+    </element>
+    <isotope N="1" Z="1" name="H10x56008be7af80">
+      <atom unit="g/mole" value="1.00782503081372" />
+    </isotope>
+    <isotope N="2" Z="1" name="H20x56008be74800">
+      <atom unit="g/mole" value="2.01410199966617" />
+    </isotope>
+    <element name="H0x56008be74870">
+      <fraction n="0.999885" ref="H10x56008be7af80" />
+      <fraction n="0.000115" ref="H20x56008be74800" />
+    </element>
+    <isotope N="16" Z="8" name="O160x56008be74f00">
+      <atom unit="g/mole" value="15.9949" />
+    </isotope>
+    <isotope N="17" Z="8" name="O170x56008be74f50">
+      <atom unit="g/mole" value="16.9991" />
+    </isotope>
+    <isotope N="18" Z="8" name="O180x56008be74fc0">
+      <atom unit="g/mole" value="17.9992" />
+    </isotope>
+    <element name="O0x56008be75040">
+      <fraction n="0.99757" ref="O160x56008be74f00" />
+      <fraction n="0.00038" ref="O170x56008be74f50" />
+      <fraction n="0.00205" ref="O180x56008be74fc0" />
+    </element>
+    <material name="PEEK0x56008bf17290" state="solid">
+      <property name="RINDEX" ref="RINDEX0x56008bf06450" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="72.7502867971947" />
+      <D unit="g/cm3" value="1.31" />
+      <fraction n="0.786061008185302" ref="C0x56008be74ac0" />
+      <fraction n="0.0486066912324102" ref="H0x56008be74870" />
+      <fraction n="0.165332300582288" ref="O0x56008be75040" />
+    </material>
+    <material name="QuarterInchHoneycomb0x56008bf146f0" state="solid">
+      <property name="RINDEX" ref="RINDEX0x56008bf06450" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="81" />
+      <D unit="g/cm3" value="0.251859948283542" />
+      <fraction n="1" ref="C0x56008be74ac0" />
+    </material>
+    <isotope N="28" Z="14" name="Si280x56008be75480">
+      <atom unit="g/mole" value="27.9769" />
+    </isotope>
+    <isotope N="29" Z="14" name="Si290x56008be754d0">
+      <atom unit="g/mole" value="28.9765" />
+    </isotope>
+    <isotope N="30" Z="14" name="Si300x56008be75540">
+      <atom unit="g/mole" value="29.9738" />
+    </isotope>
+    <element name="Si0x56008be75590">
+      <fraction n="0.922296077703922" ref="Si280x56008be75480" />
+      <fraction n="0.0468319531680468" ref="Si290x56008be754d0" />
+      <fraction n="0.0308719691280309" ref="Si300x56008be75540" />
+    </element>
+    <material name="BelleIIAerogel30x56008beff0d0" state="solid">
+      <property name="RINDEX" ref="RINDEX0x56008bf127f9" />
+      <property name="GROUPVEL" ref="GROUPVEL0x56008bf06770" />
+      <property name="RAYLEIGH" ref="RAYLEIGH0x00000001" />
+      <property name="ABSLENGTH" ref="ABSLENGTH0x00000001" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="119.057215163865" />
+      <D unit="g/cm3" value="0.1425" />
+      <fraction n="0.48" ref="O0x56008be75040" />
+      <fraction n="0.01" ref="H0x56008be74870" />
+      <fraction n="0.45" ref="Si0x56008be75590" />
+      <fraction n="0.06" ref="C0x56008be74ac0" />
+    </material>
+    <material name="Absorber0x56008bf13750" state="solid">
+      <property name="RINDEX" ref="RINDEX0x56008bf127f9" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="81" />
+      <D unit="g/cm3" value="1" />
+      <fraction n="1" ref="C0x56008be74ac0" />
+    </material>
+    <material name="Acrylic0x56008bf095f0" state="solid">
+      <property name="RINDEX" ref="RINDEX0x56008bf0c1e0" />
+      <property name="GROUPVEL" ref="GROUPVEL0x56008bf0c600" />
+      <property name="RAYLEIGH" ref="RAYLEIGH0x56008bf0cbf0" />
+      <property name="ABSLENGTH" ref="ABSLENGTH0x56008bf0c7d0" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="68.6088807971963" />
+      <D unit="g/cm3" value="1.18" />
+      <fraction n="0.599841070879962" ref="C0x56008be74ac0" />
+      <fraction n="0.319617088375753" ref="O0x56008be75040" />
+      <fraction n="0.0805418407442842" ref="H0x56008be74870" />
+    </material>
+    <material name="CarbonFiber0x56008bf15730" state="gas">
+      <property name="RINDEX" ref="RINDEX0x56008bf06450" />
+      <property name="GROUPVEL" ref="GROUPVEL0x56008bf0c600" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="81" />
+      <D unit="g/cm3" value="1.82465969517581" />
+      <fraction n="1" ref="C0x56008be74ac0" />
+    </material>
+    <isotope N="14" Z="7" name="N140x56008be74c20">
+      <atom unit="g/mole" value="14.0031" />
+    </isotope>
+    <isotope N="15" Z="7" name="N150x56008be74cc0">
+      <atom unit="g/mole" value="15.0001" />
+    </isotope>
+    <element name="N0x56008be74d30">
+      <fraction n="0.99632" ref="N140x56008be74c20" />
+      <fraction n="0.00368" ref="N150x56008be74cc0" />
+    </element>
+    <material name="Nitrogen0x56008be8a6b0" state="gas">
+      <property name="RINDEX" ref="RINDEX0x56008be8cd60" />
+      <property name="GROUPVEL" ref="GROUPVEL0x56008be8d000" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="82" />
+      <D unit="g/cm3" value="0.00125" />
+      <fraction n="1" ref="N0x56008be74d30" />
+    </material>
+    <material Z="13" name="G4_Al0x56008be7b9d0" state="solid">
+      <property name="RINDEX" ref="RINDEX0x56008bf06450" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="166" />
+      <D unit="g/cm3" value="2.699" />
+      <atom unit="g/mole" value="26.9815" />
+    </material>
+    <material name="HalfInchHoneyconb0x56008bf14f10" state="solid">
+      <property name="RINDEX" ref="RINDEX0x56008bf06450" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="81" />
+      <D unit="g/cm3" value="0.15864012498502" />
+      <fraction n="1" ref="C0x56008be74ac0" />
+    </material>
+    <material name="FusedSilica0x56008be8ff10" state="solid">
+      <property name="RINDEX" ref="RINDEX0x56008be8f830" />
+      <property name="GROUPVEL" ref="GROUPVEL0x56008be93fb0" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="125.663004061075" />
+      <D unit="g/cm3" value="2.2" />
+      <fraction n="0.467433841791527" ref="Si0x56008be75590" />
+      <fraction n="0.532566158208473" ref="O0x56008be75040" />
+    </material>
+    <isotope N="27" Z="13" name="Al270x56008be75730">
+      <atom unit="g/mole" value="26.9815" />
+    </isotope>
+    <element name="Al0x56008be757a0">
+      <fraction n="1" ref="Al270x56008be75730" />
+    </element>
+    <isotope N="40" Z="20" name="Ca400x56008be759c0">
+      <atom unit="g/mole" value="39.9626" />
+    </isotope>
+    <isotope N="42" Z="20" name="Ca420x56008be75a10">
+      <atom unit="g/mole" value="41.9586" />
+    </isotope>
+    <isotope N="43" Z="20" name="Ca430x56008be75a80">
+      <atom unit="g/mole" value="42.9588" />
+    </isotope>
+    <isotope N="44" Z="20" name="Ca440x56008be75be0">
+      <atom unit="g/mole" value="43.9555" />
+    </isotope>
+    <isotope N="46" Z="20" name="Ca460x56008be75c30">
+      <atom unit="g/mole" value="45.9537" />
+    </isotope>
+    <isotope N="48" Z="20" name="Ca480x56008be75cd0">
+      <atom unit="g/mole" value="47.9525" />
+    </isotope>
+    <element name="Ca0x56008be75d20">
+      <fraction n="0.96941" ref="Ca400x56008be759c0" />
+      <fraction n="0.00647" ref="Ca420x56008be75a10" />
+      <fraction n="0.00135" ref="Ca430x56008be75a80" />
+      <fraction n="0.02086" ref="Ca440x56008be75be0" />
+      <fraction n="4e-05" ref="Ca460x56008be75c30" />
+      <fraction n="0.00187" ref="Ca480x56008be75cd0" />
+    </element>
+    <material name="Ceramic0x56008bf12c60" state="solid">
+      <property name="RINDEX" ref="RINDEX0x56008bf06450" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="123.32449358718" />
+      <D unit="g/cm3" value="3.1" />
+      <fraction n="0.5485" ref="O0x56008be75040" />
+      <fraction n="0.3009" ref="Al0x56008be757a0" />
+      <fraction n="0.0886" ref="Si0x56008be75590" />
+      <fraction n="0.062" ref="Ca0x56008be75d20" />
+    </material>
+    <isotope N="107" Z="47" name="Ag1070x56008be830a0">
+      <atom unit="g/mole" value="106.905" />
+    </isotope>
+    <isotope N="109" Z="47" name="Ag1090x56008be81720">
+      <atom unit="g/mole" value="108.905" />
+    </isotope>
+    <element name="Ag0x56008be83430">
+      <fraction n="0.51839" ref="Ag1070x56008be830a0" />
+      <fraction n="0.48161" ref="Ag1090x56008be81720" />
+    </element>
+    <material name="G4_Ag0x56008be832f0" state="solid">
+      <property name="RINDEX" ref="RINDEX0x56008bf06450" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="470" />
+      <D unit="g/cm3" value="10.5" />
+      <fraction n="1" ref="Ag0x56008be83430" />
+    </material>
+    <isotope N="23" Z="11" name="Na230x56008be75c80">
+      <atom unit="g/mole" value="22.9898" />
+    </isotope>
+    <element name="Na0x56008be75f50">
+      <fraction n="1" ref="Na230x56008be75c80" />
+    </element>
+    <isotope N="39" Z="19" name="K390x56008be75390">
+      <atom unit="g/mole" value="38.9637" />
+    </isotope>
+    <isotope N="40" Z="19" name="K400x56008be76130">
+      <atom unit="g/mole" value="39.964" />
+    </isotope>
+    <isotope N="41" Z="19" name="K410x56008be761a0">
+      <atom unit="g/mole" value="40.9618" />
+    </isotope>
+    <element name="K0x56008be76220">
+      <fraction n="0.932581" ref="K390x56008be75390" />
+      <fraction n="0.000117" ref="K400x56008be76130" />
+      <fraction n="0.067302" ref="K410x56008be761a0" />
+    </element>
+    <isotope N="121" Z="51" name="Sb1210x56008be76420">
+      <atom unit="g/mole" value="120.904" />
+    </isotope>
+    <isotope N="123" Z="51" name="Sb1230x56008be76490">
+      <atom unit="g/mole" value="122.904" />
+    </isotope>
+    <element name="Sb0x56008be7b750">
+      <fraction n="0.5721" ref="Sb1210x56008be76420" />
+      <fraction n="0.4279" ref="Sb1230x56008be76490" />
+    </element>
+    <material name="Bialkali0x56008bf0fd60" state="solid">
+      <property name="RINDEX" ref="RINDEX0x56008bf127f0" />
+      <property name="GROUPVEL" ref="GROUPVEL0x56008bf12a90" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="302.073738954529" />
+      <D unit="g/cm3" value="1" />
+      <fraction n="0.222297973339624" ref="Na0x56008be75f50" />
+      <fraction n="0.189028859120033" ref="K0x56008be76220" />
+      <fraction n="0.588673167540343" ref="Sb0x56008be7b750" />
+    </material>
+    <material name="FR40x56008bf15f30" state="solid">
+      <property name="RINDEX" ref="RINDEX0x56008bf06450" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="81" />
+      <D unit="g/cm3" value="2.20087818902649" />
+      <fraction n="1" ref="C0x56008be74ac0" />
+    </material>
+    <material name="G4_Si0x56008be897b0" state="solid">
+      <property name="RINDEX" ref="RINDEX0x56008bf06450" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="173" />
+      <D unit="g/cm3" value="2.33" />
+      <fraction n="1" ref="Si0x56008be75590" />
+    </material>
+    <material name="G4_WATER0x56008be84de0" state="liquid">
+      <property name="RINDEX" ref="RINDEX0x56008bf06450" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="78" />
+      <D unit="g/cm3" value="1" />
+      <fraction n="0.111898477841067" ref="H0x56008be74870" />
+      <fraction n="0.888101522158933" ref="O0x56008be75040" />
+    </material>
+    <isotope N="46" Z="22" name="Ti460x56008be845f0">
+      <atom unit="g/mole" value="45.9526" />
+    </isotope>
+    <isotope N="47" Z="22" name="Ti470x56008be84640">
+      <atom unit="g/mole" value="46.9518" />
+    </isotope>
+    <isotope N="48" Z="22" name="Ti480x56008be84690">
+      <atom unit="g/mole" value="47.9479" />
+    </isotope>
+    <isotope N="49" Z="22" name="Ti490x56008be84710">
+      <atom unit="g/mole" value="48.9479" />
+    </isotope>
+    <isotope N="50" Z="22" name="Ti500x56008be84760">
+      <atom unit="g/mole" value="49.9448" />
+    </isotope>
+    <element name="Ti0x56008be84800">
+      <fraction n="0.0825" ref="Ti460x56008be845f0" />
+      <fraction n="0.0744" ref="Ti470x56008be84640" />
+      <fraction n="0.7372" ref="Ti480x56008be84690" />
+      <fraction n="0.0541" ref="Ti490x56008be84710" />
+      <fraction n="0.0518" ref="Ti500x56008be84760" />
+    </element>
+    <material name="G4_Ti0x56008be844b0" state="solid">
+      <property name="RINDEX" ref="RINDEX0x56008bf06450" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="233" />
+      <D unit="g/cm3" value="4.54" />
+      <fraction n="1" ref="Ti0x56008be84800" />
+    </material>
+    <material name="Air0x56008be89d40" state="gas">
+      <property name="RINDEX" ref="RINDEX0x56008bf06450" />
+      <property name="GROUPVEL" ref="GROUPVEL0x56008bf0c600" />
+      <T unit="K" value="293.15" />
+      <MEE unit="eV" value="85.7025566408487" />
+      <D unit="g/cm3" value="0.00129" />
+      <fraction n="0.7" ref="N0x56008be74d30" />
+      <fraction n="0.3" ref="O0x56008be75040" />
+    </material>
+  </materials>
+  <solids>
+    <tube name="BelleIIAerogelBig" rmin="67.5" rmax="621.5" z="25" startphi="0" deltaphi="360" aunit="deg" lunit="mm" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeEpipe0x56008bf67110" rmax="65.016" rmin="0" startphi="0" z="6.35" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeHpipe0x56008bf67220" rmax="34.716" rmin="0" startphi="0" z="6.35" />
+    <union name="Tmp0x56008bf67420">
+      <first ref="FlangeEpipe0x56008bf67110" />
+      <second ref="FlangeHpipe0x56008bf67220" />
+      <position name="Tmp0x56008bf67420_pos" unit="mm" x="-67.6" y="0" z="0" />
+    </union>
+    <trap alpha1="0" alpha2="0" aunit="deg" lunit="mm" name="FlangeWedge0x56008b62c830" phi="0" theta="0" x1="116.238315670544" x2="62.0667122987972" x3="116.238315670544" x4="62.0667122987972" y1="54.0187869822485" y2="54.0187869822485" z="6.35" />
+    <union name="Tmp0x56008bf676d0">
+      <first ref="Tmp0x56008bf67420" />
+      <second ref="FlangeWedge0x56008b62c830" />
+      <position name="Tmp0x56008bf676d0_pos" unit="mm" x="-56.1511804733728" y="0" z="0" />
+      <rotation name="Tmp0x56008bf676d0_rot" unit="deg" x="0" y="0" z="90" />
+    </union>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeEpipe0x56008bf67aa0" rmax="57.65" rmin="0" startphi="0" z="7.35" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeHpipe0x56008bf67bb0" rmax="27.35" rmin="0" startphi="0" z="7.35" />
+    <union name="Tmp0x56008bf67e30">
+      <first ref="FlangeEpipe0x56008bf67aa0" />
+      <second ref="FlangeHpipe0x56008bf67bb0" />
+      <position name="Tmp0x56008bf67e30_pos" unit="mm" x="-67.6" y="0" z="0" />
+    </union>
+    <trap alpha1="0" alpha2="0" aunit="deg" lunit="mm" name="FlangeWedge0x56008bf67cc0" phi="0" theta="0" x1="103.069073741954" x2="48.8974703702069" x3="103.069073741954" x4="48.8974703702069" y1="54.0187869822485" y2="54.0187869822485" z="7.35" />
+    <union name="Tmp0x56008bf67f70">
+      <first ref="Tmp0x56008bf67e30" />
+      <second ref="FlangeWedge0x56008bf67cc0" />
+      <position name="Tmp0x56008bf67f70_pos" unit="mm" x="-52.8495562130177" y="0" z="0" />
+      <rotation name="Tmp0x56008bf67f70_rot" unit="deg" x="0" y="0" z="90" />
+    </union>
+    <subtraction name="InnerWallAluRing0x56008bf679f0">
+      <first ref="Tmp0x56008bf676d0" />
+      <second ref="Tmp0x56008bf67f70" />
+    </subtraction>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeEpipe0x56008bf65e00" rmax="65.016" rmin="0" startphi="0" z="431.65" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeHpipe0x56008bf65f40" rmax="34.716" rmin="0" startphi="0" z="431.65" />
+    <union name="Tmp0x56008bf66100">
+      <first ref="FlangeEpipe0x56008bf65e00" />
+      <second ref="FlangeHpipe0x56008bf65f40" />
+      <position name="Tmp0x56008bf66100_pos" unit="mm" x="-67.6" y="0" z="0" />
+    </union>
+    <trap alpha1="0" alpha2="0" aunit="deg" lunit="mm" name="FlangeWedge0x56008b759510" phi="0" theta="0" x1="116.238315670544" x2="62.0667122987972" x3="116.238315670544" x4="62.0667122987972" y1="54.0187869822485" y2="54.0187869822485" z="431.65" />
+    <union name="Tmp0x56008bf66370">
+      <first ref="Tmp0x56008bf66100" />
+      <second ref="FlangeWedge0x56008b759510" />
+      <position name="Tmp0x56008bf66370_pos" unit="mm" x="-56.1511804733728" y="0" z="0" />
+      <rotation name="Tmp0x56008bf66370_rot" unit="deg" x="0" y="0" z="90" />
+    </union>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeEpipe0x56008bf66720" rmax="57.65" rmin="0" startphi="0" z="432.65" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeHpipe0x56008bf66830" rmax="27.35" rmin="0" startphi="0" z="432.65" />
+    <union name="Tmp0x56008bf66990">
+      <first ref="FlangeEpipe0x56008bf66720" />
+      <second ref="FlangeHpipe0x56008bf66830" />
+      <position name="Tmp0x56008bf66990_pos" unit="mm" x="-67.6" y="0" z="0" />
+    </union>
+    <trap alpha1="0" alpha2="0" aunit="deg" lunit="mm" name="FlangeWedge0x56008b62c3e0" phi="0" theta="0" x1="103.069073741954" x2="48.8974703702069" x3="103.069073741954" x4="48.8974703702069" y1="54.0187869822485" y2="54.0187869822485" z="432.65" />
+    <union name="Tmp0x56008bf66b60">
+      <first ref="Tmp0x56008bf66990" />
+      <second ref="FlangeWedge0x56008b62c3e0" />
+      <position name="Tmp0x56008bf66b60_pos" unit="mm" x="-52.8495562130177" y="0" z="0" />
+      <rotation name="Tmp0x56008bf66b60_rot" unit="deg" x="0" y="0" z="90" />
+    </union>
+    <subtraction name="InnerWall0x56008bf66670">
+      <first ref="Tmp0x56008bf66370" />
+      <second ref="Tmp0x56008bf66b60" />
+    </subtraction>
+    <tube aunit="deg" deltaphi="39.580387986407" lunit="mm" name="Tmp0x56008bf89880" rmax="204.875" rmin="67.5" startphi="0.2103562350182" z="25" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeEpipe0x56008bf7d1c0" rmax="65.316" rmin="0" startphi="0" z="435.65" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeHpipe0x56008bf7d2d0" rmax="35.016" rmin="0" startphi="0" z="435.65" />
+    <union name="Tmp0x56008bf88340">
+      <first ref="FlangeEpipe0x56008bf7d1c0" />
+      <second ref="FlangeHpipe0x56008bf7d2d0" />
+      <position name="Tmp0x56008bf88340_pos" unit="mm" x="-67.6" y="0" z="0" />
+    </union>
+    <trap alpha1="0" alpha2="0" aunit="deg" lunit="mm" name="FlangeWedge0x56008bf88180" phi="0" theta="0" x1="116.774668179175" x2="62.6030648074284" x3="116.774668179175" x4="62.6030648074284" y1="54.0187869822485" y2="54.0187869822485" z="435.65" />
+    <union name="Tmp0x56008bf895e0">
+      <first ref="Tmp0x56008bf88340" />
+      <second ref="FlangeWedge0x56008bf88180" />
+      <position name="Tmp0x56008bf895e0_pos" unit="mm" x="-56.2856479289941" y="0" z="0" />
+      <rotation name="Tmp0x56008bf895e0_rot" unit="deg" x="0" y="0" z="90" />
+    </union>
+    <subtraction name="BelleIIAerogel3-0-000x56008bf89b40">
+      <first ref="Tmp0x56008bf89880" />
+      <second ref="Tmp0x56008bf895e0" />
+    </subtraction>
+    <tube aunit="deg" deltaphi="0.209255778574781" lunit="mm" name="Tmp0x56008bf89990" rmax="205.375" rmin="67" startphi="39.7907442214252" z="25" />
+    <subtraction name="A-Spacer-_-0-000x56008bf89f40">
+      <first ref="Tmp0x56008bf89990" />
+      <second ref="Tmp0x56008bf895e0" />
+    </subtraction>
+    <subtraction name="BelleIIAerogel3-0-010x56008bf8a970">
+      <first ref="Tmp0x56008bf89880" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="BelleIIAerogel3-0-010x56008bf8a970_rot" unit="deg" x="0" y="0" z="40" />
+    </subtraction>
+    <subtraction name="A-Spacer-_-0-010x56008bf8acd0">
+      <first ref="Tmp0x56008bf89990" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="A-Spacer-_-0-010x56008bf8acd0_rot" unit="deg" x="0" y="0" z="40" />
+    </subtraction>
+    <subtraction name="BelleIIAerogel3-0-020x56008bf8b2a0">
+      <first ref="Tmp0x56008bf89880" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="BelleIIAerogel3-0-020x56008bf8b2a0_rot" unit="deg" x="0" y="0" z="80" />
+    </subtraction>
+    <subtraction name="A-Spacer-_-0-020x56008bf8bc50">
+      <first ref="Tmp0x56008bf89990" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="A-Spacer-_-0-020x56008bf8bc50_rot" unit="deg" x="0" y="0" z="80" />
+    </subtraction>
+    <subtraction name="BelleIIAerogel3-0-030x56008bf8c1d0">
+      <first ref="Tmp0x56008bf89880" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="BelleIIAerogel3-0-030x56008bf8c1d0_rot" unit="deg" x="0" y="0" z="120" />
+    </subtraction>
+    <subtraction name="A-Spacer-_-0-030x56008bf8c530">
+      <first ref="Tmp0x56008bf89990" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="A-Spacer-_-0-030x56008bf8c530_rot" unit="deg" x="0" y="0" z="120" />
+    </subtraction>
+    <subtraction name="BelleIIAerogel3-0-040x56008bf8ca60">
+      <first ref="Tmp0x56008bf89880" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="BelleIIAerogel3-0-040x56008bf8ca60_rot" unit="deg" x="0" y="0" z="160" />
+    </subtraction>
+    <subtraction name="A-Spacer-_-0-040x56008bf8cdc0">
+      <first ref="Tmp0x56008bf89990" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="A-Spacer-_-0-040x56008bf8cdc0_rot" unit="deg" x="0" y="0" z="160" />
+    </subtraction>
+    <subtraction name="BelleIIAerogel3-0-050x56008bf8d390">
+      <first ref="Tmp0x56008bf89880" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="BelleIIAerogel3-0-050x56008bf8d390_rot" unit="deg" x="0" y="0" z="-160" />
+    </subtraction>
+    <subtraction name="A-Spacer-_-0-050x56008bf8d6f0">
+      <first ref="Tmp0x56008bf89990" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="A-Spacer-_-0-050x56008bf8d6f0_rot" unit="deg" x="0" y="0" z="-160" />
+    </subtraction>
+    <subtraction name="BelleIIAerogel3-0-060x56008bf8dc70">
+      <first ref="Tmp0x56008bf89880" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="BelleIIAerogel3-0-060x56008bf8dc70_rot" unit="deg" x="0" y="0" z="-120" />
+    </subtraction>
+    <subtraction name="A-Spacer-_-0-060x56008bf8dfd0">
+      <first ref="Tmp0x56008bf89990" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="A-Spacer-_-0-060x56008bf8dfd0_rot" unit="deg" x="0" y="0" z="-120" />
+    </subtraction>
+    <subtraction name="BelleIIAerogel3-0-070x56008bf8e610">
+      <first ref="Tmp0x56008bf89880" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="BelleIIAerogel3-0-070x56008bf8e610_rot" unit="deg" x="0" y="0" z="-80" />
+    </subtraction>
+    <subtraction name="A-Spacer-_-0-070x56008bf8ea60">
+      <first ref="Tmp0x56008bf89990" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="A-Spacer-_-0-070x56008bf8ea60_rot" unit="deg" x="0" y="0" z="-80" />
+    </subtraction>
+    <subtraction name="BelleIIAerogel3-0-080x56008bf8f0e0">
+      <first ref="Tmp0x56008bf89880" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="BelleIIAerogel3-0-080x56008bf8f0e0_rot" unit="deg" x="0" y="0" z="-40" />
+    </subtraction>
+    <subtraction name="A-Spacer-_-0-080x56008bf8f530">
+      <first ref="Tmp0x56008bf89990" />
+      <second ref="Tmp0x56008bf895e0" />
+      <rotation name="A-Spacer-_-0-080x56008bf8f530_rot" unit="deg" x="0" y="0" z="-40" />
+    </subtraction>
+    <tube aunit="deg" deltaphi="23.7921490708012" lunit="mm" name="BelleIIAerogel3-1-000x56008bf8fb90" rmax="343.75" rmin="206.375" startphi="0.104150474006966" z="25" />
+    <tube aunit="deg" deltaphi="0.103700455191843" lunit="mm" name="A-Spacer-_-1-000x56008bf8fda0" rmax="344.25" rmin="205.875" startphi="23.8962995448082" z="25" />
+    <tube aunit="deg" deltaphi="16.2255113408574" lunit="mm" name="BelleIIAerogel3-2-000x56008bf94050" rmax="482.625" rmin="345.25" startphi="0.0692082494495936" z="25" />
+    <tube aunit="deg" deltaphi="0.0689167733293811" lunit="mm" name="A-Spacer-_-2-000x56008bf94260" rmax="483.125" rmin="344.75" startphi="16.294719590307" z="25" />
+    <tube aunit="deg" deltaphi="12.7537067468796" lunit="mm" name="BelleIIAerogel3-3-000x56008bf9b3a0" rmax="621.5" rmin="484.125" startphi="0.0518220730474458" z="25" />
+    <tube aunit="deg" deltaphi="0.0516140372158004" lunit="mm" name="A-Spacer-_-3-000x56008bf9b5b0" rmax="622" rmin="483.625" startphi="12.8055288199271" z="25" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="Tmp0x56008bfa3a50" rmax="67" rmin="66" startphi="0" z="25" />
+    <subtraction name="R-Spacer-_-0-000x56008bfa3b60">
+      <first ref="Tmp0x56008bfa3a50" />
+      <second ref="Tmp0x56008bf895e0" />
+    </subtraction>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="R-Spacer-_-1-000x56008bfa4050" rmax="205.875" rmin="205.375" startphi="0" z="25" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="R-Spacer-_-2-000x56008bfa4460" rmax="344.75" rmin="344.25" startphi="0" z="25" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="R-Spacer-_-3-000x56008bfa4870" rmax="483.625" rmin="483.125" startphi="0" z="25" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="R-Spacer-_-4-000x56008bfa4c80" rmax="623" rmin="622" startphi="0" z="25" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="Tmp0x56008bfa5090" rmax="623" rmin="66" startphi="0" z="3" />
+    <subtraction name="Acrylic0x56008bfa51a0">
+      <first ref="Tmp0x56008bfa5090" />
+      <second ref="Tmp0x56008bf895e0" />
+    </subtraction>
+    <cone aunit="deg" deltaphi="360" lunit="mm" name="InnerMirror0x56008bfa5b50" rmax1="66" rmax2="115.96448390677" rmin1="65" rmin2="114.96448390677" startphi="0" z="375.15" />
+    <cone aunit="deg" deltaphi="360" lunit="mm" name="InnerMirror0x56008bfa5ce0" rmax1="66" rmax2="115.96448390677" rmin1="65" rmin2="114.96448390677" startphi="0" z="375.15" />
+    <subtraction name="InnerMirror0x56008bfa5ce0">
+      <first ref="InnerMirror0x56008bfa5b50" />
+      <second ref="Tmp0x56008bf895e0" />
+    </subtraction>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="GasVolume0x56008bf65140" rmax="636.284" rmin="0" startphi="0" z="434.65" />
+    <tube name="OuterMirror0x56008bfa8c60" aunit="deg" deltaphi="360" lunit="mm" startphi="0" rmin="598.4804" rmax="600.4804" z="375.15" />
+    <box lunit="mm" name="Dummy0x56008bfb10e0" x="123" y="123" z="30" />
+    <trd lunit="mm" name="Dummy0x56008bf728c0" x1="123" x2="104" y1="123" y2="104" z="30.022" />
+    <box lunit="mm" name="MirrorPyramid0x56008bfb11e0" x="123" y="123" z="30" />
+    <subtraction name="MirrorPyramid0x56008bfb11e0">
+      <first ref="Dummy0x56008bfb10e0" />
+      <second ref="Dummy0x56008bf728c0" />
+    </subtraction>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeEpipe0x56008bf653a0" rmax="57.65" rmin="0" startphi="0" z="435.65" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeHpipe0x56008bf654b0" rmax="27.35" rmin="0" startphi="0" z="435.65" />
+    <union name="Tmp0x56008bf65610">
+      <first ref="FlangeEpipe0x56008bf653a0" />
+      <second ref="FlangeHpipe0x56008bf654b0" />
+      <position name="Tmp0x56008bf65610_pos" unit="mm" x="-67.6" y="0" z="0" />
+    </union>
+    <trap alpha1="0" alpha2="0" aunit="deg" lunit="mm" name="FlangeWedge0x56008b62c550" phi="0" theta="0" x1="103.069073741954" x2="48.8974703702069" x3="103.069073741954" x4="48.8974703702069" y1="54.0187869822485" y2="54.0187869822485" z="435.65" />
+    <union name="Tmp0x56008bf65860">
+      <first ref="Tmp0x56008bf65610" />
+      <second ref="FlangeWedge0x56008b62c550" />
+      <position name="Tmp0x56008bf65860_pos" unit="mm" x="-52.8495562130177" y="0" z="0" />
+      <rotation name="Tmp0x56008bf65860_rot" unit="deg" x="0" y="0" z="90" />
+    </union>
+    <box lunit="mm" name="GasVolume0x56008bf652f0" x="1500" y="1500" z="1500" />
+    <subtraction name="GasVolume0x56008bf652f0">
+      <first ref="GasVolume0x56008bf65140" />
+      <second ref="Tmp0x56008bf65860" />
+    </subtraction>
+    <opticalsurface finish="0" model="1" name="MirrorPyramid0x56008bfb1550" type="0" value="0">
+      <property name="EFFICIENCY" ref="EFFICIENCY" />
+      <property name="REFLECTIVITY" ref="REFLECTIVITY0x56008bfb3580" />
+    </opticalsurface>
+    <opticalsurface finish="0" model="1" name="Absorbing" type="0" value="0">
+      <property name="REFLECTIVITY" ref="ZEROREF" />
+    </opticalsurface>
+    <opticalsurface finish="0" model="1" name="GasAerogelSurface0x999999" type="0" value="0">
+      <property name="ABSORPTION" ref="ABSORPTION0x56008bfb3582" />
+      <property name="REFLECTIVITY" ref="REFLECTIVITY0x56008bfb3581" />
+    </opticalsurface>
+    <opticalsurface finish="0" model="1" name="InnerMirror0x56008bfa6280" type="0" value="0">
+      <property name="REFLECTIVITY" ref="REFLECTIVITY0x56008bfa8460" />
+    </opticalsurface>
+    <opticalsurface finish="0" model="1" name="OuterMirror0x56008bfa9300" type="0" value="0">
+      <property name="REFLECTIVITY" ref="REFLECTIVITY0x56008bfab320" />
+    </opticalsurface>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="PFRICH_World0x56008bf17c10" rmax="1500" rmin="0" startphi="0" z="1500" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeEpipe0x56008bf695d0" rmax="64" rmin="0" startphi="0" z="6.35" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeHpipe0x56008bf696e0" rmax="33.7" rmin="0" startphi="0" z="6.35" />
+    <union name="Tmp0x56008bf699b0">
+      <first ref="FlangeEpipe0x56008bf695d0" />
+      <second ref="FlangeHpipe0x56008bf696e0" />
+      <position name="Tmp0x56008bf699b0_pos" unit="mm" x="-67.6" y="0" z="0" />
+    </union>
+    <trap alpha1="0" alpha2="0" aunit="deg" lunit="mm" name="FlangeWedge0x56008bf697f0" phi="0" theta="0" x1="114.42186850798" x2="60.2502651362331" x3="114.42186850798" x4="60.2502651362331" y1="54.0187869822485" y2="54.0187869822485" z="6.35" />
+    <union name="Tmp0x56008bf69bd0">
+      <first ref="Tmp0x56008bf699b0" />
+      <second ref="FlangeWedge0x56008bf697f0" />
+      <position name="Tmp0x56008bf69bd0_pos" unit="mm" x="-55.6957840236686" y="0" z="0" />
+      <rotation name="Tmp0x56008bf69bd0_rot" unit="deg" x="0" y="0" z="90" />
+    </union>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeEpipe0x56008bf69f80" rmax="57.65" rmin="0" startphi="0" z="7.35" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeHpipe0x56008bf6a090" rmax="27.35" rmin="0" startphi="0" z="7.35" />
+    <union name="Tmp0x56008bf6a430">
+      <first ref="FlangeEpipe0x56008bf69f80" />
+      <second ref="FlangeHpipe0x56008bf6a090" />
+      <position name="Tmp0x56008bf6a430_pos" unit="mm" x="-67.6" y="0" z="0" />
+    </union>
+    <trap alpha1="0" alpha2="0" aunit="deg" lunit="mm" name="FlangeWedge0x56008bf6a230" phi="0" theta="0" x1="103.069073741954" x2="48.8974703702069" x3="103.069073741954" x4="48.8974703702069" y1="54.0187869822485" y2="54.0187869822485" z="7.35" />
+    <union name="Tmp0x56008bf6a680">
+      <first ref="Tmp0x56008bf6a430" />
+      <second ref="FlangeWedge0x56008bf6a230" />
+      <position name="Tmp0x56008bf6a680_pos" unit="mm" x="-52.8495562130177" y="0" z="0" />
+      <rotation name="Tmp0x56008bf6a680_rot" unit="deg" x="0" y="0" z="90" />
+    </union>
+    <subtraction name="FrontWallAluRing10x56008bf69ed0">
+      <first ref="Tmp0x56008bf69bd0" />
+      <second ref="Tmp0x56008bf6a680" />
+    </subtraction>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FrontWallAluRing20x56008bf6add0" rmax="650" rmin="637.3" startphi="0" z="6.35" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FrontWall0x56008bf686c0" rmax="650" rmin="0" startphi="0" z="6.35" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeEpipe0x56008bf688e0" rmax="57.65" rmin="0" startphi="0" z="7.35" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeHpipe0x56008bf689f0" rmax="27.35" rmin="0" startphi="0" z="7.35" />
+    <union name="Tmp0x56008bf68cc0">
+      <first ref="FlangeEpipe0x56008bf688e0" />
+      <second ref="FlangeHpipe0x56008bf689f0" />
+      <position name="Tmp0x56008bf68cc0_pos" unit="mm" x="-67.6" y="0" z="0" />
+    </union>
+    <trap alpha1="0" alpha2="0" aunit="deg" lunit="mm" name="FlangeWedge0x56008bf68b00" phi="0" theta="0" x1="103.069073741954" x2="48.8974703702069" x3="103.069073741954" x4="48.8974703702069" y1="54.0187869822485" y2="54.0187869822485" z="7.35" />
+    <union name="Tmp0x56008bf68ff0">
+      <first ref="Tmp0x56008bf68cc0" />
+      <second ref="FlangeWedge0x56008bf68b00" />
+      <position name="Tmp0x56008bf68ff0_pos" unit="mm" x="-52.8495562130177" y="0" z="0" />
+      <rotation name="Tmp0x56008bf68ff0_rot" unit="deg" x="0" y="0" z="90" />
+    </union>
+    <subtraction name="FrontWall0x56008bf68830">
+      <first ref="FrontWall0x56008bf686c0" />
+      <second ref="Tmp0x56008bf68ff0" />
+    </subtraction>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="OuterWallAluRing0x56008bf6b6f0" rmax="650" rmin="636.284" startphi="0" z="12.7" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="OuterWall0x56008bf6b2d0" rmax="650" rmin="636.284" startphi="0" z="434.65" />
+    <box lunit="mm" name="QuartzWindow0x56008bfabae0" x="120" y="120" z="5" />
+    <box lunit="mm" name="CeramicBox0x56008bfabf80" x="120" y="120" z="9" />
+    <box lunit="mm" name="CeramicCut0x56008bfac080" x="114" y="114" z="9" />
+    <subtraction name="CeramicBody0x56008bfac180">
+      <first ref="CeramicBox0x56008bfabf80" />
+      <second ref="CeramicCut0x56008bfac080" />
+      <position name="CeramicBody0x56008bfac180_pos" unit="mm" x="0" y="0" z="-3" />
+    </subtraction>
+    <box lunit="mm" name="Plating0x56008bfac570" x="114" y="114" z="0.06" />
+    <box lunit="mm" name="MCP0x56008bfac800" x="114" y="114" z="0.36" />
+    <box lunit="mm" name="FakePhotoDetector0x56008bfae470" x="104" y="104" z="0.01" />
+    <box lunit="mm" name="PhotoDetector0x56008bfab9c0" x="104" y="104" z="0.01" />
+    <box lunit="mm" name="PCB0x56008bfaee80" x="112" y="112" z="2" />
+    <box lunit="mm" name="ASIC0x56008bfaf200" x="16" y="16" z="1" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="Water0x56008bfafcb0" rmax="2.7686" rmin="0" startphi="0" z="120" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="CoolingPipe0x56008bfaf9b0" rmax="3.175" rmin="0" startphi="0" z="120" />
+    <box lunit="mm" name="ColdPlate0x56008bfaf760" x="16" y="16" z="1.5" />
+    <box lunit="mm" name="HRPPD0x56008bfabd10" x="120" y="120" z="32" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="AluFrame0x56008c097f00" rmax="650" rmin="0" startphi="0" z="9.7" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeEpipe0x56008c098120" rmax="57.65" rmin="0" startphi="0" z="10.7" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeHpipe0x56008c098230" rmax="27.35" rmin="0" startphi="0" z="10.7" />
+    <union name="Tmp0x56008bfab240">
+      <first ref="FlangeEpipe0x56008c098120" />
+      <second ref="FlangeHpipe0x56008c098230" />
+      <position name="Tmp0x56008bfab240_pos" unit="mm" x="-67.6" y="0" z="0" />
+    </union>
+    <trap alpha1="0" alpha2="0" aunit="deg" lunit="mm" name="FlangeWedge0x56008c098340" phi="0" theta="0" x1="103.069073741954" x2="48.8974703702069" x3="103.069073741954" x4="48.8974703702069" y1="54.0187869822485" y2="54.0187869822485" z="10.7" />
+    <union name="Tmp0x56008bfb34a0">
+      <first ref="Tmp0x56008bfab240" />
+      <second ref="FlangeWedge0x56008c098340" />
+      <position name="Tmp0x56008bfb34a0_pos" unit="mm" x="-52.8495562130177" y="0" z="0" />
+      <rotation name="Tmp0x56008bfb34a0_rot" unit="deg" x="0" y="0" z="90" />
+    </union>
+    <subtraction name="AluFrame0x56008c098070">
+      <first ref="AluFrame0x56008c097f00" />
+      <second ref="Tmp0x56008bfb34a0" />
+    </subtraction>
+    <box lunit="mm" name="AluWndCut0x56008b502870" x="120.5" y="120.5" z="11.7" />
+    <subtraction name="AluFrame0x56008c0988b0">
+      <first ref="AluFrame0x56008c098070" />
+      <second ref="AluWndCut0x56008b502870" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c098aa0">
+      <first ref="AluFrame0x56008c0988b0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c098aa0_pos" unit="mm" x="-40" y="0" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c098c90">
+      <first ref="AluFrame0x56008c098aa0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c098c90_pos" unit="mm" x="-492" y="-246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c098ed0">
+      <first ref="AluFrame0x56008c098c90" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c098ed0_pos" unit="mm" x="-492" y="-123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0990c0">
+      <first ref="AluFrame0x56008c098ed0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0990c0_pos" unit="mm" x="-532" y="0" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0992b0">
+      <first ref="AluFrame0x56008c0990c0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0992b0_pos" unit="mm" x="-492" y="123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0994a0">
+      <first ref="AluFrame0x56008c0992b0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0994a0_pos" unit="mm" x="-492" y="246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c099690">
+      <first ref="AluFrame0x56008c0994a0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c099690_pos" unit="mm" x="-369" y="-369" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c099880">
+      <first ref="AluFrame0x56008c099690" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c099880_pos" unit="mm" x="-369" y="-246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c099a70">
+      <first ref="AluFrame0x56008c099880" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c099a70_pos" unit="mm" x="-369" y="-123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c099c60">
+      <first ref="AluFrame0x56008c099a70" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c099c60_pos" unit="mm" x="-409" y="0" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c099e50">
+      <first ref="AluFrame0x56008c099c60" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c099e50_pos" unit="mm" x="-369" y="123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008bf8b550">
+      <first ref="AluFrame0x56008c099e50" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008bf8b550_pos" unit="mm" x="-369" y="246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008bf8b740">
+      <first ref="AluFrame0x56008bf8b550" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008bf8b740_pos" unit="mm" x="-369" y="369" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008bf8b930">
+      <first ref="AluFrame0x56008bf8b740" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008bf8b930_pos" unit="mm" x="-246" y="-492" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09b190">
+      <first ref="AluFrame0x56008bf8b930" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09b190_pos" unit="mm" x="-246" y="-369" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09b380">
+      <first ref="AluFrame0x56008c09b190" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09b380_pos" unit="mm" x="-246" y="-246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09b570">
+      <first ref="AluFrame0x56008c09b380" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09b570_pos" unit="mm" x="-246" y="-123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09b760">
+      <first ref="AluFrame0x56008c09b570" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09b760_pos" unit="mm" x="-286" y="0" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09b950">
+      <first ref="AluFrame0x56008c09b760" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09b950_pos" unit="mm" x="-246" y="123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09bb40">
+      <first ref="AluFrame0x56008c09b950" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09bb40_pos" unit="mm" x="-246" y="246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09bd30">
+      <first ref="AluFrame0x56008c09bb40" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09bd30_pos" unit="mm" x="-246" y="369" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09bf20">
+      <first ref="AluFrame0x56008c09bd30" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09bf20_pos" unit="mm" x="-246" y="492" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09c110">
+      <first ref="AluFrame0x56008c09bf20" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09c110_pos" unit="mm" x="-123" y="-492" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09c300">
+      <first ref="AluFrame0x56008c09c110" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09c300_pos" unit="mm" x="-123" y="-369" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09c4f0">
+      <first ref="AluFrame0x56008c09c300" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09c4f0_pos" unit="mm" x="-123" y="-246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09c6e0">
+      <first ref="AluFrame0x56008c09c4f0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09c6e0_pos" unit="mm" x="-123" y="-123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09c8d0">
+      <first ref="AluFrame0x56008c09c6e0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09c8d0_pos" unit="mm" x="-163" y="0" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09cac0">
+      <first ref="AluFrame0x56008c09c8d0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09cac0_pos" unit="mm" x="-123" y="123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09ccb0">
+      <first ref="AluFrame0x56008c09cac0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09ccb0_pos" unit="mm" x="-123" y="246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09cea0">
+      <first ref="AluFrame0x56008c09ccb0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09cea0_pos" unit="mm" x="-123" y="369" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09d090">
+      <first ref="AluFrame0x56008c09cea0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09d090_pos" unit="mm" x="-123" y="492" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09d280">
+      <first ref="AluFrame0x56008c09d090" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09d280_pos" unit="mm" x="0" y="-492" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09d470">
+      <first ref="AluFrame0x56008c09d280" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09d470_pos" unit="mm" x="0" y="-369" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09d660">
+      <first ref="AluFrame0x56008c09d470" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09d660_pos" unit="mm" x="0" y="-246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09d850">
+      <first ref="AluFrame0x56008c09d660" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09d850_pos" unit="mm" x="0" y="-123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09da40">
+      <first ref="AluFrame0x56008c09d850" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09da40_pos" unit="mm" x="0" y="123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09dc30">
+      <first ref="AluFrame0x56008c09da40" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09dc30_pos" unit="mm" x="0" y="246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09de20">
+      <first ref="AluFrame0x56008c09dc30" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09de20_pos" unit="mm" x="0" y="369" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09e010">
+      <first ref="AluFrame0x56008c09de20" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09e010_pos" unit="mm" x="0" y="492" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09e200">
+      <first ref="AluFrame0x56008c09e010" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09e200_pos" unit="mm" x="123" y="-492" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09e3f0">
+      <first ref="AluFrame0x56008c09e200" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09e3f0_pos" unit="mm" x="123" y="-369" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09e5e0">
+      <first ref="AluFrame0x56008c09e3f0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09e5e0_pos" unit="mm" x="123" y="-246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09e7d0">
+      <first ref="AluFrame0x56008c09e5e0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09e7d0_pos" unit="mm" x="123" y="-123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09e9c0">
+      <first ref="AluFrame0x56008c09e7d0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09e9c0_pos" unit="mm" x="123" y="0" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09ebb0">
+      <first ref="AluFrame0x56008c09e9c0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09ebb0_pos" unit="mm" x="123" y="123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09eda0">
+      <first ref="AluFrame0x56008c09ebb0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09eda0_pos" unit="mm" x="123" y="246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09ef90">
+      <first ref="AluFrame0x56008c09eda0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09ef90_pos" unit="mm" x="123" y="369" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09f180">
+      <first ref="AluFrame0x56008c09ef90" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09f180_pos" unit="mm" x="123" y="492" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09f370">
+      <first ref="AluFrame0x56008c09f180" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09f370_pos" unit="mm" x="246" y="-492" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09f560">
+      <first ref="AluFrame0x56008c09f370" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09f560_pos" unit="mm" x="246" y="-369" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09f750">
+      <first ref="AluFrame0x56008c09f560" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09f750_pos" unit="mm" x="246" y="-246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09f940">
+      <first ref="AluFrame0x56008c09f750" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09f940_pos" unit="mm" x="246" y="-123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09fb30">
+      <first ref="AluFrame0x56008c09f940" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09fb30_pos" unit="mm" x="246" y="0" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09fd20">
+      <first ref="AluFrame0x56008c09fb30" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09fd20_pos" unit="mm" x="246" y="123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c09ff10">
+      <first ref="AluFrame0x56008c09fd20" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c09ff10_pos" unit="mm" x="246" y="246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0a0100">
+      <first ref="AluFrame0x56008c09ff10" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0a0100_pos" unit="mm" x="246" y="369" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0a02f0">
+      <first ref="AluFrame0x56008c0a0100" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0a02f0_pos" unit="mm" x="246" y="492" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0a04e0">
+      <first ref="AluFrame0x56008c0a02f0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0a04e0_pos" unit="mm" x="369" y="-369" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0a06d0">
+      <first ref="AluFrame0x56008c0a04e0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0a06d0_pos" unit="mm" x="369" y="-246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0a08c0">
+      <first ref="AluFrame0x56008c0a06d0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0a08c0_pos" unit="mm" x="369" y="-123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0a0ab0">
+      <first ref="AluFrame0x56008c0a08c0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0a0ab0_pos" unit="mm" x="369" y="0" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0a0ca0">
+      <first ref="AluFrame0x56008c0a0ab0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0a0ca0_pos" unit="mm" x="369" y="123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0a12a0">
+      <first ref="AluFrame0x56008c0a0ca0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0a12a0_pos" unit="mm" x="369" y="246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0a1490">
+      <first ref="AluFrame0x56008c0a12a0" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0a1490_pos" unit="mm" x="369" y="369" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0a1680">
+      <first ref="AluFrame0x56008c0a1490" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0a1680_pos" unit="mm" x="492" y="-246" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0a1870">
+      <first ref="AluFrame0x56008c0a1680" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0a1870_pos" unit="mm" x="492" y="-123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0a1a60">
+      <first ref="AluFrame0x56008c0a1870" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0a1a60_pos" unit="mm" x="492" y="0" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0a1c50">
+      <first ref="AluFrame0x56008c0a1a60" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0a1c50_pos" unit="mm" x="492" y="123" z="0" />
+    </subtraction>
+    <subtraction name="AluFrame0x56008c0a1e40">
+      <first ref="AluFrame0x56008c0a1c50" />
+      <second ref="AluWndCut0x56008b502870" />
+      <position name="AluFrame0x56008c0a1e40_pos" unit="mm" x="492" y="246" z="0" />
+    </subtraction>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="PFRICH0x56008bf17fa0" rmax="650" rmin="0" startphi="0" z="491" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeEpipe0x56008bf646c0" rmax="57.65" rmin="0" startphi="0" z="492" />
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="FlangeHpipe0x56008bf647d0" rmax="27.35" rmin="0" startphi="0" z="492" />
+    <union name="Tmp0x56008bf12630">
+      <first ref="FlangeEpipe0x56008bf646c0" />
+      <second ref="FlangeHpipe0x56008bf647d0" />
+      <position name="Tmp0x56008bf12630_pos" unit="mm" x="-67.6" y="0" z="0" />
+    </union>
+    <trap alpha1="0" alpha2="0" aunit="deg" lunit="mm" name="FlangeWedge0x56008b600820" phi="0" theta="0" x1="103.069073741954" x2="48.8974703702069" x3="103.069073741954" x4="48.8974703702069" y1="54.0187869822485" y2="54.0187869822485" z="492" />
+    <union name="Tmp0x56008bf12710">
+      <first ref="Tmp0x56008bf12630" />
+      <second ref="FlangeWedge0x56008b600820" />
+      <position name="Tmp0x56008bf12710_pos" unit="mm" x="-52.8495562130177" y="0" z="0" />
+      <rotation name="Tmp0x56008bf12710_rot" unit="deg" x="0" y="0" z="90" />
+    </union>
+    <box lunit="mm" name="PFRICH0x56008bf64610" x="1500" y="1500" z="1500" />
+    <subtraction name="PFRICH0x56008bf64610">
+      <first ref="PFRICH0x56008bf17fa0" />
+      <second ref="Tmp0x56008bf12710" />
+    </subtraction>
+    <tube aunit="deg" deltaphi="360" lunit="mm" name="PFRICH_World0x56008bf17c10" rmax="2000" rmin="0" startphi="0" z="12000" />
+  </solids>
+  <structure>
+    <volume name="BelleIIAerogelBigVolume">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogelBig" />
+    </volume>
+    <volume name="InnerWallAluRing0x56008bf683d0">
+      <materialref ref="PEEK0x56008bf17290" />
+      <solidref ref="InnerWallAluRing0x56008bf679f0" />
+    </volume>
+    <volume name="InnerWall0x56008bf66f20">
+      <materialref ref="QuarterInchHoneycomb0x56008bf146f0" />
+      <solidref ref="InnerWall0x56008bf66670" />
+      <physvol name="InnerWallAluRing0x56008bf68500">
+        <volumeref ref="InnerWallAluRing0x56008bf683d0" />
+        <position name="InnerWallAluRing0x56008bf68500_pos" unit="mm" x="0" y="0" z="-212.65" />
+      </physvol>
+      <physvol copynumber="1" name="InnerWallAluRing0x56008bf68620">
+        <volumeref ref="InnerWallAluRing0x56008bf683d0" />
+        <position name="InnerWallAluRing0x56008bf68620_pos" unit="mm" x="0" y="0" z="212.65" />
+      </physvol>
+    </volume>
+    <volume name="BelleIIAerogel3-0-000x56008bf89cb0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-0-000x56008bf89b40" />
+    </volume>
+    <volume name="A-Spacer-_-0-000x56008bf8a190">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-0-000x56008bf89f40" />
+    </volume>
+    <volume name="BelleIIAerogel3-0-010x56008bf8abc0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-0-010x56008bf8a970" />
+    </volume>
+    <volume name="A-Spacer-_-0-010x56008bf8af20">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-0-010x56008bf8acd0" />
+    </volume>
+    <volume name="BelleIIAerogel3-0-020x56008bf8bb40">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-0-020x56008bf8b2a0" />
+    </volume>
+    <volume name="A-Spacer-_-0-020x56008bf8bea0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-0-020x56008bf8bc50" />
+    </volume>
+    <volume name="BelleIIAerogel3-0-030x56008bf8c420">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-0-030x56008bf8c1d0" />
+    </volume>
+    <volume name="A-Spacer-_-0-030x56008bf8c780">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-0-030x56008bf8c530" />
+    </volume>
+    <volume name="BelleIIAerogel3-0-040x56008bf8ccb0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-0-040x56008bf8ca60" />
+    </volume>
+    <volume name="A-Spacer-_-0-040x56008bf8d010">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-0-040x56008bf8cdc0" />
+    </volume>
+    <volume name="BelleIIAerogel3-0-050x56008bf8d5e0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-0-050x56008bf8d390" />
+    </volume>
+    <volume name="A-Spacer-_-0-050x56008bf8d940">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-0-050x56008bf8d6f0" />
+    </volume>
+    <volume name="BelleIIAerogel3-0-060x56008bf8dec0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-0-060x56008bf8dc70" />
+    </volume>
+    <volume name="A-Spacer-_-0-060x56008bf8e220">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-0-060x56008bf8dfd0" />
+    </volume>
+    <volume name="BelleIIAerogel3-0-070x56008bf8e900">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-0-070x56008bf8e610" />
+    </volume>
+    <volume name="A-Spacer-_-0-070x56008bf8ecb0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-0-070x56008bf8ea60" />
+    </volume>
+    <volume name="BelleIIAerogel3-0-080x56008bf8f3d0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-0-080x56008bf8f0e0" />
+    </volume>
+    <volume name="A-Spacer-_-0-080x56008bf8f780">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-0-080x56008bf8f530" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf8ff60">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf90120">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf905b0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf906f0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf90a00">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf90b50">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf90ed0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf90ff0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf912e0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf91450">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf917d0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf918c0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf91b80">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf91ca0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf91f90">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf920b0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf923c0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf924e0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf92870">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf92990">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf92c00">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf92d20">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf93030">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf93150">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf93460">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf93580">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf93890">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf939b0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-1-000x56008bf93cc0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-1-000x56008bf8fb90" />
+    </volume>
+    <volume name="A-Spacer-_-1-000x56008bf93de0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-1-000x56008bf8fda0" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf94470">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf94630">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf94ac0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf94c00">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf94f10">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf95060">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf953e0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf95500">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf957f0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf95960">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf95ce0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf95dd0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf96090">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf961b0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf964a0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf965c0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf968d0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf96a80">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf96ea0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf96fc0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf97230">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf97350">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf97660">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf97780">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf97a90">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf97bb0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf97ec0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf97fe0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf982f0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf98410">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf98720">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf98840">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf98b50">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf98c70">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf992b0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf993d0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf996e0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf99800">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf99b10">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf99c30">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf99f40">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf9a060">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-2-000x56008bf9a9c0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-2-000x56008bf94050" />
+    </volume>
+    <volume name="A-Spacer-_-2-000x56008bf9b130">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-2-000x56008bf94260" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9b7c0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9b980">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9be10">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9bf50">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9c260">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9c3b0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9c730">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9c850">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9cb40">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9ccb0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9d030">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9d120">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9d3e0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9d500">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9d7f0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9d910">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9dc20">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9dd40">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9dfb0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9e0d0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9e340">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9e460">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9e770">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9e890">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9eba0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9ecc0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9efd0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9f0f0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9f400">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9f520">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9f830">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9f950">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bf9fc60">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bf9fe90">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bfa04d0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bfa05f0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bfa1110">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bfa1230">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bfa1540">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bfa1660">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bfa1970">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bfa1a90">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bfa1da0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bfa1ec0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bfa21d0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bfa22f0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bfa2600">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bfa2720">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bfa2a30">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bfa2b50">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bfa2e60">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bfa2f80">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bfa3290">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bfa33b0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="BelleIIAerogel3-3-000x56008bfa36c0">
+      <materialref ref="BelleIIAerogel30x56008beff0d0" />
+      <solidref ref="BelleIIAerogel3-3-000x56008bf9b3a0" />
+    </volume>
+    <volume name="A-Spacer-_-3-000x56008bfa37e0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="A-Spacer-_-3-000x56008bf9b5b0" />
+    </volume>
+    <volume name="R-Spacer-_-0-000x56008bfa3dd0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="R-Spacer-_-0-000x56008bfa3b60" />
+    </volume>
+    <volume name="R-Spacer-_-1-000x56008bfa41e0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="R-Spacer-_-1-000x56008bfa4050" />
+    </volume>
+    <volume name="R-Spacer-_-2-000x56008bfa45f0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="R-Spacer-_-2-000x56008bfa4460" />
+    </volume>
+    <volume name="R-Spacer-_-3-000x56008bfa4a00">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="R-Spacer-_-3-000x56008bfa4870" />
+    </volume>
+    <volume name="R-Spacer-_-4-000x56008bfa4e10">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="R-Spacer-_-4-000x56008bfa4c80" />
+    </volume>
+    <volume name="Acrylic0x56008bfa5410">
+      <materialref ref="Acrylic0x56008bf095f0" />
+      <solidref ref="Acrylic0x56008bfa51a0" />
+    </volume>
+    <volume name="InnerMirror0x56008bfa5ed0">
+      <materialref ref="CarbonFiber0x56008bf15730" />
+      <solidref ref="InnerMirror0x56008bfa5ce0" />
+    </volume>
+    <volume name="OuterMirror0x56008bfa8e50">
+      <materialref ref="CarbonFiber0x56008bf15730" />
+      <solidref ref="OuterMirror0x56008bfa8c60" />
+    </volume>
+    <volume name="MirrorPyramid0x56008bfb13e0">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="MirrorPyramid0x56008bfb11e0" />
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector" />
+    </volume>
+    <volume name="MirrorPyramidAbsorbing">
+      <materialref ref="Absorber0x56008bf13750" />
+      <solidref ref="MirrorPyramid0x56008bfb11e0" />
+    </volume>
+    <volume name="GasVolume0x56008bf65c10">
+      <materialref ref="Nitrogen0x56008be8a6b0" />
+      <solidref ref="GasVolume0x56008bf652f0" />
+      <physvol name="BelleIIAerogelBigPhys">
+        <volumeref ref="BelleIIAerogelBigVolume" />
+        <position name="BelleIIAerogelBig_pos" unit="mm" x="0" y="0" z="-204.525" />
+        <rotation name="BelleIIAerogelBig_rot" unit="deg" x="0" y="0" z="0" />
+      </physvol>
+      <physvol name="InnerMirror0x56008bfa8700">
+        <volumeref ref="InnerMirror0x56008bfa5ed0" />
+        <position name="InnerMirror0x56008bfa8700_pos" unit="mm" x="0" y="0" z="-0.849999999999994" />
+      </physvol>
+      <physvol name="OuterMirror0x56008bfab5c0">
+        <volumeref ref="OuterMirror0x56008bfa8e50" />
+        <position name="OuterMirror0x56008bfab5c0_pos" unit="mm" x="0" y="0" z="-0.849999999999994" />
+      </physvol>
+      <physvol name="MirrorPyramid0x56008bfb3ac0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfb3ac0_pos" unit="mm" x="-492" y="-246" z="202.325" />
+      </physvol>
+      <physvol copynumber="1" name="MirrorPyramid0x56008bfb85b0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfb85b0_pos" unit="mm" x="-492" y="-123" z="202.325" />
+      </physvol>
+      <physvol copynumber="2" name="MirrorPyramid0x56008bfbb720">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfbb720_pos" unit="mm" x="-492" y="0" z="202.325" />
+      </physvol>
+      <physvol copynumber="3" name="MirrorPyramid0x56008bfbe990">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfbe990_pos" unit="mm" x="-492" y="123" z="202.325" />
+      </physvol>
+      <physvol copynumber="4" name="MirrorPyramid0x56008bfc26d0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfc26d0_pos" unit="mm" x="-492" y="246" z="202.325" />
+      </physvol>
+      <physvol copynumber="5" name="MirrorPyramid0x56008bfc5a60">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfc5a60_pos" unit="mm" x="-369" y="-369" z="202.325" />
+      </physvol>
+      <physvol copynumber="6" name="MirrorPyramid0x56008bfc8ca0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfc8ca0_pos" unit="mm" x="-369" y="-246" z="202.325" />
+      </physvol>
+      <physvol copynumber="7" name="MirrorPyramid0x56008bf9a330">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bf9a330_pos" unit="mm" x="-369" y="-123" z="202.325" />
+      </physvol>
+      <physvol copynumber="8" name="MirrorPyramid0x56008bfd0660">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfd0660_pos" unit="mm" x="-369" y="0" z="202.325" />
+      </physvol>
+      <physvol copynumber="9" name="MirrorPyramid0x56008bfd37d0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfd37d0_pos" unit="mm" x="-369" y="123" z="202.325" />
+      </physvol>
+      <physvol copynumber="10" name="MirrorPyramid0x56008bfd6a60">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfd6a60_pos" unit="mm" x="-369" y="246" z="202.325" />
+      </physvol>
+      <physvol copynumber="11" name="MirrorPyramid0x56008bfd9cf0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfd9cf0_pos" unit="mm" x="-369" y="369" z="202.325" />
+      </physvol>
+      <physvol copynumber="12" name="MirrorPyramid0x56008bfdcf80">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfdcf80_pos" unit="mm" x="-246" y="-492" z="202.325" />
+      </physvol>
+      <physvol copynumber="13" name="MirrorPyramid0x56008bfe0b60">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfe0b60_pos" unit="mm" x="-246" y="-369" z="202.325" />
+      </physvol>
+      <physvol copynumber="14" name="MirrorPyramid0x56008bfe3dc0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfe3dc0_pos" unit="mm" x="-246" y="-246" z="202.325" />
+      </physvol>
+      <physvol copynumber="15" name="MirrorPyramid0x56008bfe7050">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfe7050_pos" unit="mm" x="-246" y="-123" z="202.325" />
+      </physvol>
+      <physvol copynumber="16" name="MirrorPyramid0x56008bfcf080">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfcf080_pos" unit="mm" x="-246" y="0" z="202.325" />
+      </physvol>
+      <physvol copynumber="17" name="MirrorPyramid0x56008bfee420">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bfee420_pos" unit="mm" x="-246" y="123" z="202.325" />
+      </physvol>
+      <physvol copynumber="18" name="MirrorPyramid0x56008bff16b0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bff16b0_pos" unit="mm" x="-246" y="246" z="202.325" />
+      </physvol>
+      <physvol copynumber="19" name="MirrorPyramid0x56008bff4940">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bff4940_pos" unit="mm" x="-246" y="369" z="202.325" />
+      </physvol>
+      <physvol copynumber="20" name="MirrorPyramid0x56008bff7bd0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bff7bd0_pos" unit="mm" x="-246" y="492" z="202.325" />
+      </physvol>
+      <physvol copynumber="21" name="MirrorPyramid0x56008bffae60">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bffae60_pos" unit="mm" x="-123" y="-492" z="202.325" />
+      </physvol>
+      <physvol copynumber="22" name="MirrorPyramid0x56008bffe0f0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008bffe0f0_pos" unit="mm" x="-123" y="-369" z="202.325" />
+      </physvol>
+      <physvol copynumber="23" name="MirrorPyramid0x56008c001380">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c001380_pos" unit="mm" x="-123" y="-246" z="202.325" />
+      </physvol>
+      <physvol copynumber="24" name="MirrorPyramid0x56008c004610">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c004610_pos" unit="mm" x="-123" y="-123" z="202.325" />
+      </physvol>
+      <physvol copynumber="26" name="MirrorPyramid0x56008c00ba20">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c00ba20_pos" unit="mm" x="-123" y="123" z="202.325" />
+      </physvol>
+      <physvol copynumber="27" name="MirrorPyramid0x56008c00ecb0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c00ecb0_pos" unit="mm" x="-123" y="246" z="202.325" />
+      </physvol>
+      <physvol copynumber="28" name="MirrorPyramid0x56008c011f40">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c011f40_pos" unit="mm" x="-123" y="369" z="202.325" />
+      </physvol>
+      <physvol copynumber="29" name="MirrorPyramid0x56008c0151d0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c0151d0_pos" unit="mm" x="-123" y="492" z="202.325" />
+      </physvol>
+      <physvol copynumber="30" name="MirrorPyramid0x56008c018350">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c018350_pos" unit="mm" x="0" y="-492" z="202.325" />
+      </physvol>
+      <physvol copynumber="31" name="MirrorPyramid0x56008c01b5e0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c01b5e0_pos" unit="mm" x="0" y="-369" z="202.325" />
+      </physvol>
+      <physvol copynumber="32" name="MirrorPyramid0x56008c01e870">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c01e870_pos" unit="mm" x="0" y="-246" z="202.325" />
+      </physvol>
+      <physvol copynumber="35" name="MirrorPyramid0x56008c029de0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c029de0_pos" unit="mm" x="0" y="246" z="202.325" />
+      </physvol>
+      <physvol copynumber="36" name="MirrorPyramid0x56008c02d170">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c02d170_pos" unit="mm" x="0" y="369" z="202.325" />
+      </physvol>
+      <physvol copynumber="37" name="MirrorPyramid0x56008c030400">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c030400_pos" unit="mm" x="0" y="492" z="202.325" />
+      </physvol>
+      <physvol copynumber="38" name="MirrorPyramid0x56008c033690">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c033690_pos" unit="mm" x="123" y="-492" z="202.325" />
+      </physvol>
+      <physvol copynumber="39" name="MirrorPyramid0x56008c036920">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c036920_pos" unit="mm" x="123" y="-369" z="202.325" />
+      </physvol>
+      <physvol copynumber="40" name="MirrorPyramid0x56008c039bb0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c039bb0_pos" unit="mm" x="123" y="-246" z="202.325" />
+      </physvol>
+      <physvol copynumber="41" name="MirrorPyramid0x56008c03ce40">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c03ce40_pos" unit="mm" x="123" y="-123" z="202.325" />
+      </physvol>
+      <physvol copynumber="43" name="MirrorPyramid0x56008c043230">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c043230_pos" unit="mm" x="123" y="123" z="202.325" />
+      </physvol>
+      <physvol copynumber="44" name="MirrorPyramid0x56008c0464c0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c0464c0_pos" unit="mm" x="123" y="246" z="202.325" />
+      </physvol>
+      <physvol copynumber="45" name="MirrorPyramid0x56008c049750">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c049750_pos" unit="mm" x="123" y="369" z="202.325" />
+      </physvol>
+      <physvol copynumber="46" name="MirrorPyramid0x56008c04c9e0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c04c9e0_pos" unit="mm" x="123" y="492" z="202.325" />
+      </physvol>
+      <physvol copynumber="47" name="MirrorPyramid0x56008c04fc70">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c04fc70_pos" unit="mm" x="246" y="-492" z="202.325" />
+      </physvol>
+      <physvol copynumber="48" name="MirrorPyramid0x56008c052f00">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c052f00_pos" unit="mm" x="246" y="-369" z="202.325" />
+      </physvol>
+      <physvol copynumber="49" name="MirrorPyramid0x56008c056190">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c056190_pos" unit="mm" x="246" y="-246" z="202.325" />
+      </physvol>
+      <physvol copynumber="50" name="MirrorPyramid0x56008c059420">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c059420_pos" unit="mm" x="246" y="-123" z="202.325" />
+      </physvol>
+      <physvol copynumber="51" name="MirrorPyramid0x56008c05c6b0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c05c6b0_pos" unit="mm" x="246" y="0" z="202.325" />
+      </physvol>
+      <physvol copynumber="52" name="MirrorPyramid0x56008c061970">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c061970_pos" unit="mm" x="246" y="123" z="202.325" />
+      </physvol>
+      <physvol copynumber="53" name="MirrorPyramid0x56008c064bd0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c064bd0_pos" unit="mm" x="246" y="246" z="202.325" />
+      </physvol>
+      <physvol copynumber="54" name="MirrorPyramid0x56008c067e60">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c067e60_pos" unit="mm" x="246" y="369" z="202.325" />
+      </physvol>
+      <physvol copynumber="55" name="MirrorPyramid0x56008c06b0f0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c06b0f0_pos" unit="mm" x="246" y="492" z="202.325" />
+      </physvol>
+      <physvol copynumber="56" name="MirrorPyramid0x56008c06e380">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c06e380_pos" unit="mm" x="369" y="-369" z="202.325" />
+      </physvol>
+      <physvol copynumber="57" name="MirrorPyramid0x56008c071610">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c071610_pos" unit="mm" x="369" y="-246" z="202.325" />
+      </physvol>
+      <physvol copynumber="58" name="MirrorPyramid0x56008c0748a0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c0748a0_pos" unit="mm" x="369" y="-123" z="202.325" />
+      </physvol>
+      <physvol copynumber="59" name="MirrorPyramid0x56008c077b30">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c077b30_pos" unit="mm" x="369" y="0" z="202.325" />
+      </physvol>
+      <physvol copynumber="60" name="MirrorPyramid0x56008c07adc0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c07adc0_pos" unit="mm" x="369" y="123" z="202.325" />
+      </physvol>
+      <physvol copynumber="61" name="MirrorPyramid0x56008c07e050">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c07e050_pos" unit="mm" x="369" y="246" z="202.325" />
+      </physvol>
+      <physvol copynumber="62" name="MirrorPyramid0x56008c0812e0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c0812e0_pos" unit="mm" x="369" y="369" z="202.325" />
+      </physvol>
+      <physvol copynumber="63" name="MirrorPyramid0x56008c084570">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c084570_pos" unit="mm" x="492" y="-246" z="202.325" />
+      </physvol>
+      <physvol copynumber="64" name="MirrorPyramid0x56008c087c10">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c087c10_pos" unit="mm" x="492" y="-123" z="202.325" />
+      </physvol>
+      <physvol copynumber="65" name="MirrorPyramid0x56008c08b6d0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c08b6d0_pos" unit="mm" x="492" y="0" z="202.325" />
+      </physvol>
+      <physvol copynumber="66" name="MirrorPyramid0x56008c021260">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c021260_pos" unit="mm" x="492" y="123" z="202.325" />
+      </physvol>
+      <physvol copynumber="67" name="MirrorPyramid0x56008c094df0">
+        <volumeref ref="MirrorPyramid0x56008bfb13e0" />
+        <position name="MirrorPyramid0x56008c094df0_pos" unit="mm" x="492" y="246" z="202.325" />
+      </physvol>
+      <physvol copynumber="68" name="MirrorPyramid_center">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramid_center_pos" unit="mm" x="0" y="0" z="202.325" />
+      </physvol>
+      <physvol copynumber="69" name="MirrorPyramid_posY">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramid_posY_pos" unit="mm" x="0" y="123" z="202.325" />
+      </physvol>
+      <physvol copynumber="70" name="MirrorPyramid_negY">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramid_negY_pos" unit="mm" x="0" y="-123" z="202.325" />
+      </physvol>
+      <physvol copynumber="71" name="MirrorPyramid_posX">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramid_posX_pos" unit="mm" x="123" y="0" z="202.325" />
+      </physvol>
+      <physvol copynumber="72" name="MirrorPyramid_negX">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramid_negX_pos" unit="mm" x="-123" y="0" z="202.325" />
+      </physvol>
+      <physvol copynumber="200" name="MirrorPyramidEdge_200">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_200_pos" unit="mm" x="-369" y="492" z="202.325" />
+      </physvol>
+      <physvol copynumber="206" name="MirrorPyramidEdge_206">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_206_pos" unit="mm" x="369" y="492" z="202.325" />
+      </physvol>
+      <physvol copynumber="207" name="MirrorPyramidEdge_207">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_207_pos" unit="mm" x="-369" y="-492" z="202.325" />
+      </physvol>
+      <physvol copynumber="213" name="MirrorPyramidEdge_213">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_213_pos" unit="mm" x="369" y="-492" z="202.325" />
+      </physvol>
+      <physvol copynumber="214" name="MirrorPyramidEdge_214">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_214_pos" unit="mm" x="-492" y="-369" z="202.325" />
+      </physvol>
+      <physvol copynumber="215" name="MirrorPyramidEdge_215">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_215_pos" unit="mm" x="-492" y="369" z="202.325" />
+      </physvol>
+      <physvol copynumber="216" name="MirrorPyramidEdge_216">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_216_pos" unit="mm" x="492" y="-369" z="202.325" />
+      </physvol>
+      <physvol copynumber="217" name="MirrorPyramidEdge_217">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_217_pos" unit="mm" x="492" y="369" z="202.325" />
+      </physvol>
+      <physvol copynumber="408" name="MirrorPyramidEdge_408">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_208_pos" unit="mm" x="-246" y="-615" z="202.325" />
+      </physvol>
+      <physvol copynumber="409" name="MirrorPyramidEdge_409">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_209_pos" unit="mm" x="-123" y="-615" z="202.325" />
+      </physvol>
+      <physvol copynumber="410" name="MirrorPyramidEdge_410">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_210_pos" unit="mm" x="0" y="-615" z="202.325" />
+      </physvol>
+      <physvol copynumber="411" name="MirrorPyramidEdge_411">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_211_pos" unit="mm" x="123" y="-615" z="202.325" />
+      </physvol>
+      <physvol copynumber="412" name="MirrorPyramidEdge_412">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_212_pos" unit="mm" x="246" y="-615" z="202.325" />
+      </physvol>
+
+
+  <physvol copynumber="308" name="MirrorPyramidEdge_308">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_208_pos" unit="mm" x="-246" y="615" z="202.325" />
+      </physvol>
+      <physvol copynumber="309" name="MirrorPyramidEdge_309">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_209_pos" unit="mm" x="-123" y="615" z="202.325" />
+      </physvol>
+      <physvol copynumber="310" name="MirrorPyramidEdge_310">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_210_pos" unit="mm" x="0" y="615" z="202.325" />
+      </physvol>
+      <physvol copynumber="311" name="MirrorPyramidEdge_311">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_251_pos" unit="mm" x="123" y="615" z="202.325" />
+      </physvol>
+      <physvol copynumber="312" name="MirrorPyramidEdge_312">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_250_pos" unit="mm" x="246" y="615" z="202.325" />
+      </physvol>
+      <physvol copynumber="612" name="MirrorPyramidEdge_612">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_612_pos" unit="mm" x="615" y="-246" z="202.325" />
+      </physvol>
+      <physvol copynumber="613" name="MirrorPyramidEdge_613">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_613_pos" unit="mm" x="615" y="-123" z="202.325" />
+      </physvol>
+      <physvol copynumber="614" name="MirrorPyramidEdge_614">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_614_pos" unit="mm" x="615" y="   0" z="202.325" />
+      </physvol>
+      <physvol copynumber="615" name="MirrorPyramidEdge_615">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_615_pos" unit="mm" x="615" y=" 123" z="202.325" />
+      </physvol>
+      <physvol copynumber="616" name="MirrorPyramidEdge_616">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_616_pos" unit="mm" x="615" y=" 246" z="202.325" />
+      </physvol>
+      <physvol copynumber="512" name="MirrorPyramidEdge_512">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_512_pos" unit="mm" x="-615" y="-246" z="202.325" />
+      </physvol>
+      <physvol copynumber="513" name="MirrorPyramidEdge_513">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_513_pos" unit="mm" x="-615" y="-123" z="202.325" />
+      </physvol>
+      <physvol copynumber="514" name="MirrorPyramidEdge_514">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_514_pos" unit="mm" x="-615" y="   0" z="202.325" />
+      </physvol>
+      <physvol copynumber="515" name="MirrorPyramidEdge_515">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_515_pos" unit="mm" x="-615" y=" 123" z="202.325" />
+      </physvol>
+      <physvol copynumber="516" name="MirrorPyramidEdge_516">
+        <volumeref ref="MirrorPyramidAbsorbing" />
+        <position name="MirrorPyramidEdge_516_pos" unit="mm" x="-615" y=" 246" z="202.325" />
+      </physvol>
+    </volume>
+    <volume name="FrontWallAluRing10x56008bf6aae0">
+      <materialref ref="PEEK0x56008bf17290" />
+      <solidref ref="FrontWallAluRing10x56008bf69ed0" />
+    </volume>
+    <volume name="FrontWallAluRing20x56008bf6afe0">
+      <materialref ref="G4_Al0x56008be7b9d0" />
+      <solidref ref="FrontWallAluRing20x56008bf6add0" />
+    </volume>
+    <volume name="FrontWall0x56008bf69350">
+      <materialref ref="QuarterInchHoneycomb0x56008bf146f0" />
+      <solidref ref="FrontWall0x56008bf68830" />
+      <physvol name="FrontWallAluRing10x56008bf6ac80">
+        <volumeref ref="FrontWallAluRing10x56008bf6aae0" />
+      </physvol>
+      <physvol name="FrontWallAluRing20x56008bf6b180">
+        <volumeref ref="FrontWallAluRing20x56008bf6afe0" />
+      </physvol>
+    </volume>
+    <volume name="OuterWallAluRing0x56008bf6b8e0">
+      <materialref ref="G4_Al0x56008be7b9d0" />
+      <solidref ref="OuterWallAluRing0x56008bf6b6f0" />
+    </volume>
+    <volume name="OuterWall0x56008bf6b440">
+      <materialref ref="HalfInchHoneyconb0x56008bf14f10" />
+      <solidref ref="OuterWall0x56008bf6b2d0" />
+      <physvol name="OuterWallAluRing0x56008bf6ba80">
+        <volumeref ref="OuterWallAluRing0x56008bf6b8e0" />
+        <position name="OuterWallAluRing0x56008bf6ba80_pos" unit="mm" x="0" y="0" z="-210.975" />
+      </physvol>
+      <physvol copynumber="1" name="OuterWallAluRing0x56008bf6bbd0">
+        <volumeref ref="OuterWallAluRing0x56008bf6b8e0" />
+        <position name="OuterWallAluRing0x56008bf6bbd0_pos" unit="mm" x="0" y="0" z="210.975" />
+      </physvol>
+    </volume>
+    <volume name="QuartzWindow0x56008bfabbe0">
+      <materialref ref="FusedSilica0x56008be8ff10" />
+      <solidref ref="QuartzWindow0x56008bfabae0" />
+    </volume>
+    <volume name="CeramicBody0x56008bfac380">
+      <materialref ref="Ceramic0x56008bf12c60" />
+      <solidref ref="CeramicBody0x56008bfac180" />
+    </volume>
+    <volume name="Plating0x56008bfac690">
+      <materialref ref="G4_Ag0x56008be832f0" />
+      <solidref ref="Plating0x56008bfac570" />
+    </volume>
+    <volume name="MCP0x56008bfac900">
+      <materialref ref="FusedSilica0x56008be8ff10" />
+      <solidref ref="MCP0x56008bfac800" />
+    </volume>
+    <volume name="FakePhotoDetector0x56008bfae610">
+      <materialref ref="Bialkali0x56008bf0fd60" />
+      <solidref ref="FakePhotoDetector0x56008bfae470" />
+    </volume>
+    <volume name="PhotoDetector0x56008bfaca70">
+      <materialref ref="Bialkali0x56008bf0fd60" />
+      <solidref ref="PhotoDetector0x56008bfab9c0" />
+    </volume>
+    <volume name="PCB0x56008bfaef80">
+      <materialref ref="FR40x56008bf15f30" />
+      <solidref ref="PCB0x56008bfaee80" />
+    </volume>
+    <volume name="ASIC0x56008bfaf300">
+      <materialref ref="G4_Si0x56008be897b0" />
+      <solidref ref="ASIC0x56008bfaf200" />
+    </volume>
+    <volume name="Water0x56008bfafe40">
+      <materialref ref="G4_WATER0x56008be84de0" />
+      <solidref ref="Water0x56008bfafcb0" />
+    </volume>
+    <volume name="CoolingPipe0x56008bfafb40">
+      <materialref ref="G4_Ti0x56008be844b0" />
+      <solidref ref="CoolingPipe0x56008bfaf9b0" />
+      <physvol name="Water0x56008bfaffb0">
+        <volumeref ref="Water0x56008bfafe40" />
+      </physvol>
+    </volume>
+    <volume name="ColdPlate0x56008bfaf840">
+      <materialref ref="G4_Al0x56008be7b9d0" />
+      <solidref ref="ColdPlate0x56008bfaf760" />
+    </volume>
+    <volume name="HRPPD0x56008bfabe10">
+      <materialref ref="Air0x56008be89d40" />
+      <solidref ref="HRPPD0x56008bfabd10" />
+      <physvol name="QuartzWindow0x56008bfae7b0">
+        <volumeref ref="QuartzWindow0x56008bfabbe0" />
+        <position name="QuartzWindow0x56008bfae7b0_pos" unit="mm" x="0" y="0" z="-13.5" />
+      </physvol>
+      <physvol name="CeramicBody0x56008bfae8a0">
+        <volumeref ref="CeramicBody0x56008bfac380" />
+        <position name="CeramicBody0x56008bfae8a0_pos" unit="mm" x="0" y="0" z="-6.5" />
+      </physvol>
+      <physvol name="Plating0x56008bfae9d0">
+        <volumeref ref="Plating0x56008bfac690" />
+        <position name="Plating0x56008bfae9d0_pos" unit="mm" x="0" y="0" z="-6.5" />
+      </physvol>
+      <physvol name="MCP0x56008bfaeb10">
+        <volumeref ref="MCP0x56008bfac900" />
+        <position name="MCP0x56008bfaeb10_pos" unit="mm" x="0" y="0" z="-6.29" />
+      </physvol>
+      <physvol name="FakePhotoDetector0x56008bfaec00">
+        <volumeref ref="FakePhotoDetector0x56008bfae610" />
+        <position name="FakePhotoDetector0x56008bfaec00_pos" unit="mm" x="0" y="0" z="-10.995" />
+      </physvol>
+      <physvol name="PhotoDetector0x56008bfaedc0">
+        <volumeref ref="PhotoDetector0x56008bfaca70" />
+        <position name="PhotoDetector0x56008bfaedc0_pos" unit="mm" x="0" y="0" z="-10.985" />
+      </physvol>
+      <physvol name="PCB0x56008bfaf0f0">
+        <volumeref ref="PCB0x56008bfaef80" />
+      </physvol>
+      <physvol name="ASIC0x56008bfaf470">
+        <volumeref ref="ASIC0x56008bfaf300" />
+        <position name="ASIC0x56008bfaf470_pos" unit="mm" x="-28" y="-28" z="1.51" />
+      </physvol>
+      <physvol copynumber="1" name="ASIC0x56008bfaf580">
+        <volumeref ref="ASIC0x56008bfaf300" />
+        <position name="ASIC0x56008bfaf580_pos" unit="mm" x="-28" y="28" z="1.51" />
+      </physvol>
+      <physvol copynumber="2" name="ASIC0x56008bfaf610">
+        <volumeref ref="ASIC0x56008bfaf300" />
+        <position name="ASIC0x56008bfaf610_pos" unit="mm" x="28" y="-28" z="1.51" />
+      </physvol>
+      <physvol copynumber="3" name="ASIC0x56008bfaf6d0">
+        <volumeref ref="ASIC0x56008bfaf300" />
+        <position name="ASIC0x56008bfaf6d0_pos" unit="mm" x="28" y="28" z="1.51" />
+      </physvol>
+      <physvol name="CoolingPipe0x56008bfb00c0">
+        <volumeref ref="CoolingPipe0x56008bfafb40" />
+        <position name="CoolingPipe0x56008bfb00c0_pos" unit="mm" x="0" y="-28" z="6.695" />
+        <rotation name="CoolingPipe0x56008bfb00c0_rot" unit="deg" x="0" y="90" z="0" />
+      </physvol>
+      <physvol name="ColdPlate0x56008bfb01f0">
+        <volumeref ref="ColdPlate0x56008bfaf840" />
+        <position name="ColdPlate0x56008bfb01f0_pos" unit="mm" x="-28" y="-28" z="2.77" />
+      </physvol>
+      <physvol name="ColdPlate0x56008bfb0300">
+        <volumeref ref="ColdPlate0x56008bfaf840" />
+        <position name="ColdPlate0x56008bfb0300_pos" unit="mm" x="28" y="-28" z="2.77" />
+      </physvol>
+      <physvol name="CoolingPipe0x56008bfb0390">
+        <volumeref ref="CoolingPipe0x56008bfafb40" />
+        <position name="CoolingPipe0x56008bfb0390_pos" unit="mm" x="0" y="28" z="6.695" />
+        <rotation name="CoolingPipe0x56008bfb0390_rot" unit="deg" x="0" y="90" z="0" />
+      </physvol>
+      <physvol name="ColdPlate0x56008bfb0420">
+        <volumeref ref="ColdPlate0x56008bfaf840" />
+        <position name="ColdPlate0x56008bfb0420_pos" unit="mm" x="-28" y="28" z="2.77" />
+      </physvol>
+      <physvol name="ColdPlate0x56008bfb04e0">
+        <volumeref ref="ColdPlate0x56008bfaf840" />
+        <position name="ColdPlate0x56008bfb04e0_pos" unit="mm" x="28" y="28" z="2.77" />
+      </physvol>
+    </volume>
+    <volume name="AluFrame0x56008c0a2030">
+      <materialref ref="G4_Al0x56008be7b9d0" />
+      <solidref ref="AluFrame0x56008c0a1e40" />
+    </volume>
+    <volume name="PFRICH0x56008bf64ed0">
+      <materialref ref="Air0x56008be89d40" />
+      <solidref ref="PFRICH0x56008bf64610" />
+      <physvol name="GasVolume0x56008bf65d20">
+        <volumeref ref="GasVolume0x56008bf65c10" />
+        <position name="GasVolume0x56008bf65d20_pos" unit="mm" x="0" y="0" z="-21.825" />
+      </physvol>
+    </volume>
+    <volume name="PFRICH_World0x56008bf17d80">
+      <materialref ref="Air0x56008be89d40" />
+      <solidref ref="PFRICH_World0x56008bf17c10" />
+      <physvol name="PFRICH0x56008bf65030">
+        <volumeref ref="PFRICH0x56008bf64ed0" />
+        <position name="PFRICH0x56008bf65030_pos" unit="mm" x="0" y="0" z="0" />
+        <rotation name="PFRICH0x56008bf65030_rot" unit="deg" x="0" y="0" z="0" />
+      </physvol>
+    </volume>
+    <bordersurface name="Absorbing_MirrorPyramid_center" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid_center" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramid_posY" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid_posY" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramid_negY" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid_negY" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramid_posX" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid_posX" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramid_negX" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid_negX" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_200" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_200" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_206" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_206" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_207" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_207" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_213" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_213" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_214" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_214" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_215" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_215" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_216" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_216" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_217" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_217" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_408" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_408" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_409" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_409" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_410" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_410" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_411" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_411" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_412" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_412" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_308" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_308" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_309" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_309" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_310" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_310" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_311" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_311" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_312" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_312" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_612" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_612" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_613" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_613" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_614" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_614" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_615" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_615" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_616" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_616" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_512" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_512" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_513" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_513" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_514" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_514" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_515" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_515" />
+    </bordersurface>
+    <bordersurface name="Absorbing_MirrorPyramidEdge_516" surfaceproperty="Absorbing">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramidEdge_516" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bf9a3c0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bf9a330" />
+    </bordersurface>
+    <bordersurface name="InnerMirror0x56008bfa8860" surfaceproperty="InnerMirror0x56008bfa6280">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="InnerMirror0x56008bfa8700" />
+    </bordersurface>
+    <bordersurface name="OuterMirror0x56008bfab700" surfaceproperty="OuterMirror0x56008bfa9300">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="OuterMirror0x56008bfab5c0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfb3bd0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfb3ac0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfb8610" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfb85b0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfbb7e0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfbb720" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfbea20" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfbe990" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfc2780" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfc26d0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfc5af0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfc5a60" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfc8d30" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfc8ca0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfeb220" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfcf080" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfd06f0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfd0660" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfd3860" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfd37d0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfd6af0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfd6a60" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfd9d80" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfd9cf0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfdd010" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfdcf80" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfe0bc0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfe0b60" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfe3e50" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfe3dc0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfe70e0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfe7050" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bfee4b0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bfee420" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bff1740" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bff16b0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bff49d0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bff4940" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bff7c60" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bff7bd0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bffaef0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bffae60" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008bffe180" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008bffe0f0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c001410" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c001380" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c0046a0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c004610" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c00bab0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c00ba20" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c00ed40" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c00ecb0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c011fd0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c011f40" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c015260" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c0151d0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c0183e0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c018350" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c01b670" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c01b5e0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c01e900" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c01e870" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c0212f0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c021260" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c02a080" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c029de0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c02d200" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c02d170" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c030490" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c030400" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c033720" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c033690" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c0369b0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c036920" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c039c40" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c039bb0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c03ced0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c03ce40" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c0432c0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c043230" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c046550" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c0464c0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c0497e0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c049750" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c04ca70" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c04c9e0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c04fd00" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c04fc70" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c052f90" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c052f00" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c056220" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c056190" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c0594b0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c059420" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c05c740" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c05c6b0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c0619d0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c061970" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c064c60" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c064bd0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c067ef0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c067e60" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c06b180" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c06b0f0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c06e410" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c06e380" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c0716a0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c071610" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c074930" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c0748a0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c077bc0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c077b30" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c07ae50" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c07adc0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c07e0e0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c07e050" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c081370" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c0812e0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c084600" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c084570" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c087ca0" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c087c10" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c08b730" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c08b6d0" />
+    </bordersurface>
+    <bordersurface name="MirrorPyramid0x56008c094e50" surfaceproperty="MirrorPyramid0x56008bfb1550">
+      <physvolref ref="GasVolume0x56008bf65d20" />
+      <physvolref ref="MirrorPyramid0x56008c094df0" />
+    </bordersurface>
+  </structure>
+  <setup name="Default" version="1.0">
+    <world ref="PFRICH_World0x56008bf17d80" />
+  </setup>
+</gdml>
+
