@@ -180,6 +180,7 @@ struct PhotonSD : public G4VSensitiveDetector
     void EndOfEvent(G4HCofThisEvent *) override
     {
         G4int NbHits = fPhotonHitsCollection->entries();
+        G4cout << "PhotonSD::EndOfEvent Number of PhotonHits: " << NbHits << G4endl;
     }
 
     void AddOpticksHits()
