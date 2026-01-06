@@ -169,8 +169,8 @@
       </physvol>
     </volume>
         <bordersurface name="medium_container_bs0x5602993a4ed2" surfaceproperty="medium_container_bs0x560299397a10">
-      <physvolref ref="medium_pv0x560299397680"/>
-      <physvolref ref="drop_pv0x560299393260"/>
+          <physvolref ref="drop_pv0x560299393260"/>
+          <physvolref ref="medium_pv0x560299397680"/>
     </bordersurface>
   </structure>
 
