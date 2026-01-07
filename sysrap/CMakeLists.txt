@@ -3,9 +3,8 @@ set(desc "System Level Utilities depending")
 
 find_package(nlohmann_json REQUIRED)
 find_package(plog REQUIRED)
-find_package(glew REQUIRED)
+find_package(GLEW REQUIRED)
 find_package(glfw3 REQUIRED)
-find_package(glm REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 find_package(OpenSSL REQUIRED)
 
@@ -20,7 +19,7 @@ set(WITH_SLOG YES)
 set(SYSRAP_GENERATED_HEADER  "sconfig.h")
 set(SYSRAP_OPTICKS_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 configure_file( ${SYSRAP_GENERATED_HEADER}.in inc/${SYSRAP_GENERATED_HEADER} )
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/inc/${SYSRAP_GENERATED_HEADER} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/inc/${SYSRAP_GENERATED_HEADER} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
 
 set(SOURCES
     SYSRAP_LOG.cc 
@@ -614,8 +613,7 @@ target_link_libraries(${name}
     plog::plog
     nlohmann_json::nlohmann_json
     CUDA::cudart
-    GLEW::glew
-    glm::glm
+    GLEW::GLEW
     glfw
     OpenSSL::SSL
     OpenSSL::Crypto
@@ -625,6 +623,8 @@ target_include_directories( ${name} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/sysrap/inc>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/sysrap>
 )
 
 
@@ -702,13 +702,11 @@ if(WITH_SLOG)
 target_compile_definitions( ${name} PUBLIC WITH_SLOG)
 endif()
 
-install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${name})
-install(FILES ${CURANDLITE_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/curandlite)
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/sysrap/)
+install(FILES ${CURANDLITE_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/curandlite)
 
 install(TARGETS ${name}
         EXPORT ${PROJECT_NAME}Targets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
-
-add_subdirectory(tests)

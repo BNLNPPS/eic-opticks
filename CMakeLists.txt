@@ -6,6 +6,11 @@ if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
     set(CMAKE_CUDA_ARCHITECTURES 75)
 endif()
 
+# Default CMAKE_BUILD_TYPE=Debug for single-config generators (Ninja/Makefiles) when not specified
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type")
+endif()
+
 project(eic-opticks VERSION 0.1.0 LANGUAGES CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -21,12 +26,19 @@ include(CTest)
 set(GPHOX_INSTALL_FULL_DATADIR "${CMAKE_INSTALL_FULL_DATADIR}/${PROJECT_NAME}")
 
 add_subdirectory(sysrap)
+add_subdirectory(sysrap/tests)
 add_subdirectory(CSG)
+add_subdirectory(CSG/tests)
 add_subdirectory(qudarap)
+add_subdirectory(qudarap/tests)
 add_subdirectory(CSGOptiX)
+add_subdirectory(CSGOptiX/tests)
 add_subdirectory(gdxml)
+add_subdirectory(gdxml/tests)
 add_subdirectory(u4)
+add_subdirectory(u4/tests)
 add_subdirectory(g4cx)
+add_subdirectory(g4cx/tests)
 add_subdirectory(src)
 
 # Export configs
@@ -48,6 +60,7 @@ write_basic_package_version_file(
 install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
           ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+          ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindOptiX.cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 

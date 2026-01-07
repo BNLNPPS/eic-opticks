@@ -44,7 +44,7 @@ jobs:
     steps:
       - name: Define environment variables
         run: |
-          echo IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+          echo IMAGE_NAME=ghcr.io/$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
           echo IMAGE_TAG=$(echo "PR-${{ github.event.pull_request.number }}-${{ matrix.target }}") >> $GITHUB_ENV
 
       - name: Checkout code
@@ -57,7 +57,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          tags: ghcr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           target: ${{ matrix.target }}
           load: true
           cache-from: type=local,src=/home/runner/.buildx-cache
@@ -74,5 +74,5 @@ jobs:
       - name: Run tests
         if: ${{ matrix.target == 'develop' }}
         run: |
-          docker run --rm ghcr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} /src/eic-opticks/tests/test_opticks.sh
-          docker run --rm ghcr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} /src/eic-opticks/tests/test_simg4ox.sh
+          docker run --rm ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} /src/eic-opticks/tests/test_opticks.sh
+          docker run --rm ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} /src/eic-opticks/tests/test_simg4ox.sh

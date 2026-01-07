@@ -9,6 +9,7 @@ Extract from NP.hh NPU.hh minimal-ish code to write a NumPy file
 
 **/
 #include <cassert>
+#include <cstdint>
 #include <string>
 #include <sstream>
 #include <fstream>

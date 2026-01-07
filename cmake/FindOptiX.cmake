@@ -38,7 +38,7 @@ if(NOT OptiX_INSTALL_DIR)
     endif()
 endif()
 
-find_path(OptiX_ROOT_DIR NAMES include/optix.h PATHS ${OptiX_INSTALL_DIR} ${OPTIX_SDK_DIR} REQUIRED)
+find_path(OptiX_ROOT_DIR NAMES include/optix.h PATHS ${OptiX_INSTALL_DIR} ${OPTIX_SDK_DIR} /opt/optix /opt/optix-dev /usr/local/optix /usr/local/optix-dev REQUIRED)
 file(READ "${OptiX_ROOT_DIR}/include/optix.h" header)
 string(REGEX REPLACE "^.*OPTIX_VERSION ([0-9]+)([0-9][0-9])([0-9][0-9])[^0-9].*$" "\\1.\\2.\\3" OPTIX_VERSION ${header})
 string(REGEX REPLACE "^.*OPTIX_VERSION ([0-9]+)[^0-9].*$" "\\1" OptiX_VERSION ${header})

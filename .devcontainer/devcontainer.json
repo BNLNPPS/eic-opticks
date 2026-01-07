@@ -1,0 +1,16 @@
+{
+  "name": "eic-opticks",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": "..",
+    "target": "base",
+    "cacheFrom": [
+      "ghcr.io/bnlnpps/eic-opticks:base"
+    ]
+  },
+  "workspaceFolder": "/src/eic-opticks",
+  // Mount the project into the container
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/src/eic-opticks,type=bind"
+  ]
+}

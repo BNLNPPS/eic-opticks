@@ -140,6 +140,7 @@ target_link_libraries( ${name} PUBLIC
 
 target_include_directories( ${name} PUBLIC
    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/u4>
 )
 
 target_compile_definitions( ${name} PUBLIC OPTICKS_U4 ) # THIS MUST BE PUBLIC FOR SLOG-ING TO WORK FULLY
@@ -160,12 +161,10 @@ if(PMTSim_standalone_FOUND)
 endif()
 
 
-install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${name})
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/u4)
 
 install(TARGETS ${name}
         EXPORT ${PROJECT_NAME}Targets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
-
-add_subdirectory(tests)

@@ -1,28 +1,35 @@
 # syntax=docker/dockerfile:latest
 
-FROM nvcr.io/nvidia/cuda:12.4.0-runtime-ubuntu22.04 AS base
+ARG OS=ubuntu22.04
+ARG CUDA_VERSION=12.4.0
 
-ARG DEBIAN_FRONTEND=noninteractive
+FROM nvidia/cuda:${CUDA_VERSION}-devel-${OS} AS base
+
+ARG OPTIX_VERSION=7.7.0
+ARG GEANT4_VERSION=11.3.2
+ARG CMAKE_VERSION=4.1.2
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt update \
- && apt install -y g++ gcc gzip tar python3 python-is-python3 python3-pip \
- && apt clean \
- && rm -rf /var/lib/apt/lists/*
-
-RUN apt update \
- && apt install -y curl cuda-nvcc-12-4 libcurand-dev-12-4 \
+ && apt install -y g++ gcc gzip tar python3 python-is-python3 python3-pip curl \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
 
 RUN apt update \
  && apt install -y libssl-dev \
     nlohmann-json3-dev \
-    libglfw3-dev libglu1-mesa-dev libxmu-dev \
+    libglfw3-dev libglu1-mesa-dev libxmu-dev libglew-dev libglm-dev \
     cmake qtbase5-dev libxerces-c-dev libexpat1-dev \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /opt/geant4/src && curl -sL https://github.com/Geant4/geant4/archive/refs/tags/v11.3.2.tar.gz | tar -xz --strip-components 1 -C /opt/geant4/src \
+RUN mkdir -p /opt/cmake/src && curl -sL https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz | tar -xz --strip-components 1 -C /opt/cmake/src \
+ && cmake -S /opt/cmake/src -B /opt/cmake/build \
+ && cmake --build /opt/cmake/build --parallel --target install \
+ && rm -fr /opt/cmake
+
+RUN mkdir -p /opt/geant4/src && curl -sL https://github.com/Geant4/geant4/archive/refs/tags/v${GEANT4_VERSION}.tar.gz | tar -xz --strip-components 1 -C /opt/geant4/src \
  && cmake -S /opt/geant4/src -B /opt/geant4/build -DGEANT4_USE_OPENGL_X11=ON -DGEANT4_USE_QT=ON -DGEANT4_USE_GDML=ON -DGEANT4_INSTALL_DATA=ON -DGEANT4_BUILD_MULTITHREADED=ON \
  && cmake --build /opt/geant4/build --parallel --target install \
  && rm -fr /opt/geant4
@@ -32,27 +39,14 @@ RUN mkdir -p /opt/clhep/src && curl -sL https://gitlab.cern.ch/CLHEP/CLHEP/-/arc
  && cmake --build /opt/clhep/build --parallel --target install \
  && rm -fr /opt/clhep
 
-RUN mkdir -p /opt/glew/src && curl -sL https://github.com/nigels-com/glew/releases/download/glew-2.2.0/glew-2.2.0.tgz | tar -xz --strip-components 1 -C /opt/glew/src \
- && cmake -S /opt/glew/src/build/cmake -B /opt/glew/build \
- && cmake --build /opt/glew/build --parallel --target install \
- && rm -fr /opt/glew
-
-RUN mkdir -p /opt/glm/src && curl -sL https://github.com/g-truc/glm/archive/refs/tags/1.0.1.tar.gz | tar -xz --strip-components 1 -C /opt/glm/src \
- && cmake -S /opt/glm/src -B /opt/glm/build \
- && cmake --build /opt/glm/build --parallel --target install \
- && rm -fr /opt/glm
-
-RUN mkdir -p /opt/plog/src && curl -sL https://github.com/SergiusTheBest/plog/archive/refs/tags/1.1.10.tar.gz | tar -xz --strip-components 1 -C /opt/plog/src \
+RUN mkdir -p /opt/plog/src && curl -sL https://github.com/SergiusTheBest/plog/archive/refs/tags/1.1.11.tar.gz | tar -xz --strip-components 1 -C /opt/plog/src \
  && cmake -S /opt/plog/src -B /opt/plog/build \
  && cmake --build /opt/plog/build --parallel --target install \
  && rm -fr /opt/plog
 
-RUN mkdir -p /opt/optix && curl -sL https://github.com/NVIDIA/optix-dev/archive/refs/tags/v7.7.0.tar.gz | tar -xz --strip-components 1 -C /opt/optix
+RUN mkdir -p /opt/optix && curl -sL https://github.com/NVIDIA/optix-dev/archive/refs/tags/v${OPTIX_VERSION}.tar.gz | tar -xz --strip-components 1 -C /opt/optix
 
-RUN mkdir -p /opt/cmake/src && curl -sL https://github.com/Kitware/CMake/releases/download/v4.1.2/cmake-4.1.2.tar.gz | tar -xz --strip-components 1 -C /opt/cmake/src \
- && cmake -S /opt/cmake/src -B /opt/cmake/build \
- && cmake --build /opt/cmake/build --parallel --target install \
- && rm -fr /opt/cmake
+RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
 
 SHELL ["/bin/bash", "-l", "-c"]
 
@@ -75,15 +69,25 @@ ENV OPTICKS_PREFIX=/opt/eic-opticks
 ENV OPTICKS_HOME=/src/eic-opticks
 ENV OPTICKS_BUILD=/opt/eic-opticks/build
 ENV LD_LIBRARY_PATH=${OPTICKS_PREFIX}/lib:${LD_LIBRARY_PATH}
-ENV PATH=${OPTICKS_PREFIX}/bin:${PATH}
+ENV VIRTUAL_ENV=${OPTICKS_HOME}/.venv
+ENV PATH=${OPTICKS_PREFIX}/bin:${VIRTUAL_ENV}/bin:${PATH}
 ENV NVIDIA_DRIVER_CAPABILITIES=graphics,compute,utility
+ENV CSGOptiX__optixpath=${OPTICKS_PREFIX}/ptx/CSGOptiX_generated_CSGOptiX7.cu.ptx
 
 WORKDIR $OPTICKS_HOME
 
 # Install Python dependencies
-COPY pyproject.toml $OPTICKS_HOME/
+COPY pyproject.toml uv.lock $OPTICKS_HOME/
 COPY optiphy $OPTICKS_HOME/optiphy
-RUN python -m pip install --upgrade pip && pip install -e $OPTICKS_HOME
+RUN uv sync
+
+
+FROM base AS release
+
+COPY . $OPTICKS_HOME
+
+RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DCMAKE_BUILD_TYPE=Release \
+ && cmake --build $OPTICKS_BUILD --parallel --target install
 
 
 FROM base AS develop
@@ -92,13 +96,5 @@ RUN apt update && apt install -y x11-apps mesa-utils vim
 
 COPY . $OPTICKS_HOME
 
-RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Debug \
- && cmake --build $OPTICKS_BUILD --parallel --target install
-
-
-FROM base AS release
-
-COPY . $OPTICKS_HOME
-
-RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DOptiX_INSTALL_DIR=/opt/optix -DCMAKE_BUILD_TYPE=Release \
+RUN cmake -S $OPTICKS_HOME -B $OPTICKS_BUILD -DCMAKE_INSTALL_PREFIX=$OPTICKS_PREFIX -DCMAKE_BUILD_TYPE=Debug \
  && cmake --build $OPTICKS_BUILD --parallel --target install

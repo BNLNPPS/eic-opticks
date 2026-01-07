@@ -43,6 +43,9 @@ target_include_directories(simtox PRIVATE
 )
 
 install(TARGETS consgeo simg4ox simtox gphox
+    EXPORT ${PROJECT_NAME}Targets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
+
+install(FILES config.h torch.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})

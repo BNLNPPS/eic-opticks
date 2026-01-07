@@ -22,7 +22,10 @@
 #include "smeta.h"
 #include "SSim.hh"
 #include "SStr.hh"
+
+// TODO: migrate to spath.h
 #include "SPath.hh"
+
 #include "s_time.h"
 #include "SBitSet.h"
 
@@ -2126,17 +2129,19 @@ CSGFoundry::addInstanceVector
 
 Canonical stack::
 
-    CSGFoundry::addInstanceVector
-    CSGImport::importInst     (with argument stree::inst_f4 populated by stree::add_inst from snode::sensor_id)
-    CSGImport::import
-    CSGFoundry::importSim
-    CSGFoundry::CreateFromSim  (after U4Tree::Create within G4CXOpticks::setGeometry)
     G4CXOpticks::setGeometry
+    CSGFoundry::CreateFromSim  (after U4Tree::Create within G4CXOpticks::setGeometry)
+    CSGFoundry::importSim
+    CSGImport::import
+    CSGImport::importInst     (with argument stree::inst_f4 populated by stree::add_inst from snode::sensor_id)
+    CSGFoundry::addInstanceVector
 
 stree.h/snode.h uses sensor_identifier -1 to indicate not-a-sensor, but
 that is not convenient on GPU due to OptixInstance.instanceId limits.
 Hence here make transition by adding 1 and treating 0 as not-a-sensor,
 with the sqat4::incrementSensorIdentifier method
+
+The stree::inst_f4 is formed from the stree globals and factors by stree::add_inst
 
 **/
 
@@ -2641,20 +2646,26 @@ See notes/issues/primIdx-and-skips.rst
 
 void CSGFoundry::saveAlt() const
 {
-    const char* cfbase_alt = spath::Resolve("CFBASE_ALT");
-    if( cfbase && cfbase_alt && strcmp(cfbase, cfbase_alt) == 0 )
-    {
-        LOG(fatal)
-            << "cannot saveAlt as cfbase_alt directory matched the loaded directory "
-            << " cfbase " << cfbase
-            << " cfbase_alt " << cfbase_alt
-            ;
-    }
-    else
-    {
-        LOG(info) << " cfbase " << cfbase << " cfbase_alt " << cfbase_alt ;
-        save(cfbase_alt, RELDIR);
-    }
+    const char* _path = "$CFBASE_ALT" ;
+    const char* path = spath::Resolve(_path);
+    bool unresolved = spath::LooksUnresolved( path, _path );
+
+    LOG(LEVEL)
+        << " _path[" << ( _path ? _path : "-" )
+        << " path["  << (  path ?  path : "-" )
+        << " unresolved " << ( unresolved ? "YES" : "NO " )
+        ;
+
+    LOG_IF(fatal, unresolved) << "cannot saveAlt as CFBASE_ALT unresolved" ;
+    if(unresolved) return ;
+
+    const char* cfbase_alt = path ;
+    LOG(info)
+        << " cfbase "     << ( cfbase     ? cfbase : "-" )
+        << " cfbase_alt " << ( cfbase_alt ? cfbase_alt : "-" )
+        ;
+
+    save(cfbase_alt, RELDIR);
 }
 
 
@@ -3084,6 +3095,13 @@ is normally configured by ELV envvar.
 The SSim pointer from the loaded src instance,
 overriding the empty dst SSim instance.
 
+Notice that the stree that the SSim contains is not changed by
+this CSGFoundry level dynamic geometry selection, so
+the stree::get_tree_digest will not change as a result of the
+ELV geometry selection. Due to this issue, added stree::make_tree_digest
+that is used from SSim::AnnotateFrame which includes the elv
+SBitSet info into the dynamically formed digest.
+
 **/
 
 CSGFoundry* CSGFoundry::CopySelect(const CSGFoundry* src, const SBitSet* elv )
@@ -3315,6 +3333,20 @@ unsigned CSGFoundry::getNumInstancesIAS(int ias_idx, unsigned long long emm) con
 {
     return qat4::count_ias(inst, ias_idx, emm );
 }
+
+/**
+CSGFoundry::getInstanceTransformsIAS
+--------------------------------------
+
+Canonical usage from SBT::createIAS with all instances being selected.
+The index of the *select_inst* corresponds to the iindex.
+
+The input *inst* vector is populated by CSGFoundry::addInstanceVector
+directly from the glm::tmat4x4 transforms from stree
+
+**/
+
+
 void CSGFoundry::getInstanceTransformsIAS(std::vector<qat4>& select_inst, int ias_idx, unsigned long long emm ) const
 {
     qat4::select_instances_ias(inst, select_inst, ias_idx, emm ) ;
@@ -3642,6 +3674,11 @@ Q: WHY NOT DO THIS AT LOWER LEVEL ?
 A: Probably because it needs getFrame and it predates the stree.h reorganization
    that made frame access at sysrap level possible.
 
+
+NB this is called both by the below CSGFoundry::AfterLoadOrCreate and by CSGOptiX::initFrame
+   so that should mean that frame annotation always gets done for running from
+   persisted or live geometry  (HMM perhaps called twice though)
+
 **/
 
 
@@ -3679,6 +3716,8 @@ sframe CSGFoundry::getFrameE() const
     }
 
 
+    SSim::AnnotateFrame(fr, elv, "CSGFoundry::getFrameE"  );  // set tree and dynamic digests into the frame
+
     return fr ;
 }
 
@@ -3706,9 +3745,9 @@ void CSGFoundry::AfterLoadOrCreate() // static
     if(!fd) return ;
 
     sframe fr = fd->getFrameE() ;
+
     LOG(LEVEL) << fr ;
     SEvt::SetFrame(fr); // now only needs to be done once to transform input photons
-
 }
 
 
