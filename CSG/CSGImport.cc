@@ -309,12 +309,17 @@ CSGPrim* CSGImport::importPrim(int primIdx, const snode& node )
     sn::GetLVNodesComplete(nds, lvid);   // many nullptr in unbalanced deep complete binary trees
     int bn = nds.size();                 // binary nodes
 
+    // Check if binary tree blows up and warn user
+    LOG_IF(warning, bn > 100000)
+        << "Too many nodes in binary tree (more than a 100 000) built by Opticks. Likely a nested "
+           "subtraction/union solid that Opticks turns into a full binary tree. Check your geometry as "
+           "described in: https://github.com/BNLNPPS/esi-g4ox/issues/127";
+
     // 2. count total subs for any listnodes of this lvid
 
-    std::vector<const sn*> lns ;
-    sn::GetLVListnodes( lns, lvid );
-    int num_sub_total = sn::GetChildTotal( lns );
-
+    std::vector<const sn *> lns;
+    sn::GetLVListnodes(lns, lvid);
+    int num_sub_total = sn::GetChildTotal(lns);
     int ln = lns.size();
     bool ln_expect = ln == 0 || ln == 1 ;
 
