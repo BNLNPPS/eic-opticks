@@ -12,7 +12,7 @@ ARG CMAKE_VERSION=4.2.1
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt update \
- && apt install -y g++ gcc gzip tar python3 python-is-python3 python3-pip curl \
+ && apt install -y g++ gcc gzip tar python3 python-is-python3 python3-pip curl git \
  && apt clean \
  && rm -rf /var/lib/apt/lists/*
 
@@ -66,7 +66,7 @@ RUN cat /etc/bash.nonint >> /etc/bash.bashrc
 
 ENV BASH_ENV=/etc/bash.nonint
 ENV OPTICKS_PREFIX=/opt/eic-opticks
-ENV OPTICKS_HOME=/src/eic-opticks
+ENV OPTICKS_HOME=/workspaces/eic-opticks
 ENV OPTICKS_BUILD=/opt/eic-opticks/build
 ENV LD_LIBRARY_PATH=${OPTICKS_PREFIX}/lib:${LD_LIBRARY_PATH}
 ENV VIRTUAL_ENV=${OPTICKS_HOME}/.venv
