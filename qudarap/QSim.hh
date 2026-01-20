@@ -42,7 +42,6 @@ struct QCerenkov ;
 struct QBnd ;
 struct QMultiFilm;
 struct QOptical ;
-struct QEvt ;
 struct QDebug ;
 
 struct qdebug ;
