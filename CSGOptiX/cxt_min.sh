@@ -207,7 +207,7 @@ export CEHIGH_1=-16:16:0:0:4:8:2000:4
 logging(){
     type $FUNCNAME
     export CSGOptiX=INFO
-    export QEvent=INFO
+    export QEvt=INFO
     #export QSim=INFO
     #export SFrameGenstep=INFO
     #export CSGTarget=INFO
