@@ -159,8 +159,8 @@ struct sevent
 
     quad6*   genstep ;    //QEvt::device_alloc_genstep
     int*     seed ;
-    sphoton* hit ;        //QEvt::gatherHit_ allocates event by event depending on num_hit
-    sphoton* photon ;     //QEvt::device_alloc_photon
+    sphoton*     photon ;     //QEvt::device_alloc_photon
+    sphoton*     hit ;        //QEvt::gatherHit_ allocates event by event depending on num_hit
 
 
     sphoton* record ;
