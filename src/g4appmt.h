@@ -360,7 +360,45 @@ struct RunAction : G4UserRunAction
             std::cout << "Opticks: NumCollected:  " << sev->GetNumGenstepFromGenstep(0) << std::endl;
             std::cout << "Opticks: NumCollected:  " << sev->GetNumPhotonCollected(0) << std::endl;
             std::cout << "Opticks: NumHits:  " << num_hits << std::endl;
+         std::ofstream outFile("opticks_hits_output.txt");
+        if (!outFile.is_open())
+        {
+            std::cerr << "Error opening output file!" << std::endl;
+            return;
         }
+
+        for (int idx = 0; idx < int(num_hits); idx++)
+        {
+            sphoton hit;
+            sev->getHit(hit, idx);
+            G4ThreeVector position = G4ThreeVector(hit.pos.x, hit.pos.y, hit.pos.z);
+            G4ThreeVector direction = G4ThreeVector(hit.mom.x, hit.mom.y, hit.mom.z);
+            G4ThreeVector polarization = G4ThreeVector(hit.pol.x, hit.pol.y, hit.pol.z);
+            int theCreationProcessid;
+            if (OpticksPhoton::HasCerenkovFlag(hit.flagmask))
+            {
+                theCreationProcessid = 0;
+            }
+            else if (OpticksPhoton::HasScintillationFlag(hit.flagmask))
+            {
+                theCreationProcessid = 1;
+            }
+            else
+            {
+                theCreationProcessid = -1;
+            }
+            //    std::cout << "Adding hit from Opticks:" << hit.wavelength << " " << position << " " << direction << "
+            //    "
+            //              << polarization << std::endl;
+	    outFile << hit.time  << " " <<  hit.wavelength << "  "
+                    << "(" << position.x() << ", " << position.y() << ", " << position.z() << ")  "
+                    << "(" << direction.x() << ", " << direction.y() << ", " << direction.z() << ")  "
+                    << "(" << polarization.x() << ", " << polarization.y() << ", " << polarization.z() << ")  "
+                    << "CreationProcessID=" << theCreationProcessid << std::endl;
+        }
+
+        outFile.close();
+     	}
     }
 };
 
