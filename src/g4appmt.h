@@ -5,6 +5,7 @@
 #include "G4AutoLock.hh"
 #include "G4BooleanSolid.hh"
 #include "G4Cerenkov.hh"
+#include "G4Scintillation.hh"
 #include "G4Electron.hh"
 #include "G4Event.hh"
 #include "G4GDMLParser.hh"
@@ -122,7 +123,8 @@ struct PhotonHit : public G4VHit
     // Print method
     void Print() override
     {
-        G4cout << "Detector id: " << fid << " energy: " << fenergy << " nm" << " time: " << ftime << " ns"
+        G4cout << "Detector id: " << fid << " energy: " << fenergy << " nm"
+               << " time: " << ftime << " ns"
                << " position: " << fposition << " direction: " << fdirection << " polarization: " << fpolarization
                << G4endl;
     }
@@ -446,8 +448,28 @@ struct SteppingAction : G4UserSteppingAction
                         U4::CollectGenstep_G4Cerenkov_modified(aTrack, aStep, fNumPhotons, BetaInverse, Pmin, Pmax,
                                                                maxCos, maxSin2, MeanNumberOfPhotons1,
                                                                MeanNumberOfPhotons2);
+                    }
+                }
+                if ((*procPost)[i3]->GetProcessName() == "Scintillation")
+                {
+                    G4Scintillation *proc1 = (G4Scintillation *)(*procPost)[i3];
+                    fNumPhotons = proc1->GetNumPhotons();
+                    if (fNumPhotons > 0)
+                    {
+                        aTrack = aStep->GetTrack();
+                        const G4Material *aMaterial = aTrack->GetMaterial();
+                        G4MaterialPropertiesTable *MPT = aMaterial->GetMaterialPropertiesTable();
+                        if (!MPT || !MPT->ConstPropertyExists(kSCINTILLATIONTIMECONSTANT1))
+                        {
+                            G4cout << "WARNING: Material has no valid SCINTILLATIONTIMECONSTANT1 data. Skipping "
+                                      "Scintillation calculation."
+                                   << G4endl;
+                            return;
+                        }
+                        G4double SCINTILLATIONTIMECONSTANT1 = MPT->GetConstProperty(kSCINTILLATIONTIMECONSTANT1);
 
-
+                        U4::CollectGenstep_DsG4Scintillation_r4695(aTrack, aStep, fNumPhotons, 1,
+                                                                   SCINTILLATIONTIMECONSTANT1);
                     }
                 }
             }
