@@ -447,28 +447,7 @@ struct SteppingAction : G4UserSteppingAction
                                                                maxCos, maxSin2, MeanNumberOfPhotons1,
                                                                MeanNumberOfPhotons2);
 
-                        const G4Event *event = G4EventManager::GetEventManager()->GetConstCurrentEvent();
-                        if (!event)
-                            return; // Always check for null
-                        G4int eventid = event->GetEventID();
 
-                        unsigned int num_hits = 0;
-
-                        if (num_hits > 0)
-                        {
-                            G4HCtable *hctable = G4SDManager::GetSDMpointer()->GetHCtable();
-                            for (G4int i = 0; i < hctable->entries(); ++i)
-                            {
-                                std::string sdn = hctable->GetSDname(i);
-                                std::size_t found = sdn.find("PhotonDetector");
-                                if (found != std::string::npos)
-                                {
-                                    std::cout << "PhotonDetector: " << sdn << std::endl;
-                                    PhotonSD *aSD =
-                                        (PhotonSD *)G4SDManager::GetSDMpointer()->FindSensitiveDetector(sdn);
-                                }
-                            }
-                        }
                     }
                 }
             }
