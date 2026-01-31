@@ -32,10 +32,10 @@ target_include_directories(simg4ox PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
 )
 
-# GPUCherenkov - Cerenkov-only example with Opticks GPU raytracing
-add_executable(GPUCherenkov GPUCherenkov.cpp GPUCherenkov.h)
-target_link_libraries(GPUCherenkov gphox)
-target_include_directories(GPUCherenkov PRIVATE
+# GPUCerenkov - Cerenkov-only example with Opticks GPU raytracing
+add_executable(GPUCerenkov GPUCerenkov.cpp GPUCerenkov.h)
+target_link_libraries(GPUCerenkov gphox)
+target_include_directories(GPUCerenkov PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
 )
@@ -58,7 +58,7 @@ target_include_directories(simtox PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
 )
 
-install(TARGETS consgeo simg4ox GPUCherenkov GPURaytrace simtox gphox
+install(TARGETS consgeo simg4ox GPUCerenkov GPURaytrace simtox gphox
     EXPORT ${PROJECT_NAME}Targets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

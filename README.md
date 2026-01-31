@@ -133,12 +133,12 @@ EIC-Opticks provides two main examples demonstrating GPU-accelerated optical pho
 
 | Example | Physics | Geometry | Use Case |
 |---------|---------|----------|----------|
-| `GPUCherenkov` | Cerenkov only | Simple nested boxes (raindrop) | Basic Cerenkov testing |
+| `GPUCerenkov` | Cerenkov only | Simple nested boxes (raindrop) | Basic Cerenkov testing |
 | `GPURaytrace` | Cerenkov + Scintillation | 8x8 CsI crystal + SiPM array | Realistic detector simulation |
 
-### Example 1: GPUCherenkov (Cerenkov Only)
+### Example 1: GPUCerenkov (Cerenkov Only)
 
-The `GPUCherenkov` example uses the **opticks_raindrop** geometry - a simple nested box configuration
+The `GPUCerenkov` example uses the **opticks_raindrop** geometry - a simple nested box configuration
 designed for testing Cerenkov photon production and GPU raytracing:
 
 ```
@@ -154,10 +154,10 @@ are generated and traced on the GPU. This is a minimal example for validating th
 
 ```bash
 # Run with raindrop geometry (Cerenkov only)
-./build/src/GPUCherenkov -g tests/geom/opticks_raindrop.gdml -m run.mac
+./build/src/GPUCerenkov -g tests/geom/opticks_raindrop.gdml -m run.mac
 ```
 
-**Source files:** `src/GPUCherenkov.cpp`, `src/GPUCherenkov.h`
+**Source files:** `src/GPUCerenkov.cpp`, `src/GPUCerenkov.h`
 
 ### Example 2: GPURaytrace (Cerenkov + Scintillation)
 
@@ -191,7 +191,7 @@ grep -c "CreationProcessID=1" opticks_hits_output.txt  # Scintillation
 
 ### Code Differences
 
-| Feature | GPUCherenkov | GPURaytrace |
+| Feature | GPUCerenkov | GPURaytrace |
 |---------|-----------|-------------|
 | Cerenkov genstep collection | ✓ | ✓ |
 | Scintillation genstep collection | ✗ | ✓ |
@@ -236,7 +236,7 @@ See `tests/geom/8x8SiPM_w_CSI_optial_grease.gdml` for a complete working example
 ### Defining primary particles
 
 There are certain user defined inputs that the user/developer has to define. In
-the ```src/GPUCherenkov``` example that imports ```src/GPUCherenkov.h``` we provide
+the ```src/GPUCerenkov``` example that imports ```src/GPUCerenkov.h``` we provide
 a working example with a simple geometry. The User/developer has to change the
 following details: **Number of primary particles** to simulate in a macro file
 and the **number of G4 threads**. For example:
@@ -253,7 +253,7 @@ Here setStackPhotons defines **whether G4 will propagate optical photons or
 not**. In production Opticks (GPU) takes care of the optical photon propagation.
 Additionally the user has to define the **starting position**, **momentum** etc
 of the primary particles define in the **GeneratePrimaries** function in
-``src/GPUCherenkov.h```. The hits of the optical photons are returned in the
+``src/GPUCerenkov.h```. The hits of the optical photons are returned in the
 **EndOfRunAction** function. If more photons are simulated than can fit in the
 GPU RAM the execution of a GPU call should be moved to **EndOfEventAction**
 together with retriving the hits.
@@ -262,8 +262,8 @@ together with retriving the hits.
 
 EIC-Opticks can import geometries with GDML format automatically. There are
 about 10 primitives supported now, eg. G4Box. G4Trd or G4Trap are not supported
-yet, we are working on them. ```src/GPUCherenkov``` takes GDML files through
-arguments, eg. ```src/GPUCherenkov -g mygdml.gdml```.
+yet, we are working on them. ```src/GPUCerenkov``` takes GDML files through
+arguments, eg. ```src/GPUCerenkov -g mygdml.gdml```.
 
 The GDML must define all optical properties of surfaces of materials including:
 - Efficiency (used by EIC-Opticks to specify detection efficiency and assign
