@@ -389,11 +389,10 @@ struct RunAction : G4UserRunAction
                 //    << "
                 //    "
                 //              << polarization << std::endl;
-                outFile << hit.time << " " << hit.wavelength << "  "
-                        << "(" << position.x() << ", " << position.y() << ", " << position.z() << ")  "
-                        << "(" << direction.x() << ", " << direction.y() << ", " << direction.z() << ")  "
-                        << "(" << polarization.x() << ", " << polarization.y() << ", " << polarization.z() << ")  "
-                        << "CreationProcessID=" << theCreationProcessid << std::endl;
+                outFile << hit.time << " " << hit.wavelength << "  " << "(" << position.x() << ", " << position.y()
+                        << ", " << position.z() << ")  " << "(" << direction.x() << ", " << direction.y() << ", "
+                        << direction.z() << ")  " << "(" << polarization.x() << ", " << polarization.y() << ", "
+                        << polarization.z() << ")  " << "CreationProcessID=" << theCreationProcessid << std::endl;
             }
 
             outFile.close();
