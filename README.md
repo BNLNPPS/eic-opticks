@@ -127,23 +127,80 @@ Process](https://geant4-userdoc.web.cern.ch/UsersGuides/ForApplicationDeveloper/
 ```
 
 
-## Scintillation + Cerenkov Example
+## Examples
 
-The `GPURaytrace` example demonstrates GPU-accelerated optical photon
-simulation for both Cerenkov and scintillation processes. It uses a CsI crystal
-array with SiPM readout.
+EIC-Opticks provides two main examples demonstrating GPU-accelerated optical photon simulation:
+
+| Example | Physics | Geometry | Use Case |
+|---------|---------|----------|----------|
+| `simg4oxmt` | Cerenkov only | Simple nested boxes (raindrop) | Basic Cerenkov testing |
+| `GPURaytrace` | Cerenkov + Scintillation | 8x8 CsI crystal + SiPM array | Realistic detector simulation |
+
+### Example 1: simg4oxmt (Cerenkov Only)
+
+The `simg4oxmt` example uses the **opticks_raindrop** geometry - a simple nested box configuration
+designed for testing Cerenkov photon production and GPU raytracing:
+
+```
+Geometry: opticks_raindrop.gdml
+├── VACUUM world (240×240×240 mm)
+│   └── Lead box (220×220×220 mm)
+│       └── Air box (200×200×200 mm)
+│           └── Water box (100×100×100 mm) ← Cerenkov medium
+```
+
+When charged particles traverse the water volume above the Cerenkov threshold, optical photons
+are generated and traced on the GPU. This is a minimal example for validating the Opticks pipeline.
 
 ```bash
-# Build
-cmake --build build
+# Run with raindrop geometry (Cerenkov only)
+./build/src/simg4oxmt -g tests/geom/opticks_raindrop.gdml -m run.mac
+```
 
-# Run with 8x8 SiPM array geometry
+**Source files:** `src/simg4oxmt.cpp`, `src/g4appmt.h`
+
+### Example 2: GPURaytrace (Cerenkov + Scintillation)
+
+The `GPURaytrace` example demonstrates a realistic detector configuration with both Cerenkov
+and scintillation physics using the **8x8 SiPM array** geometry:
+
+```
+Geometry: 8x8SiPM_w_CSI_optial_grease.gdml
+├── Air world (100×100×100 mm)
+│   ├── 64 CsI crystal pixels (2×2×8 mm each) ← Scintillation + Cerenkov
+│   ├── Optical grease layer (17.4×17.4×0.1 mm)
+│   ├── Entrance window (17.4×17.4×0.1 mm)
+│   └── 64 SiPM active areas (2×2×0.2 mm each) ← Photon detectors
+```
+
+This geometry models a pixelated scintillator calorimeter with:
+- **CsI(Tl) crystals**: Produce both Cerenkov and scintillation photons
+- **Optical coupling**: Grease and window layers for photon transmission
+- **SiPM readout**: 8×8 array of silicon photomultipliers with dead space modeling
+
+```bash
+# Run with 8x8 SiPM array geometry (Cerenkov + Scintillation)
 ./build/src/GPURaytrace -g tests/geom/8x8SiPM_w_CSI_optial_grease.gdml -m run.mac
 
 # Check output for Cerenkov (ID=0) and scintillation (ID=1) photons
 grep -c "CreationProcessID=0" opticks_hits_output.txt  # Cerenkov
 grep -c "CreationProcessID=1" opticks_hits_output.txt  # Scintillation
 ```
+
+**Source files:** `src/GPURaytrace.cpp`, `src/GPURaytrace.h`
+
+### Code Differences
+
+| Feature | simg4oxmt | GPURaytrace |
+|---------|-----------|-------------|
+| Cerenkov genstep collection | ✓ | ✓ |
+| Scintillation genstep collection | ✗ | ✓ |
+| G4Scintillation process handling | ✗ | ✓ |
+| Multi-threaded support | ✓ | ✓ |
+
+The key difference in the code is that `GPURaytrace` includes scintillation genstep collection
+in the `SteppingAction`, which captures photon generation parameters from `G4Scintillation`
+and passes them to Opticks for GPU simulation.
 
 ### GDML Scintillation Properties for Geant4 11.x + Opticks
 
