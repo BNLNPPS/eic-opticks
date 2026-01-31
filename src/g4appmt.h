@@ -560,4 +560,3 @@ struct G4App
     SteppingAction *stepping_;
     TrackingAction *tracking_;
 };
-
