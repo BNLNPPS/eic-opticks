@@ -127,6 +127,53 @@ Process](https://geant4-userdoc.web.cern.ch/UsersGuides/ForApplicationDeveloper/
 ```
 
 
+## Scintillation + Cerenkov Example
+
+The `GPURaytrace` example demonstrates GPU-accelerated optical photon
+simulation for both Cerenkov and scintillation processes. It uses a CsI crystal
+array with SiPM readout.
+
+```bash
+# Build
+cmake --build build
+
+# Run with 8x8 SiPM array geometry
+./build/src/GPURaytrace -g tests/geom/8x8SiPM_w_CSI_optial_grease.gdml -m run.mac
+
+# Check output for Cerenkov (ID=0) and scintillation (ID=1) photons
+grep -c "CreationProcessID=0" opticks_hits_output.txt  # Cerenkov
+grep -c "CreationProcessID=1" opticks_hits_output.txt  # Scintillation
+```
+
+### GDML Scintillation Properties for Geant4 11.x + Opticks
+
+For scintillation to work with both Geant4 11.x and Opticks GPU simulation, the GDML
+must define properties using the correct syntax:
+
+1. **Const properties** (yield, time constants) must use `coldim="1"` matrices:
+```xml
+<define>
+    <matrix coldim="1" name="SCINT_YIELD" values="5000.0"/>
+    <matrix coldim="1" name="FAST_TIME_CONST" values="21.5"/>
+</define>
+```
+
+2. **Both old and new style property names** are required for Opticks compatibility:
+```xml
+<material name="Crystal">
+    <!-- New Geant4 11.x names -->
+    <property name="SCINTILLATIONYIELD" ref="SCINT_YIELD"/>
+    <property name="SCINTILLATIONCOMPONENT1" ref="SCINT_SPECTRUM"/>
+    <property name="SCINTILLATIONTIMECONSTANT1" ref="FAST_TIME_CONST"/>
+    <!-- Old-style names for Opticks U4Scint -->
+    <property name="FASTCOMPONENT" ref="SCINT_SPECTRUM"/>
+    <property name="SLOWCOMPONENT" ref="SCINT_SPECTRUM"/>
+    <property name="REEMISSIONPROB" ref="REEMISSION_PROB"/>
+</material>
+```
+
+See `tests/geom/8x8SiPM_w_CSI_optial_grease.gdml` for a complete working example.
+
 ## User/developer defined inputs
 
 ### Defining primary particles
