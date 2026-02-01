@@ -1,0 +1,19 @@
+--- a/core/CMakeLists.txt
++++ b/core/CMakeLists.txt
+@@ -137,6 +137,12 @@ set_target_properties(opengate_core PROPERTIES
+
+ # additional utilities
+ target_include_directories(opengate_core PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/)
+
+-target_link_libraries(opengate_core PRIVATE
+-    pybind11::module ${Geant4_LIBRARIES} Threads::Threads
+-    ${ITK_LIBRARIES} fmt::fmt-header-only)
++if(GATE_USE_OPTICKS)
++    target_link_libraries(opengate_core PRIVATE
++        pybind11::module ${Geant4_LIBRARIES} Threads::Threads
++        ${ITK_LIBRARIES} fmt::fmt-header-only ${OPTICKS_LIBRARIES})
++else()
++    target_link_libraries(opengate_core PRIVATE
++        pybind11::module ${Geant4_LIBRARIES} Threads::Threads
++        ${ITK_LIBRARIES} fmt::fmt-header-only)
++endif()
