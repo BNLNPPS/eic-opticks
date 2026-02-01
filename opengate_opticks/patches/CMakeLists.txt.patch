@@ -1,0 +1,51 @@
+--- a/core/CMakeLists.txt
++++ b/core/CMakeLists.txt
+@@ -59,6 +59,47 @@ else (ITK_FOUND)
+     message(FATAL_ERROR "Cannot build without ITK.  Please set ITK_DIR.")
+ endif (ITK_FOUND)
+
++# Optional: Opticks for GPU optical photon propagation
++option(GATE_USE_OPTICKS "Enable GPU optical photon propagation with Opticks" OFF)
++if(GATE_USE_OPTICKS)
++    # Find Opticks - adjust path as needed
++    set(OPTICKS_PREFIX "$ENV{OPTICKS_PREFIX}" CACHE PATH "Opticks installation prefix")
++    if(NOT OPTICKS_PREFIX)
++        message(FATAL_ERROR "OPTICKS_PREFIX not set. Please set OPTICKS_PREFIX environment variable.")
++    endif()
++
++    # Add Opticks include directories
++    include_directories(
++        ${OPTICKS_PREFIX}/include/eic-opticks
++        ${OPTICKS_PREFIX}/include/eic-opticks/sysrap
++        ${OPTICKS_PREFIX}/include/eic-opticks/qudarap
++        ${OPTICKS_PREFIX}/include/eic-opticks/u4
++        ${OPTICKS_PREFIX}/include/eic-opticks/g4cx
++        ${OPTICKS_PREFIX}/include/eic-opticks/CSG
++        ${OPTICKS_PREFIX}/include/eic-opticks/CSGOptiX
++    )
++
++    # Find CUDA
++    find_package(CUDA REQUIRED)
++    include_directories(${CUDA_INCLUDE_DIRS})
++
++    add_definitions(-DGATE_USE_OPTICKS)
++
++    # Use Philox RNG - doesn't require pre-computed curandState files
++    add_definitions(-DRNG_PHILOX)
++
++    # Opticks libraries
++    set(OPTICKS_LIBRARIES
++        ${OPTICKS_PREFIX}/lib/libG4CX.so
++        ${OPTICKS_PREFIX}/lib/libU4.so
++        ${OPTICKS_PREFIX}/lib/libSysRap.so
++        ${OPTICKS_PREFIX}/lib/libCSGOptiX.so
++        ${OPTICKS_PREFIX}/lib/libCSG.so
++        ${OPTICKS_PREFIX}/lib/libQUDARap.so
++        ${CUDA_LIBRARIES}
++    )
++
++    message(STATUS "OPENGATE - Opticks GPU support enabled")
++endif()
++
+ # fmt
+ add_subdirectory(external/fmt EXCLUDE_FROM_ALL)
