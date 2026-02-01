@@ -1,0 +1,26 @@
+--- a/opengate/managers.py
++++ b/opengate/managers.py
+@@ -116,6 +116,13 @@ from .actors.biasingactors import (
+     ScatterSplittingFreeFlightActor,
+ )
+
++# Opticks GPU optical photon propagation (optional)
++try:
++    from .actors.opticksactors import OpticksActor
++    _has_opticks = True
++except ImportError:
++    _has_opticks = False
++
+ particle_names_Gate_to_G4 = {
+     "gamma": "gamma",
+     "electron": "e-",
+@@ -167,6 +174,10 @@ actor_types = {
+     "ScatterSplittingFreeFlightActor": ScatterSplittingFreeFlightActor,
+ }
+
++# Add OpticksActor if available
++if _has_opticks:
++    actor_types["OpticksActor"] = OpticksActor
++
+
+ def retrieve_g4_physics_constructor_class(g4_physics_constructor_class_name):
