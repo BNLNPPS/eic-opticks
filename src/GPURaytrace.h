@@ -122,8 +122,7 @@ struct PhotonHit : public G4VHit
     // Print method
     void Print() override
     {
-        G4cout << "Detector id: " << fid << " energy: " << fenergy << " nm"
-               << " time: " << ftime << " ns"
+        G4cout << "Detector id: " << fid << " energy: " << fenergy << " nm" << " time: " << ftime << " ns"
                << " position: " << fposition << " direction: " << fdirection << " polarization: " << fpolarization
                << G4endl;
     }
@@ -390,11 +389,10 @@ struct RunAction : G4UserRunAction
                 //    << "
                 //    "
                 //              << polarization << std::endl;
-                outFile << hit.time << " " << hit.wavelength << "  "
-                        << "(" << position.x() << ", " << position.y() << ", " << position.z() << ")  "
-                        << "(" << direction.x() << ", " << direction.y() << ", " << direction.z() << ")  "
-                        << "(" << polarization.x() << ", " << polarization.y() << ", " << polarization.z() << ")  "
-                        << "CreationProcessID=" << theCreationProcessid << std::endl;
+                outFile << hit.time << " " << hit.wavelength << "  " << "(" << position.x() << ", " << position.y()
+                        << ", " << position.z() << ")  " << "(" << direction.x() << ", " << direction.y() << ", "
+                        << direction.z() << ")  " << "(" << polarization.x() << ", " << polarization.y() << ", "
+                        << polarization.z() << ")  " << "CreationProcessID=" << theCreationProcessid << std::endl;
             }
 
             outFile.close();
