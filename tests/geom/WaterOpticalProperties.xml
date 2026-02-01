@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<materials>
+  <material name="G4_WATER">
+    <propertiestable>
+      <!-- Refractive index for water (wavelength dependent, visible range) -->
+      <propertyvector name="RINDEX" energyunit="eV">
+        <ve energy="1.55" value="1.329"/>
+        <ve energy="1.77" value="1.330"/>
+        <ve energy="2.00" value="1.332"/>
+        <ve energy="2.25" value="1.333"/>
+        <ve energy="2.50" value="1.335"/>
+        <ve energy="2.75" value="1.337"/>
+        <ve energy="3.00" value="1.340"/>
+        <ve energy="3.25" value="1.343"/>
+        <ve energy="3.50" value="1.347"/>
+        <ve energy="4.00" value="1.355"/>
+        <ve energy="4.50" value="1.365"/>
+        <ve energy="5.00" value="1.378"/>
+        <ve energy="6.00" value="1.410"/>
+        <ve energy="6.50" value="1.430"/>
+        <ve energy="7.00" value="1.450"/>
+      </propertyvector>
+      <!-- Absorption length for pure water (very long in visible range) -->
+      <propertyvector name="ABSLENGTH" unit="m" energyunit="eV">
+        <ve energy="1.55" value="20.0"/>
+        <ve energy="1.77" value="20.0"/>
+        <ve energy="2.00" value="20.0"/>
+        <ve energy="2.25" value="18.0"/>
+        <ve energy="2.50" value="15.0"/>
+        <ve energy="2.75" value="12.0"/>
+        <ve energy="3.00" value="10.0"/>
+        <ve energy="3.25" value="8.0"/>
+        <ve energy="3.50" value="5.0"/>
+        <ve energy="4.00" value="2.0"/>
+        <ve energy="4.50" value="1.0"/>
+        <ve energy="5.00" value="0.5"/>
+        <ve energy="6.00" value="0.1"/>
+        <ve energy="6.50" value="0.05"/>
+        <ve energy="7.00" value="0.01"/>
+      </propertyvector>
+    </propertiestable>
+  </material>
+</materials>
