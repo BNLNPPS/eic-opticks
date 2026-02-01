@@ -23,7 +23,7 @@
 set -e  # Exit on error
 
 apt update
-sudo apt install -y git
+apt install -y git
 
 cd /src/
 git clone --recursive https://github.com/OpenGATE/opengate.git
