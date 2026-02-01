@@ -4,7 +4,7 @@ Test oepnGate integration: OpticksActor with Cerenkov photon generation in water
 
 This test creates a simple water box geometry with optical properties
 and shoots electrons through it to generate Cerenkov photons.
-The Opticks actor intercepts the gensteps and simulates them on GPU.
+The eic-Opticks actor intercepts the gensteps and simulates them on GPU.
 """
 
 import opengate as gate
@@ -83,7 +83,7 @@ def create_simulation():
 
 def main():
     print("="*60)
-    print("Opticks Cerenkov Test")
+    print("eic-Opticks Cerenkov Test with openGATE framework")
     print("="*60)
 
     sim = create_simulation()
