@@ -172,3 +172,111 @@ gx = G4CXOpticks::SetGeometry(world);
 QSim* qs = QSim::Get();
 ```
 
+## Usage
+
+### Running Simulations
+
+Required environment variables:
+
+```shell
+export GLIBC_TUNABLES=glibc.rtld.optional_static_tls=2000000
+export OPTICKS_MAX_SLOT=M1
+python3 test_opengate_eic-opticks_cerenkov.py
+```
+
+### Example
+
+```python
+import opengate as gate
+
+sim = gate.Simulation()
+# ... configure geometry, physics, sources ...
+
+# Add OpticksActor for GPU optical photon simulation
+opticks = sim.add_actor("OpticksActor", "opticks")
+opticks.attached_to = "world"
+opticks.batch_size = 0  # Process all at end of run
+opticks.output_path = "/tmp/opticks_output"
+opticks.save_to_file = True
+
+sim.run()
+
+# Get results
+print(f"Total photons: {opticks.GetTotalNumPhotons()}")
+print(f"Total hits: {opticks.GetTotalNumHits()}")
+```
+
+## Key Requirements for Hit Detection
+
+### 1. Volume Hierarchy
+
+Detector volumes must be children of the radiator volume (not world). This ensures photons cross the correct border surface.
+
+```python
+# Correct: detector is child of waterbox
+detector = sim.add_volume("Box", "detector")
+detector.mother = "waterbox"  # NOT "world"
+detector.translation = [0, 0, offset]
+```
+
+### 2. Border Surfaces
+
+Optical surfaces with EFFICIENCY property must connect volumes:
+
+```python
+sim.physics_manager.add_optical_surface(
+    volume_from="waterbox",
+    volume_to="detector",
+    g4_surface_name="DetectorSurface"
+)
+```
+
+### 3. Surface Properties
+
+Define EFFICIENCY in the surface properties XML file (e.g., `SurfaceProperties.xml`):
+
+```xml
+<opticalsurface name="DetectorSurface" model="glisur" finish="polished" type="dielectric_dielectric" value="1">
+  <property name="EFFICIENCY" ref="DETECTOR_EFFICIENCY"/>
+</opticalsurface>
+```
+
+## GDML vs OpenGATE: Surface Definition Differences
+
+**GDML approach** (standalone eic-opticks):
+- All-in-one file containing geometry, materials, surfaces, and properties
+- Optical surfaces defined directly with `<opticalsurface>` elements
+- Opticks reads the GDML and automatically picks up surface definitions
+
+**OpenGATE approach**:
+- Geometry is built programmatically (not from GDML)
+- Optical properties loaded from separate XML files
+- Border surfaces must be explicitly created via `sim.physics_manager.add_optical_surface()` to connect surface definitions to volume pairs
+
+The physics is identical - both approaches create `G4LogicalBorderSurface` objects with EFFICIENCY properties. OpenGATE requires explicit API calls to wire things together since it doesn't parse a monolithic GDML file.
+
+## Validation
+
+The `validate_opengate_opticks.py` script compares CPU (Geant4) and GPU (Opticks) optical photon simulation:
+
+```shell
+GLIBC_TUNABLES=glibc.rtld.optional_static_tls=2000000 \
+OPTICKS_MAX_SLOT=M1 \
+python3 validate_opengate_opticks.py
+```
+
+Typical validation results:
+- CPU (Geant4): ~45,000 optical photon tracks
+- GPU (Opticks): ~47,000 photons, ~3,200 hits
+- Photon count ratio: ~1.04 (excellent agreement)
+- Detection efficiency: ~6.8% (based on surface EFFICIENCY property)
+
+## Performance
+
+Benchmark results on NVIDIA RTX 4090:
+
+| Electrons | Photons | CPU Time | GPU Time | Speedup |
+|-----------|---------|----------|----------|---------|
+| 50 | 232k | 3.66s | 1.18s | 3.1x total, 305x GPU-only |
+| 200 | 930k | 12.66s | 1.99s | 6.4x total, 550x GPU-only |
+| 500 | 2.3M | 30.92s | 3.58s | 8.6x total, 687x GPU-only |
