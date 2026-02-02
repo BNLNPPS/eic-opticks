@@ -38,5 +38,9 @@ void init_GateOpticksActor(py::module &m) {
       .def("GetTotalNumPhotons", &GateOpticksActor::GetTotalNumPhotons)
       .def("GetTotalNumGensteps", &GateOpticksActor::GetTotalNumGensteps)
       .def("GetNumBatchesProcessed", &GateOpticksActor::GetNumBatchesProcessed)
-      .def("GetCurrentRunId", &GateOpticksActor::GetCurrentRunId);
+      .def("GetCurrentRunId", &GateOpticksActor::GetCurrentRunId)
+      // START Only needed for CPU vs GPU validation
+      .def("GetTotalNumCpuHits", &GateOpticksActor::GetTotalNumCpuHits)
+      .def("IsCpuMode", &GateOpticksActor::IsCpuMode);
+      // END Only needed for CPU vs GPU validation
 }
