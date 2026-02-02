@@ -180,7 +180,7 @@ Required environment variables:
 
 ```shell
 export GLIBC_TUNABLES=glibc.rtld.optional_static_tls=2000000
-export OPTICKS_MAX_SLOT=M1
+export OPTICKS_MAX_SLOT=M100
 python3 test_opengate_eic-opticks_cerenkov.py
 ```
 
@@ -261,15 +261,19 @@ The `validate_opengate_opticks.py` script compares CPU (Geant4) and GPU (Opticks
 
 ```shell
 GLIBC_TUNABLES=glibc.rtld.optional_static_tls=2000000 \
-OPTICKS_MAX_SLOT=M1 \
+OPTICKS_MAX_SLOT=M100 \
 python3 validate_opengate_opticks.py
 ```
 
-Typical validation results:
-- CPU (Geant4): ~45,000 optical photon tracks
-- GPU (Opticks): ~47,000 photons, ~3,200 hits
-- Photon count ratio: ~1.04 (excellent agreement)
-- Detection efficiency: ~6.8% (based on surface EFFICIENCY property)
+### Validation Results (11,000 electrons, ~51M photons)
+
+| Metric | CPU (Geant4) | GPU (Opticks) | Difference |
+|--------|--------------|---------------|------------|
+| Optical photons | 51,107,547 | 51,046,884 | 0.12% |
+| Hits detected | 3,254,998 | 3,246,930 | 0.25% |
+| Detection efficiency | 6.37% | 6.36% | - |
+
+All 5 validation checks pass.
 
 ## Performance
 
