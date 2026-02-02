@@ -48,6 +48,17 @@ class OpticksActor(ActorBase, g4.GateOpticksActor):
             False,
             {"doc": "Print info after each batch is processed"},
         ),
+        # START Only needed for CPU vs GPU validation
+        "cpu_mode": (
+            False,
+            {"doc": "If True, track optical photons on CPU and count hits at detector boundaries. "
+                    "Use this for validation against GPU results."},
+        ),
+        "detector_volume_name": (
+            "detector",
+            {"doc": "Volume name pattern for detector (used for CPU hit counting)"},
+        ),
+        # END Only needed for CPU vs GPU validation
     }
 
     def __init__(self, *args, **kwargs):
@@ -131,11 +142,17 @@ class OpticksActor(ActorBase, g4.GateOpticksActor):
         ActorBase.EndSimulationAction(self)
 
         # Print final summary
-        print(f"\nOpticks GPU Simulation Summary:")
-        print(f"  Total batches processed: {self.batches_processed}")
-        print(f"  Total gensteps: {self.GetTotalNumGensteps()}")
-        print(f"  Total photons generated: {self.total_photons}")
-        print(f"  Total hits detected: {self.total_hits}")
+        # START Only needed for CPU vs GPU validation
+        if self.IsCpuMode():
+            print(f"\nOpticks CPU Mode Summary:")
+            print(f"  Total hits detected: {self.GetTotalNumCpuHits()}")
+        else:
+        # END Only needed for CPU vs GPU validation
+            print(f"\nOpticks GPU Simulation Summary:")
+            print(f"  Total batches processed: {self.batches_processed}")
+            print(f"  Total gensteps: {self.GetTotalNumGensteps()}")
+            print(f"  Total photons generated: {self.total_photons}")
+            print(f"  Total hits detected: {self.total_hits}")
 
 
 process_cls(OpticksActor)
