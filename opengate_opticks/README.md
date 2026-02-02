@@ -260,9 +260,7 @@ The physics is identical - both approaches create `G4LogicalBorderSurface` objec
 The `validate_opengate_opticks.py` script compares CPU (Geant4) and GPU (Opticks) optical photon simulation:
 
 ```shell
-GLIBC_TUNABLES=glibc.rtld.optional_static_tls=2000000 \
-OPTICKS_MAX_SLOT=M100 \
-python3 validate_opengate_opticks.py
+python3 examples/validate_opengate_opticks.py
 ```
 
 ### Validation Results (11,000 electrons, ~51M photons)
@@ -277,12 +275,16 @@ All 5 validation checks pass.
 
 ## Performance
 
+```shell
+python3 examples/opengate_benchmark_cpu_vs_gpu.py
+```
+
 Benchmark results (same geometry as validation, 11,000 electrons, ~51M photons):
 
 | Metric | CPU | GPU |
 |--------|-----|-----|
-| Optical simulation time | 92.5s | 0.655s |
-| Throughput | 552k photons/sec | 78M photons/sec |
+| Optical simulation time | 64.2s | 0.401s |
+| Throughput | 795k photons/sec | 127M photons/sec |
 | **Speedup** | - | **141x** |
 
 Note: Times shown are for optical photon simulation only, measured by running
