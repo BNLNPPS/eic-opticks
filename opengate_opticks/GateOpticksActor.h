@@ -45,6 +45,10 @@ public:
   unsigned int GetTotalNumPhotons() const;
   unsigned int GetTotalNumGensteps() const;
   unsigned int GetNumBatchesProcessed() const;
+  // START Only needed for CPU vs GPU validation
+  unsigned int GetTotalNumCpuHits() const;
+  bool IsCpuMode() const;
+  // END Only needed for CPU vs GPU validation
 
   int GetCurrentRunId() const;
 
@@ -58,6 +62,10 @@ protected:
   int fBatchSize;
   std::string fOutputPath;
   bool fSaveToFile;
+  // START Only needed for CPU vs GPU validation
+  bool fCpuMode;  // If true, track photons on CPU and count hits at boundaries
+  std::string fDetectorVolumeName;  // Volume name pattern for detector (for CPU hit counting)
+  // END Only needed for CPU vs GPU validation
 
   // Callback to Python
   ProcessBatchFunction fProcessBatch;
@@ -67,12 +75,16 @@ protected:
     int fCurrentRunId;
     int fNumGenstepsInBatch;      // gensteps in current batch
     int fTotalNumGensteps;        // cumulative across all batches
-    int fTotalNumHits;            // cumulative hits
+    int fTotalNumHits;            // cumulative hits (GPU)
     int fTotalNumPhotons;         // cumulative photons
     int fNumBatchesProcessed;
     // Current batch results (set after GPU sim)
     int fCurrentBatchNumHits;
     int fCurrentBatchNumPhotons;
+    // START Only needed for CPU vs GPU validation
+    int fTotalNumCpuHits;         // optical photons absorbed at detector (CPU mode)
+    int fTotalNumCpuPhotons;      // optical photons tracked (CPU mode)
+    // END Only needed for CPU vs GPU validation
   };
   G4Cache<threadLocalT> fThreadLocalData;
 };
