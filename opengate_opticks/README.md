@@ -277,10 +277,14 @@ All 5 validation checks pass.
 
 ## Performance
 
-Benchmark results on NVIDIA RTX 4090:
+Benchmark results (same geometry as validation, 11,000 electrons, ~51M photons):
 
-| Electrons | Photons | CPU Time | GPU Time | Speedup |
-|-----------|---------|----------|----------|---------|
-| 50 | 232k | 3.66s | 1.18s | 3.1x total, 305x GPU-only |
-| 200 | 930k | 12.66s | 1.99s | 6.4x total, 550x GPU-only |
-| 500 | 2.3M | 30.92s | 3.58s | 8.6x total, 687x GPU-only |
+| Metric | CPU | GPU |
+|--------|-----|-----|
+| Optical simulation time | 92.5s | 0.655s |
+| Throughput | 552k photons/sec | 78M photons/sec |
+| **Speedup** | - | **141x** |
+
+Note: Times shown are for optical photon simulation only, measured by running
+CPU with and without optical physics (difference = optical time), and GPU time
+measured inside `gx->simulate()` call.
