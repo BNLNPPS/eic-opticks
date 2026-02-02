@@ -269,9 +269,9 @@ python3 validate_opengate_opticks.py
 
 | Metric | CPU (Geant4) | GPU (Opticks) | Difference |
 |--------|--------------|---------------|------------|
-| Optical photons | 51,107,547 | 51,046,884 | 0.12% |
-| Hits detected | 3,254,998 | 3,246,930 | 0.25% |
-| Detection efficiency | 6.37% | 6.36% | - |
+| Optical photons | 51,070,004 | 51,070,004 | 0.0% |
+| Hits detected | 1,454,818 | 1,454,703 | 0.01% |
+| Detection efficiency | 2.85% | 2.85% | - |
 
 All 5 validation checks pass.
 
