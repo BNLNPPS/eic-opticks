@@ -13,29 +13,22 @@ namespace py = pybind11;
 
 #include "GateOpticksActor.h"
 
-class PyGateOpticksActor : public GateOpticksActor {
-public:
-  // Inherit the constructors
-  using GateOpticksActor::GateOpticksActor;
-
-  void BeginOfRunActionMasterThread(int run_id) override {
-    PYBIND11_OVERLOAD(void, GateOpticksActor, BeginOfRunActionMasterThread, run_id);
-  }
-
-  int EndOfRunActionMasterThread(int run_id) override {
-    PYBIND11_OVERLOAD(int, GateOpticksActor, EndOfRunActionMasterThread, run_id);
-  }
-};
+/*
+ * No trampoline class needed here.
+ *
+ * PyGateVActor (in pyGateVActor.cpp) already provides PYBIND11_OVERLOAD
+ * trampolines for BeginOfRunActionMasterThread and EndOfRunActionMasterThread.
+ *
+ * Since GateOpticksActor inherits from GateVActor, and we specify GateVActor
+ * as the base class in py::class_, pybind11 uses PyGateVActor's trampolines.
+ *
+ * This pattern matches other actors like GateKillActor, GateDoseActor, etc.
+ */
 
 void init_GateOpticksActor(py::module &m) {
-  py::class_<GateOpticksActor, PyGateOpticksActor,
-             std::unique_ptr<GateOpticksActor, py::nodelete>, GateVActor>(
-      m, "GateOpticksActor")
+  py::class_<GateOpticksActor, std::unique_ptr<GateOpticksActor, py::nodelete>,
+             GateVActor>(m, "GateOpticksActor")
       .def(py::init<py::dict &>())
-      .def("BeginOfRunActionMasterThread",
-           &GateOpticksActor::BeginOfRunActionMasterThread)
-      .def("EndOfRunActionMasterThread",
-           &GateOpticksActor::EndOfRunActionMasterThread)
       .def("SetProcessBatchFunction", &GateOpticksActor::SetProcessBatchFunction)
       // Current batch getters
       .def("GetCurrentBatchNumHits", &GateOpticksActor::GetCurrentBatchNumHits)
