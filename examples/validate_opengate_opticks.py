@@ -73,9 +73,9 @@ def create_base_simulation():
     sim.physics_manager.energy_range_max = 10 * MeV
 
     # Optical properties
-    script_dir = Path(__file__).parent
-    sim.physics_manager.optical_properties_file = str(script_dir / "WaterOpticalProperties.xml")
-    sim.physics_manager.surface_properties_file = str(script_dir / "SurfaceProperties.xml")
+    geom_dir = Path(__file__).parent.parent.parent / "tests" / "geom"                                                                                                                         
+    sim.physics_manager.optical_properties_file = str(geom_dir / "WaterOpticalProperties.xml")                                                                                                
+    sim.physics_manager.surface_properties_file = str(geom_dir / "SurfaceProperties.xml")
 
     # Border surface with EFFICIENCY
     sim.physics_manager.add_optical_surface(
