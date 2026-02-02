@@ -285,7 +285,7 @@ Benchmark results (same geometry as validation, 11,000 electrons, ~51M photons):
 |--------|-----|-----|
 | Optical simulation time | 64.2s | 0.401s |
 | Throughput | 795k photons/sec | 127M photons/sec |
-| **Speedup** | - | **141x** |
+| **Speedup** | - | **160x** |
 
 Note: Times shown are for optical photon simulation only, measured by running
 CPU with and without optical physics (difference = optical time), and GPU time
