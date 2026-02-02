@@ -12,6 +12,10 @@
 #include "G4OpticalPhoton.hh"
 #include "G4EventManager.hh"
 #include "G4TransportationManager.hh"
+// START Only needed for CPU vs GPU validation
+#include "G4OpBoundaryProcess.hh"
+#include "G4ProcessManager.hh"
+// END Only needed for CPU vs GPU validation
 #include <iostream>
 #include <chrono>
 
@@ -24,6 +28,10 @@
 #include "SEventConfig.hh"
 #include "U4.hh"
 #include "QSim.hh"
+#include "sphoton.h"
+#include "OpticksPhoton.h"
+#include "NP.hh"
+#include "SComp.h"
 namespace { G4Mutex genstep_mutex = G4MUTEX_INITIALIZER; }
 #endif
 
@@ -34,6 +42,10 @@ GateOpticksActor::GateOpticksActor(py::dict &user_info)
   fActions.insert("EndOfRunAction");
   fBatchSize = 0;
   fSaveToFile = true;
+  // START Only needed for CPU vs GPU validation
+  fCpuMode = false;
+  fDetectorVolumeName = "detector";
+  // END Only needed for CPU vs GPU validation
 }
 
 GateOpticksActor::~GateOpticksActor() = default;
@@ -43,6 +55,10 @@ void GateOpticksActor::InitializeUserInfo(py::dict &user_info) {
   fBatchSize = DictGetInt(user_info, "batch_size");
   fOutputPath = DictGetStr(user_info, "output_path");
   fSaveToFile = DictGetBool(user_info, "save_to_file");
+  // START Only needed for CPU vs GPU validation
+  fCpuMode = DictGetBool(user_info, "cpu_mode");
+  fDetectorVolumeName = DictGetStr(user_info, "detector_volume_name");
+  // END Only needed for CPU vs GPU validation
 }
 
 void GateOpticksActor::InitializeCpp() {
@@ -53,7 +69,6 @@ void GateOpticksActor::InitializeCpp() {
     G4VPhysicalVolume *world = G4TransportationManager::GetTransportationManager()
         ->GetNavigatorForTracking()->GetWorldVolume();
     if (world) {
-      // Create SEvt for GPU mode BEFORE SetGeometry to enable device detection
       SEvt::Create_EGPU();
 
       // Set up geometry and GPU context
@@ -90,19 +105,66 @@ void GateOpticksActor::BeginOfRunAction(const G4Run *run) {
   l.fNumBatchesProcessed = 0;
   l.fCurrentBatchNumHits = 0;
   l.fCurrentBatchNumPhotons = 0;
+  // START Only needed for CPU vs GPU validation
+  l.fTotalNumCpuHits = 0;
+  l.fTotalNumCpuPhotons = 0;
+  // END Only needed for CPU vs GPU validation
 }
 
 void GateOpticksActor::SteppingAction(G4Step *step) {
-#ifdef GATE_USE_OPTICKS
   if (!step) return;
   G4Track* track = step->GetTrack();
   if (!track) return;
 
-  // Kill optical photons - they will be simulated on GPU
+  auto &l = fThreadLocalData.Get();
+
+  // Handle optical photons
   if (track->GetDefinition() == G4OpticalPhoton::OpticalPhotonDefinition()) {
-    track->SetTrackStatus(fStopAndKill);
-    return;
+    // START Only needed for CPU vs GPU validation
+    if (fCpuMode) {
+      // CPU mode: track photons and count hits at detector boundaries
+      l.fTotalNumCpuPhotons++;
+
+      // Check if photon was absorbed at a boundary (Detection)
+      G4StepPoint* postPoint = step->GetPostStepPoint();
+      if (postPoint->GetStepStatus() == fGeomBoundary) {
+        // Get the boundary process to check what happened
+        G4ProcessManager* pm = track->GetDefinition()->GetProcessManager();
+        G4int nProcesses = pm->GetPostStepProcessVector()->entries();
+        G4ProcessVector* procVec = pm->GetPostStepProcessVector(typeDoIt);
+
+        for (G4int i = 0; i < nProcesses; i++) {
+          G4VProcess* proc = (*procVec)[i];
+          if (proc && proc->GetProcessName() == "OpBoundary") {
+            G4OpBoundaryProcess* boundary = dynamic_cast<G4OpBoundaryProcess*>(proc);
+            if (boundary) {
+              G4OpBoundaryProcessStatus status = boundary->GetStatus();
+              // Detection means photon was absorbed based on EFFICIENCY
+              if (status == Detection) {
+                l.fTotalNumCpuHits++;
+              }
+            }
+            break;
+          }
+        }
+      }
+      // In CPU mode, let Geant4 continue tracking the photon
+      return;
+    }
+    // END Only needed for CPU vs GPU validation
+    {
+#ifdef GATE_USE_OPTICKS
+      // GPU mode: kill optical photons - they will be simulated on GPU
+      track->SetTrackStatus(fStopAndKill);
+      return;
+#endif
+    }
   }
+
+#ifdef GATE_USE_OPTICKS
+  // START Only needed for CPU vs GPU validation
+  if (fCpuMode) return;  // Skip genstep collection in CPU mode
+  // END Only needed for CPU vs GPU validation
 
   G4SteppingManager *fpSteppingManager =
       G4EventManager::GetEventManager()->GetTrackingManager()->GetSteppingManager();
@@ -134,7 +196,6 @@ void GateOpticksActor::SteppingAction(G4Step *step) {
   }
 
   // Check batch size
-  auto &l = fThreadLocalData.Get();
   if (fBatchSize > 0 && l.fNumGenstepsInBatch >= fBatchSize) {
     RunGPUSimulationAndProcessBatch();
   }
@@ -258,8 +319,9 @@ void GateOpticksActor::RunGPUSimulationAndProcessBatch() {
   // Get results
   SEvt *sev = SEvt::Get_EGPU();
   if (sev) {
-    l.fCurrentBatchNumHits = sev->GetNumHit(0);
-    l.fCurrentBatchNumPhotons = sev->GetNumPhotonCollected(0);
+    l.fCurrentBatchNumPhotons = sev->getNumPhotonCollected();
+    l.fCurrentBatchNumHits = sev->getNumHit();
+
     l.fTotalNumHits += l.fCurrentBatchNumHits;
     l.fTotalNumPhotons += l.fCurrentBatchNumPhotons;
   }
@@ -271,8 +333,16 @@ void GateOpticksActor::RunGPUSimulationAndProcessBatch() {
   }
 
   if (fSaveToFile && sev) {
-    std::string batchPath = fOutputPath + "/batch_" + std::to_string(l.fNumBatchesProcessed);
-    sev->save(batchPath.c_str());
+    // Gather photon data from GPU
+    NP* photon_arr = sev->gatherComponent(SCOMP_PHOTON);
+    if (photon_arr && photon_arr->shape.size() > 0 && photon_arr->shape[0] > 0) {
+      std::string photonPath = fOutputPath + "/photon_batch_" + std::to_string(l.fNumBatchesProcessed) + ".npy";
+      photon_arr->save(photonPath.c_str());
+      std::cout << "SAVED_PHOTON_DATA: " << photonPath << " shape=(" << photon_arr->shape[0] << "," << photon_arr->shape[1] << "," << photon_arr->shape[2] << ")" << std::endl;
+      delete photon_arr;
+    } else {
+      std::cout << "NO_PHOTON_DATA_TO_SAVE" << std::endl;
+    }
   }
 
   ResetBatch();
@@ -335,3 +405,13 @@ unsigned int GateOpticksActor::GetNumBatchesProcessed() const {
 int GateOpticksActor::GetCurrentRunId() const {
   return fThreadLocalData.Get().fCurrentRunId;
 }
+
+// START Only needed for CPU vs GPU validation
+unsigned int GateOpticksActor::GetTotalNumCpuHits() const {
+  return fThreadLocalData.Get().fTotalNumCpuHits;
+}
+
+bool GateOpticksActor::IsCpuMode() const {
+  return fCpuMode;
+}
+// END Only needed for CPU vs GPU validation
