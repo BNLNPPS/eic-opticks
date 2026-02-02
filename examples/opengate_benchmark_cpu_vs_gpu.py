@@ -41,8 +41,7 @@ eV = gate.g4_units.eV
 # Configuration - same as validation
 NUM_ELECTRONS = 11000  # Should generate ~51 million Cerenkov photons
 ELECTRON_ENERGY = 10 * MeV
-SCRIPT_DIR = Path(__file__).parent
-
+GEOM_DIR = Path(__file__).parent.parent.parent / "tests" / "geom"
 
 def create_base_simulation():
     """Create base simulation setup matching validation geometry."""
@@ -78,8 +77,8 @@ def create_base_simulation():
     sim.physics_manager.energy_range_max = 10 * MeV
 
     # Optical properties (same as validation)
-    sim.physics_manager.optical_properties_file = str(SCRIPT_DIR / "WaterOpticalProperties.xml")
-    sim.physics_manager.surface_properties_file = str(SCRIPT_DIR / "SurfaceProperties.xml")
+    sim.physics_manager.optical_properties_file = str(GEOM_DIR / "WaterOpticalProperties.xml")
+    sim.physics_manager.surface_properties_file = str(GEOM_DIR / "SurfaceProperties.xml")
 
     # Border surface with EFFICIENCY
     sim.physics_manager.add_optical_surface(
