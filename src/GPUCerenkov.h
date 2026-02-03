@@ -385,10 +385,6 @@ struct RunAction : G4UserRunAction
                 {
                     theCreationProcessid = -1;
                 }
-                //    std::cout << "Adding hit from Opticks:" << hit.wavelength << " " << position << " " << direction
-                //    << "
-                //    "
-                //              << polarization << std::endl;
                 outFile << hit.time << " " << hit.wavelength << "  " << "(" << position.x() << ", " << position.y()
                         << ", " << position.z() << ")  " << "(" << direction.x() << ", " << direction.y() << ", "
                         << direction.z() << ")  " << "(" << polarization.x() << ", " << polarization.y() << ", "
