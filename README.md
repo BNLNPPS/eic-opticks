@@ -154,7 +154,7 @@ are generated and traced on the GPU. This is a minimal example for validating th
 
 ```bash
 # Run with raindrop geometry (Cerenkov only)
-./build/src/GPUCerenkov -g tests/geom/opticks_raindrop.gdml -m run.mac
+GPUCerenkov -g tests/geom/opticks_raindrop.gdml -m run.mac
 ```
 
 **Source files:** `src/GPUCerenkov.cpp`, `src/GPUCerenkov.h`
