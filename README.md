@@ -180,7 +180,7 @@ This geometry models a pixelated scintillator calorimeter with:
 
 ```bash
 # Run with 8x8 SiPM array geometry (Cerenkov + Scintillation)
-./build/src/GPURaytrace -g tests/geom/8x8SiPM_w_CSI_optial_grease.gdml -m run.mac
+GPURaytrace -g tests/geom/8x8SiPM_w_CSI_optial_grease.gdml -m tests/run.mac
 
 # Check output for Cerenkov (ID=0) and scintillation (ID=1) photons
 grep -c "CreationProcessID=0" opticks_hits_output.txt  # Cerenkov
