@@ -184,13 +184,11 @@ void GateOpticksActor::SteppingAction(G4Step *step) {
       G4Cerenkov* cer = dynamic_cast<G4Cerenkov*>((*procPost)[i]);
       if (cer && cer->GetNumPhotons() > 0) {
         CollectCerenkovGenstep(step);
-        break;
       }
     } else if (procName == "Scintillation") {
       G4Scintillation* scint = dynamic_cast<G4Scintillation*>((*procPost)[i]);
       if (scint && scint->GetNumPhotons() > 0) {
         CollectScintillationGenstep(step);
-        break;
       }
     }
   }
