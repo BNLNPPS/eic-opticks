@@ -188,3 +188,7 @@ docker run --rm -t -v /tmp/out:/tmp/out eic-opticks:perf-dev run-performance -o 
 docker build -t eic-opticks:perf-rel --target=release
 docker run --rm -t -v /tmp/out:/tmp/out eic-opticks:perf-rel run-performance -o /tmp/out/rel
 ```
+
+## General recommendations
+
+In ray-tracing (GPU eic-opticks) having two volumes that have touching surfaces is a no go. It is analogous to having overlapping volumes in Geant4. Practically if the daughter volume has the same size and placement as the parent, photons can leak into the grandparent volume because the daughter-parent surface "overlaps" with the parent-grandparent.
