@@ -73,9 +73,7 @@ int main(int argc, char **argv)
         .flag()
         .store_into(interactive);
 
-    program.add_argument("-s", "--seed")
-        .help("fixed random seed (default: time-based)")
-        .scan<'i', long>();
+    program.add_argument("-s", "--seed").help("fixed random seed (default: time-based)").scan<'i', long>();
 
     try
     {
