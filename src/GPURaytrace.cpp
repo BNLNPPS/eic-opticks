@@ -49,9 +49,6 @@ struct ActionInitialization : public G4VUserActionInitialization
 int main(int argc, char **argv)
 {
 
-    long seed = static_cast<long>(time(nullptr));
-    CLHEP::HepRandom::setTheSeed(seed);
-    G4cout << "Random seed set to: " << seed << G4endl;
     OPTICKS_LOG(argc, argv);
 
     argparse::ArgumentParser program("GPURaytrace", "0.0.0");
@@ -76,6 +73,10 @@ int main(int argc, char **argv)
         .flag()
         .store_into(interactive);
 
+    program.add_argument("-s", "--seed")
+        .help("fixed random seed (default: time-based)")
+        .scan<'i', long>();
+
     try
     {
         program.parse_args(argc, argv);
@@ -86,6 +87,18 @@ int main(int argc, char **argv)
         cerr << program;
         exit(EXIT_FAILURE);
     }
+
+    long seed;
+    if (program.is_used("--seed"))
+    {
+        seed = program.get<long>("--seed");
+    }
+    else
+    {
+        seed = static_cast<long>(time(nullptr));
+    }
+    CLHEP::HepRandom::setTheSeed(seed);
+    G4cout << "Random seed set to: " << seed << G4endl;
 
     // Configure Geant4
     // The physics list must be instantiated before other user actions
