@@ -339,7 +339,10 @@ struct EventAction : G4UserEventAction
         }
     }
 
-    G4int GetTotalG4Hits() const { return fTotalG4Hits; }
+    G4int GetTotalG4Hits() const
+    {
+        return fTotalG4Hits;
+    }
 };
 
 struct RunAction : G4UserRunAction
