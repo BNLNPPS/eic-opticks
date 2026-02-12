@@ -343,6 +343,9 @@ struct EventAction : G4UserEventAction
     {
         return fTotalG4Hits;
     }
+    {
+        return fTotalG4Hits;
+    }
 };
 
 struct RunAction : G4UserRunAction
