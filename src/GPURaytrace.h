@@ -313,6 +313,7 @@ struct PrimaryGenerator : G4VUserPrimaryGeneratorAction
 struct EventAction : G4UserEventAction
 {
     SEvt *sev;
+    G4int fTotalG4Hits{0};
 
     EventAction(SEvt *sev) : sev(sev)
     {
@@ -324,12 +325,28 @@ struct EventAction : G4UserEventAction
 
     void EndOfEventAction(const G4Event *event) override
     {
+        G4HCofThisEvent *hce = event->GetHCofThisEvent();
+        if (hce)
+        {
+            for (G4int i = 0; i < hce->GetNumberOfCollections(); i++)
+            {
+                G4VHitsCollection *hc = hce->GetHC(i);
+                if (hc)
+                {
+                    fTotalG4Hits += hc->GetSize();
+                }
+            }
+        }
     }
+
+    G4int GetTotalG4Hits() const { return fTotalG4Hits; }
 };
 
 struct RunAction : G4UserRunAction
 {
-    RunAction()
+    EventAction *fEventAction;
+
+    RunAction(EventAction *eventAction) : fEventAction(eventAction)
     {
     }
 
@@ -358,6 +375,7 @@ struct RunAction : G4UserRunAction
             std::cout << "Opticks: NumCollected:  " << sev->GetNumGenstepFromGenstep(0) << std::endl;
             std::cout << "Opticks: NumCollected:  " << sev->GetNumPhotonCollected(0) << std::endl;
             std::cout << "Opticks: NumHits:  " << num_hits << std::endl;
+            std::cout << "Geant4: NumHits:  " << fEventAction->GetTotalG4Hits() << std::endl;
             std::ofstream outFile("opticks_hits_output.txt");
             if (!outFile.is_open())
             {
@@ -539,7 +557,7 @@ struct G4App
 {
     G4App(std::filesystem::path gdml_file)
         : sev(SEvt::CreateOrReuse_EGPU()), det_cons_(new DetectorConstruction(gdml_file)),
-          prim_gen_(new PrimaryGenerator(sev)), event_act_(new EventAction(sev)), run_act_(new RunAction()),
+          prim_gen_(new PrimaryGenerator(sev)), event_act_(new EventAction(sev)), run_act_(new RunAction(event_act_)),
           stepping_(new SteppingAction(sev)),
 
           tracking_(new TrackingAction(sev))
