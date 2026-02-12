@@ -341,10 +341,7 @@ struct EventAction : G4UserEventAction
 
     G4int GetTotalG4Hits() const
     {
-        return fTotalG4Hits;
-    }
-    {
-        return fTotalG4Hits;
+    return fTotalG4Hits;
     }
 };
 
