@@ -125,6 +125,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE unsigned long long min(unsigned long long a, unsig
     return a < b ? a : b;
 }
 
+namespace sysrap { // avoid name conflict with std::lerp function
 
 /** lerp */
 SUTIL_INLINE SUTIL_HOSTDEVICE float lerp(const float a, const float b, const float t)
@@ -140,6 +141,8 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float bilerp(const float x00, const float x10, con
                                          const float u, const float v)
 {
   return lerp( lerp( x00, x10, u ), lerp( x01, x11, u ), v );
+}
+
 }
 
 template <typename IntegerType>
