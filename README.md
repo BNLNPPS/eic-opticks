@@ -324,7 +324,7 @@ Here setStackPhotons defines **whether G4 will propagate optical photons or
 not**. In production Opticks (GPU) takes care of the optical photon propagation.
 Additionally the user has to define the **starting position**, **momentum** etc
 of the primary particles define in the **GeneratePrimaries** function in
-``src/GPUCerenkov.h```. The hits of the optical photons are returned in the
+```src/GPUCerenkov.h```. The hits of the optical photons are returned in the
 **EndOfRunAction** function. If more photons are simulated than can fit in the
 GPU RAM the execution of a GPU call should be moved to **EndOfEventAction**
 together with retriving the hits.
