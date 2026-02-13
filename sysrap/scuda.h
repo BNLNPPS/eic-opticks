@@ -125,6 +125,8 @@ SUTIL_INLINE SUTIL_HOSTDEVICE unsigned long long min(unsigned long long a, unsig
     return a < b ? a : b;
 }
 
+namespace sysrap
+{ // avoid name conflict with std::lerp function
 
 /** lerp */
 SUTIL_INLINE SUTIL_HOSTDEVICE float lerp(const float a, const float b, const float t)
@@ -141,6 +143,8 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float bilerp(const float x00, const float x10, con
 {
   return lerp( lerp( x00, x10, u ), lerp( x01, x11, u ), v );
 }
+
+} // namespace sysrap
 
 template <typename IntegerType>
 SUTIL_INLINE SUTIL_HOSTDEVICE IntegerType roundUp(IntegerType x, IntegerType y)
@@ -299,6 +303,9 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator/=(float2& a, const float s)
 }
 /** @} */
 
+namespace sysrap
+{ // avoid name conflict with std::lerp function
+
 /** lerp */
 SUTIL_INLINE SUTIL_HOSTDEVICE float2 lerp(const float2& a, const float2& b, const float t)
 {
@@ -311,6 +318,8 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float2 bilerp(const float2& x00, const float2& x10
 {
   return lerp( lerp( x00, x10, u ), lerp( x01, x11, u ), v );
 }
+
+} // namespace sysrap
 
 /** clamp
 * @{
@@ -531,6 +540,9 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator/=(float3& a, const float s)
 }
 /** @} */
 
+namespace sysrap
+{ // avoid name conflict with std::lerp function
+
 /** lerp */
 SUTIL_INLINE SUTIL_HOSTDEVICE float3 lerp(const float3& a, const float3& b, const float t)
 {
@@ -543,6 +555,8 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float3 bilerp(const float3& x00, const float3& x10
 {
   return lerp( lerp( x00, x10, u ), lerp( x01, x11, u ), v );
 }
+
+} // namespace sysrap
 
 /** clamp
 * @{
@@ -774,6 +788,9 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator/=(float4& a, const float s)
 }
 /** @} */
 
+namespace sysrap
+{ // avoid name conflict with std::lerp function
+
 /** lerp */
 SUTIL_INLINE SUTIL_HOSTDEVICE float4 lerp(const float4& a, const float4& b, const float t)
 {
@@ -786,6 +803,8 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float4 bilerp(const float4& x00, const float4& x10
 {
   return lerp( lerp( x00, x10, u ), lerp( x01, x11, u ), v );
 }
+
+} // namespace sysrap
 
 /** clamp
 * @{
