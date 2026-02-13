@@ -393,7 +393,7 @@ inline bool SRecord::FindInterpolatedPhotonFromRecordAtTime( sphoton& p, const s
         {
             p = p0 ;  // (pol,mom) from p0
             float frac = (t - p0.time)/(p1.time - p0.time) ;
-            p.pos = sysrap::lerp( p0.pos, p1.pos, frac ) ; // interpolated position
+            p.pos = sysrap::lerp(p0.pos, p1.pos, frac); // interpolated position
             p.time = t ;
             return true ;
         }
