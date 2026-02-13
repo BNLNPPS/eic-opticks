@@ -209,7 +209,7 @@ struct PhotonSD : public G4VSensitiveDetector
             {
                 theCreationProcessid = -1;
             }
-            //std::cout << hit.wavelength << " " << position << " " << direction << " " << polarization << std::endl;
+            // std::cout << hit.wavelength << " " << position << " " << direction << " " << polarization << std::endl;
             PhotonHit *newHit = new PhotonHit(0, hit.wavelength, hit.time, position, direction, polarization);
             fPhotonHitsCollection->insert(newHit);
         }
