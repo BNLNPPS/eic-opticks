@@ -129,12 +129,14 @@ Process](https://geant4-userdoc.web.cern.ch/UsersGuides/ForApplicationDeveloper/
 
 ## Examples
 
-EIC-Opticks provides two main examples demonstrating GPU-accelerated optical photon simulation:
+EIC-Opticks provides several examples demonstrating GPU-accelerated optical photon simulation:
 
 | Example | Physics | Geometry | Use Case |
 |---------|---------|----------|----------|
 | `GPUCerenkov` | Cerenkov only | Simple nested boxes (raindrop) | Basic Cerenkov testing |
 | `GPURaytrace` | Cerenkov + Scintillation | 8x8 CsI crystal + SiPM array | Realistic detector simulation |
+| `GPUPhotonSource` | Optical photons (torch) | Any GDML | G4 + GPU side-by-side validation |
+| `GPUPhotonSourceMinimal` | Optical photons (torch) | Any GDML | GPU-only production |
 
 ### Example 1: GPUCerenkov (Cerenkov Only)
 
@@ -162,7 +164,7 @@ GPUCerenkov -g tests/geom/opticks_raindrop.gdml -m run.mac
 ### Example 2: GPURaytrace (Cerenkov + Scintillation)
 
 The `GPURaytrace` example demonstrates a realistic detector configuration with both Cerenkov
-and scintillation physics using the **8x8 SiPM array** geometry:
+and scintillation physics using the **8x8 SiPM array** geometry (not validated yet):
 
 ```
 Geometry: 8x8SiPM_w_CSI_optial_grease.gdml
@@ -188,6 +190,75 @@ grep -c "CreationProcessID=1" opticks_hits_output.txt  # Scintillation
 ```
 
 **Source files:** `src/GPURaytrace.cpp`, `src/GPURaytrace.h`
+
+### Example 3: GPUPhotonSource (G4 + GPU Validation)
+
+`GPUPhotonSource` generates optical photons from a configurable torch source and runs
+both Geant4 and Opticks GPU simulation in parallel on the same input photons. This
+enables direct comparison of hit counts and positions between the two engines.
+
+Both engines detect photons using the same mechanism: border surface physics. On the G4
+side the `SteppingAction` records a hit when `G4OpBoundaryProcess` reports Detection at
+the optical surface, matching how Opticks detects photons on the GPU.
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `-g, --gdml` | Path to GDML file | `geom.gdml` |
+| `-c, --config` | Config file name (without `.json`) | `dev` |
+| `-m, --macro` | Path to G4 macro | `run.mac` |
+| `-i, --interactive` | Open interactive viewer | off |
+| `-s, --seed` | Fixed random seed | time-based |
+
+```bash
+GPUPhotonSource -g tests/geom/opticks_raindrop.gdml -c dev -m run.mac -s 42
+```
+
+**Output:**
+- `opticks_hits_output.txt` — Opticks GPU hits, one line per hit
+- `g4_hits_output.txt` — Geant4 hits in the same format
+
+Hit format (both files): `time wavelength (pos_x, pos_y, pos_z) (mom_x, mom_y, mom_z) (pol_x, pol_y, pol_z)`
+
+**Source files:** `src/GPUPhotonSource.cpp`, `src/GPUPhotonSource.h`
+
+### Example 4: GPUPhotonSourceMinimal (GPU-Only)
+
+`GPUPhotonSourceMinimal` is a stripped-down version of `GPUPhotonSource` that runs
+**only** Opticks GPU simulation. All G4 optical photon tracking infrastructure
+(sensitive detectors, stepping actions, tracking actions) is removed. Geant4 is used
+solely for geometry loading and hosting the event loop.
+
+Use this when you only need GPU results and want faster execution.
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `-g, --gdml` | Path to GDML file | `geom.gdml` |
+| `-c, --config` | Config file name (without `.json`) | `dev` |
+| `-m, --macro` | Path to G4 macro | `run.mac` |
+| `-i, --interactive` | Open interactive viewer | off |
+| `-s, --seed` | Fixed random seed | time-based |
+
+```bash
+GPUPhotonSourceMinimal -g tests/geom/opticks_raindrop.gdml -c dev -m run.mac -s 42
+```
+
+**Output:** `opticks_hits_output.txt` — one hit per line
+
+**Source files:** `src/GPUPhotonSourceMinimal.cpp`, `src/GPUPhotonSourceMinimal.h`
+
+### Torch configuration
+
+`GPUPhotonSource` and `GPUPhotonSourceMinimal` read photon source parameters from a
+JSON config file (default `config/dev.json`). Key fields:
+
+| Field | Description |
+|-------|-------------|
+| `type` | Source shape: `disc`, `sphere`, `point` |
+| `radius` | Size of the source area (mm) |
+| `pos` | Center position `[x, y, z]` (mm) |
+| `mom` | Emission direction `[x, y, z]` (normalized automatically) |
+| `numphoton` | Number of photons to generate |
+| `wavelength` | Photon wavelength (nm) |
 
 ### Code Differences
 
@@ -235,10 +306,10 @@ See `tests/geom/8x8SiPM_w_CSI_optial_grease.gdml` for a complete working example
 
 ### Defining primary particles
 
-There are certain user defined inputs that the user has to define. In
-the `src/GPUCerenkov.cpp` example that imports `src/GPUCerenkov.h` we provide
-a working example with a simple geometry. The user has to change the
-following details: **Number of primary particles** to simulate in a Geant4 macro file
+There are certain user defined inputs that the user/developer has to define. In
+the ```src/GPUCerenkov``` example that imports ```src/GPUCerenkov.h``` we provide
+a working example with a simple geometry. The User/developer has to change the
+following details: **Number of primary particles** to simulate in a macro file
 and the **number of G4 threads**. For example:
 
 ```
@@ -249,21 +320,21 @@ and the **number of G4 threads**. For example:
 /run/beamOn 500
 ```
 
-Here `setStackPhotons` defines whether G4 will propagate optical photons or
-not. In production Opticks (GPU) takes care of the optical photon propagation.
+Here setStackPhotons defines **whether G4 will propagate optical photons or
+not**. In production Opticks (GPU) takes care of the optical photon propagation.
 Additionally the user has to define the **starting position**, **momentum** etc
-of the primary particles define in the `GeneratePrimaries` function in
-`src/GPUCerenkov.h`. The hits of the optical photons are returned in the
-`EndOfRunAction` function. If more photons are simulated than can fit in the
-GPU RAM the execution of a GPU call should be moved to `EndOfEventAction`
+of the primary particles define in the **GeneratePrimaries** function in
+``src/GPUCerenkov.h```. The hits of the optical photons are returned in the
+**EndOfRunAction** function. If more photons are simulated than can fit in the
+GPU RAM the execution of a GPU call should be moved to **EndOfEventAction**
 together with retriving the hits.
 
 ### Loading in geometry into EIC-Opticks
 
 EIC-Opticks can import geometries with GDML format automatically. There are
 about 10 primitives supported now, eg. G4Box. G4Trd or G4Trap are not supported
-yet, we are working on them. `GPUCerenkov` takes GDML files through
-arguments, eg. `GPUCerenkov -g mygdml.gdml`.
+yet, we are working on them. ```src/GPUCerenkov``` takes GDML files through
+arguments, eg. ```src/GPUCerenkov -g mygdml.gdml```.
 
 The GDML must define all optical properties of surfaces of materials including:
 - Efficiency (used by EIC-Opticks to specify detection efficiency and assign
