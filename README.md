@@ -262,16 +262,21 @@ JSON config file (default `config/dev.json`). Key fields:
 
 ### Code Differences
 
-| Feature | GPUCerenkov | GPURaytrace |
-|---------|-----------|-------------|
-| Cerenkov genstep collection | ✓ | ✓ |
-| Scintillation genstep collection | ✗ | ✓ |
-| G4Scintillation process handling | ✗ | ✓ |
-| Multi-threaded support | ✓ | ✓ |
+| Feature | GPUCerenkov | GPURaytrace | GPUPhotonSource | GPUPhotonSourceMinimal |
+|---------|-------------|-------------|-----------------|----------------------|
+| Cerenkov genstep collection | ✓ | ✓ | ✗ | ✗ |
+| Scintillation genstep collection | ✗ | ✓ | ✗ | ✗ |
+| Torch photon generation | ✗ | ✗ | ✓ | ✓ |
+| G4 optical photon tracking | ✓ | ✓ | ✓ | ✗ |
+| GPU simulation (Opticks) | ✓ | ✓ | ✓ | ✓ |
+| Multi-threaded | ✓ | ✓ | ✗ | ✗ |
 
-The key difference in the code is that `GPURaytrace` includes scintillation genstep collection
-in the `SteppingAction`, which captures photon generation parameters from `G4Scintillation`
-and passes them to Opticks for GPU simulation.
+`GPUCerenkov` and `GPURaytrace` collect gensteps from charged particle interactions and
+pass them to Opticks for GPU photon generation and tracing. `GPUPhotonSource` and
+`GPUPhotonSourceMinimal` instead generate photons directly from a torch configuration.
+`GPUPhotonSource` runs both G4 and GPU tracking for validation, while
+`GPUPhotonSourceMinimal` skips G4 tracking entirely for a lean simplistic code so showcase what is needed for GPU only.
+
 
 ### GDML Scintillation Properties for Geant4 11.x + Opticks
 
