@@ -311,11 +311,10 @@ struct EventAction : G4UserEventAction
                             G4ThreeVector position(p.pos.x, p.pos.y, p.pos.z);
                             G4ThreeVector direction(p.mom.x, p.mom.y, p.mom.z);
                             G4ThreeVector polarization(p.pol.x, p.pol.y, p.pol.z);
-                            g4OutFile << p.time << " " << p.wavelength << "  "
-                                      << "(" << position.x() << ", " << position.y() << ", " << position.z() << ")  "
-                                      << "(" << direction.x() << ", " << direction.y() << ", " << direction.z() << ")  "
-                                      << "(" << polarization.x() << ", " << polarization.y() << ", " << polarization.z()
-                                      << ")" << std::endl;
+                            g4OutFile << p.time << " " << p.wavelength << "  " << "(" << position.x() << ", "
+                                      << position.y() << ", " << position.z() << ")  " << "(" << direction.x() << ", "
+                                      << direction.y() << ", " << direction.z() << ")  " << "(" << polarization.x()
+                                      << ", " << polarization.y() << ", " << polarization.z() << ")" << std::endl;
                         }
                     }
                 }
