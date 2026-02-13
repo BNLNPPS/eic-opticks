@@ -143,7 +143,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float bilerp(const float x00, const float x10, con
   return lerp( lerp( x00, x10, u ), lerp( x01, x11, u ), v );
 }
 
-}
+} // namespace sysrap
 
 template <typename IntegerType>
 SUTIL_INLINE SUTIL_HOSTDEVICE IntegerType roundUp(IntegerType x, IntegerType y)
