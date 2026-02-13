@@ -76,3 +76,4 @@ jobs:
         run: |
           docker run --rm ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} /src/eic-opticks/tests/test_opticks.sh
           docker run --rm ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} /src/eic-opticks/tests/test_simg4ox.sh
+          docker run --rm ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} /src/eic-opticks/tests/test_GPURaytrace.sh
