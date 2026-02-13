@@ -48,6 +48,22 @@ target_include_directories(GPURaytrace PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
 )
 
+# GPUPhotonSource - optical photon input via SetInputPhoton with Opticks GPU simulation
+add_executable(GPUPhotonSource GPUPhotonSource.cpp GPUPhotonSource.h)
+target_link_libraries(GPUPhotonSource gphox)
+target_include_directories(GPUPhotonSource PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+)
+
+# GPUPhotonSourceMinimal - GPU-only ray tracing (no G4 optical photon tracking)
+add_executable(GPUPhotonSourceMinimal GPUPhotonSourceMinimal.cpp GPUPhotonSourceMinimal.h)
+target_link_libraries(GPUPhotonSourceMinimal gphox)
+target_include_directories(GPUPhotonSourceMinimal PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+)
+
 # simtox creates a numpy file with initial photons for simulation
 add_executable(simtox simtox.cpp)
 
@@ -58,7 +74,7 @@ target_include_directories(simtox PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
 )
 
-install(TARGETS consgeo simg4ox GPUCerenkov GPURaytrace simtox gphox
+install(TARGETS consgeo simg4ox GPUCerenkov GPURaytrace GPUPhotonSource GPUPhotonSourceMinimal simtox gphox
     EXPORT ${PROJECT_NAME}Targets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
