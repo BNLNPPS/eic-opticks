@@ -136,7 +136,7 @@ EIC-Opticks provides several examples demonstrating GPU-accelerated optical phot
 | `GPUCerenkov` | Cerenkov only | Simple nested boxes (raindrop) | Basic Cerenkov testing |
 | `GPURaytrace` | Cerenkov + Scintillation | 8x8 CsI crystal + SiPM array | Realistic detector simulation |
 | `GPUPhotonSource` | Optical photons (torch) | Any GDML | G4 + GPU side-by-side validation |
-| `GPUPhotonSourceMinimal` | Optical photons (torch) | Any GDML | GPU-only production |
+| `GPUPhotonSourceMinimal` | Optical photons (torch) | Any GDML | GPU-only test |
 
 ### Example 1: GPUCerenkov (Cerenkov Only)
 
