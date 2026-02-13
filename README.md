@@ -333,8 +333,8 @@ together with retriving the hits.
 
 EIC-Opticks can import geometries with GDML format automatically. There are
 about 10 primitives supported now, eg. G4Box. G4Trd or G4Trap are not supported
-yet, we are working on them. ```src/GPUCerenkov``` takes GDML files through
-arguments, eg. ```src/GPUCerenkov -g mygdml.gdml```.
+yet, we are working on them. ```GPUCerenkov``` takes GDML files through
+arguments, eg. ```GPUCerenkov -g mygdml.gdml```.
 
 The GDML must define all optical properties of surfaces of materials including:
 - Efficiency (used by EIC-Opticks to specify detection efficiency and assign
