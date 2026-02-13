@@ -235,10 +235,10 @@ See `tests/geom/8x8SiPM_w_CSI_optial_grease.gdml` for a complete working example
 
 ### Defining primary particles
 
-There are certain user defined inputs that the user/developer has to define. In
-the ```src/GPUCerenkov``` example that imports ```src/GPUCerenkov.h``` we provide
-a working example with a simple geometry. The User/developer has to change the
-following details: **Number of primary particles** to simulate in a macro file
+There are certain user defined inputs that the user has to define. In
+the `src/GPUCerenkov.cpp` example that imports `src/GPUCerenkov.h` we provide
+a working example with a simple geometry. The user has to change the
+following details: **Number of primary particles** to simulate in a Geant4 macro file
 and the **number of G4 threads**. For example:
 
 ```
@@ -249,21 +249,21 @@ and the **number of G4 threads**. For example:
 /run/beamOn 500
 ```
 
-Here setStackPhotons defines **whether G4 will propagate optical photons or
-not**. In production Opticks (GPU) takes care of the optical photon propagation.
+Here `setStackPhotons` defines whether G4 will propagate optical photons or
+not. In production Opticks (GPU) takes care of the optical photon propagation.
 Additionally the user has to define the **starting position**, **momentum** etc
-of the primary particles define in the **GeneratePrimaries** function in
-``src/GPUCerenkov.h```. The hits of the optical photons are returned in the
-**EndOfRunAction** function. If more photons are simulated than can fit in the
-GPU RAM the execution of a GPU call should be moved to **EndOfEventAction**
+of the primary particles define in the `GeneratePrimaries` function in
+`src/GPUCerenkov.h`. The hits of the optical photons are returned in the
+`EndOfRunAction` function. If more photons are simulated than can fit in the
+GPU RAM the execution of a GPU call should be moved to `EndOfEventAction`
 together with retriving the hits.
 
 ### Loading in geometry into EIC-Opticks
 
 EIC-Opticks can import geometries with GDML format automatically. There are
 about 10 primitives supported now, eg. G4Box. G4Trd or G4Trap are not supported
-yet, we are working on them. ```src/GPUCerenkov``` takes GDML files through
-arguments, eg. ```src/GPUCerenkov -g mygdml.gdml```.
+yet, we are working on them. `GPUCerenkov` takes GDML files through
+arguments, eg. `GPUCerenkov -g mygdml.gdml`.
 
 The GDML must define all optical properties of surfaces of materials including:
 - Efficiency (used by EIC-Opticks to specify detection efficiency and assign
