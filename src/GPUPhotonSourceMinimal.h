@@ -135,11 +135,10 @@ struct EventAction : G4UserEventAction
                 G4ThreeVector position = G4ThreeVector(hit.pos.x, hit.pos.y, hit.pos.z);
                 G4ThreeVector direction = G4ThreeVector(hit.mom.x, hit.mom.y, hit.mom.z);
                 G4ThreeVector polarization = G4ThreeVector(hit.pol.x, hit.pol.y, hit.pol.z);
-                outFile << hit.time << " " << hit.wavelength << "  "
-                        << "(" << position.x() << ", " << position.y() << ", " << position.z() << ")  "
-                        << "(" << direction.x() << ", " << direction.y() << ", " << direction.z() << ")  "
-                        << "(" << polarization.x() << ", " << polarization.y() << ", " << polarization.z() << ")"
-                        << std::endl;
+                outFile << hit.time << " " << hit.wavelength << "  " << "(" << position.x() << ", " << position.y()
+                        << ", " << position.z() << ")  " << "(" << direction.x() << ", " << direction.y() << ", "
+                        << direction.z() << ")  " << "(" << polarization.x() << ", " << polarization.y() << ", "
+                        << polarization.z() << ")" << std::endl;
             }
             outFile.close();
         }
