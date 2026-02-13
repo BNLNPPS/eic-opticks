@@ -152,7 +152,7 @@ Geometry: opticks_raindrop.gdml
 ```
 
 When charged particles traverse the water volume above the Cerenkov threshold, optical photons
-are generated and traced on the GPU. This is a minimal example for validating the Opticks pipeline.
+are generated and traced on the GPU. This is a minimal example for validating the eic-opticks pipeline.
 
 ```bash
 # Run with raindrop geometry (Cerenkov only)
@@ -194,12 +194,12 @@ grep -c "CreationProcessID=1" opticks_hits_output.txt  # Scintillation
 ### Example 3: GPUPhotonSource (G4 + GPU Validation)
 
 `GPUPhotonSource` generates optical photons from a configurable torch source and runs
-both Geant4 and Opticks GPU simulation in parallel on the same input photons. This
+both Geant4 and eic-opticks GPU simulation in parallel on the same input photons. This
 enables direct comparison of hit counts and positions between the two engines.
 
 Both engines detect photons using the same mechanism: border surface physics. On the G4
 side the `SteppingAction` records a hit when `G4OpBoundaryProcess` reports Detection at
-the optical surface, matching how Opticks detects photons on the GPU.
+the optical surface, matching how eic-opticks detects photons on the GPU.
 
 | Argument | Description | Default |
 |----------|-------------|---------|
@@ -214,7 +214,7 @@ GPUPhotonSource -g tests/geom/opticks_raindrop.gdml -c dev -m run.mac -s 42
 ```
 
 **Output:**
-- `opticks_hits_output.txt` — Opticks GPU hits, one line per hit
+- `opticks_hits_output.txt` — eic-opticks GPU hits, one line per hit
 - `g4_hits_output.txt` — Geant4 hits in the same format
 
 Hit format (both files): `time wavelength (pos_x, pos_y, pos_z) (mom_x, mom_y, mom_z) (pol_x, pol_y, pol_z)`
@@ -224,7 +224,7 @@ Hit format (both files): `time wavelength (pos_x, pos_y, pos_z) (mom_x, mom_y, m
 ### Example 4: GPUPhotonSourceMinimal (GPU-Only)
 
 `GPUPhotonSourceMinimal` is a stripped-down version of `GPUPhotonSource` that runs
-**only** Opticks GPU simulation. All G4 optical photon tracking infrastructure
+**only** eic-opticks GPU simulation. All G4 optical photon tracking infrastructure
 (sensitive detectors, stepping actions, tracking actions) is removed. Geant4 is used
 solely for geometry loading and hosting the event loop.
 
@@ -268,19 +268,19 @@ JSON config file (default `config/dev.json`). Key fields:
 | Scintillation genstep collection | ✗ | ✓ | ✗ | ✗ |
 | Torch photon generation | ✗ | ✗ | ✓ | ✓ |
 | G4 optical photon tracking | ✓ | ✓ | ✓ | ✗ |
-| GPU simulation (Opticks) | ✓ | ✓ | ✓ | ✓ |
+| GPU simulation (eic-opticks) | ✓ | ✓ | ✓ | ✓ |
 | Multi-threaded | ✓ | ✓ | ✗ | ✗ |
 
 `GPUCerenkov` and `GPURaytrace` collect gensteps from charged particle interactions and
-pass them to Opticks for GPU photon generation and tracing. `GPUPhotonSource` and
+pass them to eic-opticks for GPU photon generation and tracing. `GPUPhotonSource` and
 `GPUPhotonSourceMinimal` instead generate photons directly from a torch configuration.
 `GPUPhotonSource` runs both G4 and GPU tracking for validation, while
 `GPUPhotonSourceMinimal` skips G4 tracking entirely for a lean simplistic code so showcase what is needed for GPU only.
 
 
-### GDML Scintillation Properties for Geant4 11.x + Opticks
+### GDML Scintillation Properties for Geant4 11.x + eic-opticks
 
-For scintillation to work with both Geant4 11.x and Opticks GPU simulation, the GDML
+For scintillation to work with both Geant4 11.x and eic-opticks GPU simulation, the GDML
 must define properties using the correct syntax:
 
 1. **Const properties** (yield, time constants) must use `coldim="1"` matrices:
@@ -291,7 +291,7 @@ must define properties using the correct syntax:
 </define>
 ```
 
-2. **Both old and new style property names** are required for Opticks compatibility:
+2. **Both old and new style property names** are required for eic-opticks compatibility:
 ```xml
 <material name="Crystal">
     <!-- New Geant4 11.x names -->
@@ -326,7 +326,7 @@ and the **number of G4 threads**. For example:
 ```
 
 Here setStackPhotons defines **whether G4 will propagate optical photons or
-not**. In production Opticks (GPU) takes care of the optical photon propagation.
+not**. In production eic-opticks (GPU) takes care of the optical photon propagation.
 Additionally the user has to define the **starting position**, **momentum** etc
 of the primary particles define in the **GeneratePrimaries** function in
 ```src/GPUCerenkov.h```. The hits of the optical photons are returned in the
