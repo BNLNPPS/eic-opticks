@@ -127,12 +127,192 @@ Process](https://geant4-userdoc.web.cern.ch/UsersGuides/ForApplicationDeveloper/
 ```
 
 
+## Examples
+
+EIC-Opticks provides several examples demonstrating GPU-accelerated optical photon simulation:
+
+| Example | Physics | Geometry | Use Case |
+|---------|---------|----------|----------|
+| `GPUCerenkov` | Cerenkov only | Simple nested boxes (raindrop) | Basic Cerenkov testing |
+| `GPURaytrace` | Cerenkov + Scintillation | 8x8 CsI crystal + SiPM array | Realistic detector simulation |
+| `GPUPhotonSource` | Optical photons (torch) | Any GDML | G4 + GPU side-by-side validation |
+| `GPUPhotonSourceMinimal` | Optical photons (torch) | Any GDML | GPU-only test |
+
+### Example 1: GPUCerenkov (Cerenkov Only)
+
+The `GPUCerenkov` example uses the **opticks_raindrop** geometry - a simple nested box configuration
+designed for testing Cerenkov photon production and GPU raytracing:
+
+```
+Geometry: opticks_raindrop.gdml
+├── VACUUM world (240×240×240 mm)
+│   └── Lead box (220×220×220 mm)
+│       └── Air box (200×200×200 mm)
+│           └── Water box (100×100×100 mm) ← Cerenkov medium
+```
+
+When charged particles traverse the water volume above the Cerenkov threshold, optical photons
+are generated and traced on the GPU. This is a minimal example for validating the eic-opticks pipeline.
+
+```bash
+# Run with raindrop geometry (Cerenkov only)
+GPUCerenkov -g tests/geom/opticks_raindrop.gdml -m run.mac
+```
+
+**Source files:** `src/GPUCerenkov.cpp`, `src/GPUCerenkov.h`
+
+### Example 2: GPURaytrace (Cerenkov + Scintillation)
+
+The `GPURaytrace` example demonstrates a realistic detector configuration with both Cerenkov
+and scintillation physics using the **8x8 SiPM array** geometry (not validated yet):
+
+```
+Geometry: 8x8SiPM_w_CSI_optial_grease.gdml
+├── Air world (100×100×100 mm)
+│   ├── 64 CsI crystal pixels (2×2×8 mm each) ← Scintillation + Cerenkov
+│   ├── Optical grease layer (17.4×17.4×0.1 mm)
+│   ├── Entrance window (17.4×17.4×0.1 mm)
+│   └── 64 SiPM active areas (2×2×0.2 mm each) ← Photon detectors
+```
+
+This geometry models a pixelated scintillator calorimeter with:
+- **CsI(Tl) crystals**: Produce both Cerenkov and scintillation photons
+- **Optical coupling**: Grease and window layers for photon transmission
+- **SiPM readout**: 8×8 array of silicon photomultipliers with dead space modeling
+
+```bash
+# Run with 8x8 SiPM array geometry (Cerenkov + Scintillation)
+GPURaytrace -g tests/geom/8x8SiPM_w_CSI_optial_grease.gdml -m tests/run.mac
+
+# Check output for Cerenkov (ID=0) and scintillation (ID=1) photons
+grep -c "CreationProcessID=0" opticks_hits_output.txt  # Cerenkov
+grep -c "CreationProcessID=1" opticks_hits_output.txt  # Scintillation
+```
+
+**Source files:** `src/GPURaytrace.cpp`, `src/GPURaytrace.h`
+
+### Example 3: GPUPhotonSource (G4 + GPU Validation)
+
+`GPUPhotonSource` generates optical photons from a configurable torch source and runs
+both Geant4 and eic-opticks GPU simulation in parallel on the same input photons. This
+enables direct comparison of hit counts and positions between the two engines.
+
+Both engines detect photons using the same mechanism: border surface physics. On the G4
+side the `SteppingAction` records a hit when `G4OpBoundaryProcess` reports Detection at
+the optical surface, matching how eic-opticks detects photons on the GPU.
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `-g, --gdml` | Path to GDML file | `geom.gdml` |
+| `-c, --config` | Config file name (without `.json`) | `dev` |
+| `-m, --macro` | Path to G4 macro | `run.mac` |
+| `-i, --interactive` | Open interactive viewer | off |
+| `-s, --seed` | Fixed random seed | time-based |
+
+```bash
+GPUPhotonSource -g tests/geom/opticks_raindrop.gdml -c dev -m run.mac -s 42
+```
+
+**Output:**
+- `opticks_hits_output.txt` — eic-opticks GPU hits, one line per hit
+- `g4_hits_output.txt` — Geant4 hits in the same format
+
+Hit format (both files): `time wavelength (pos_x, pos_y, pos_z) (mom_x, mom_y, mom_z) (pol_x, pol_y, pol_z)`
+
+**Source files:** `src/GPUPhotonSource.cpp`, `src/GPUPhotonSource.h`
+
+### Example 4: GPUPhotonSourceMinimal (GPU-Only)
+
+`GPUPhotonSourceMinimal` is a stripped-down version of `GPUPhotonSource` that runs
+**only** eic-opticks GPU simulation. All G4 optical photon tracking infrastructure
+(sensitive detectors, stepping actions, tracking actions) is removed. Geant4 is used
+solely for geometry loading and hosting the event loop.
+
+Use this when you only need GPU results and want faster execution.
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `-g, --gdml` | Path to GDML file | `geom.gdml` |
+| `-c, --config` | Config file name (without `.json`) | `dev` |
+| `-m, --macro` | Path to G4 macro | `run.mac` |
+| `-i, --interactive` | Open interactive viewer | off |
+| `-s, --seed` | Fixed random seed | time-based |
+
+```bash
+GPUPhotonSourceMinimal -g tests/geom/opticks_raindrop.gdml -c dev -m run.mac -s 42
+```
+
+**Output:** `opticks_hits_output.txt` — one hit per line
+
+**Source files:** `src/GPUPhotonSourceMinimal.cpp`, `src/GPUPhotonSourceMinimal.h`
+
+### Torch configuration
+
+`GPUPhotonSource` and `GPUPhotonSourceMinimal` read photon source parameters from a
+JSON config file (default `config/dev.json`). Key fields:
+
+| Field | Description |
+|-------|-------------|
+| `type` | Source shape: `disc`, `sphere`, `point` |
+| `radius` | Size of the source area (mm) |
+| `pos` | Center position `[x, y, z]` (mm) |
+| `mom` | Emission direction `[x, y, z]` (normalized automatically) |
+| `numphoton` | Number of photons to generate |
+| `wavelength` | Photon wavelength (nm) |
+
+### Code Differences
+
+| Feature | GPUCerenkov | GPURaytrace | GPUPhotonSource | GPUPhotonSourceMinimal |
+|---------|-------------|-------------|-----------------|----------------------|
+| Cerenkov genstep collection | ✓ | ✓ | ✗ | ✗ |
+| Scintillation genstep collection | ✗ | ✓ | ✗ | ✗ |
+| Torch photon generation | ✗ | ✗ | ✓ | ✓ |
+| G4 optical photon tracking | ✓ | ✓ | ✓ | ✗ |
+| GPU simulation (eic-opticks) | ✓ | ✓ | ✓ | ✓ |
+| Multi-threaded | ✓ | ✓ | ✗ | ✗ |
+
+`GPUCerenkov` and `GPURaytrace` collect gensteps from charged particle interactions and
+pass them to eic-opticks for GPU photon generation and tracing. `GPUPhotonSource` and
+`GPUPhotonSourceMinimal` instead generate photons directly from a torch configuration.
+`GPUPhotonSource` runs both G4 and GPU tracking for validation, while
+`GPUPhotonSourceMinimal` skips G4 tracking entirely for a lean simplistic code so showcase what is needed for GPU only.
+
+
+### GDML Scintillation Properties for Geant4 11.x + eic-opticks
+
+For scintillation to work with both Geant4 11.x and eic-opticks GPU simulation, the GDML
+must define properties using the correct syntax:
+
+1. **Const properties** (yield, time constants) must use `coldim="1"` matrices:
+```xml
+<define>
+    <matrix coldim="1" name="SCINT_YIELD" values="5000.0"/>
+    <matrix coldim="1" name="FAST_TIME_CONST" values="21.5"/>
+</define>
+```
+
+2. **Both old and new style property names** are required for eic-opticks compatibility:
+```xml
+<material name="Crystal">
+    <!-- New Geant4 11.x names -->
+    <property name="SCINTILLATIONYIELD" ref="SCINT_YIELD"/>
+    <property name="SCINTILLATIONCOMPONENT1" ref="SCINT_SPECTRUM"/>
+    <property name="SCINTILLATIONTIMECONSTANT1" ref="FAST_TIME_CONST"/>
+    <!-- Old-style names for Opticks U4Scint -->
+    <property name="FASTCOMPONENT" ref="SCINT_SPECTRUM"/>
+    <property name="SLOWCOMPONENT" ref="SCINT_SPECTRUM"/>
+    <property name="REEMISSIONPROB" ref="REEMISSION_PROB"/>
+</material>
+```
+
+See `tests/geom/8x8SiPM_w_CSI_optial_grease.gdml` for a complete working example.
+
 ## User/developer defined inputs
 
 ### Defining primary particles
 
 There are certain user defined inputs that the user/developer has to define. In
-the ```src/simg4oxmt``` example that imports ```src/g4appmt.h``` we provide
+the ```src/GPUCerenkov``` example that imports ```src/GPUCerenkov.h``` we provide
 a working example with a simple geometry. The User/developer has to change the
 following details: **Number of primary particles** to simulate in a macro file
 and the **number of G4 threads**. For example:
@@ -146,10 +326,10 @@ and the **number of G4 threads**. For example:
 ```
 
 Here setStackPhotons defines **whether G4 will propagate optical photons or
-not**. In production Opticks (GPU) takes care of the optical photon propagation.
+not**. In production eic-opticks (GPU) takes care of the optical photon propagation.
 Additionally the user has to define the **starting position**, **momentum** etc
 of the primary particles define in the **GeneratePrimaries** function in
-``src/g4appmt.h```. The hits of the optical photons are returned in the
+```src/GPUCerenkov.h```. The hits of the optical photons are returned in the
 **EndOfRunAction** function. If more photons are simulated than can fit in the
 GPU RAM the execution of a GPU call should be moved to **EndOfEventAction**
 together with retriving the hits.
@@ -158,8 +338,8 @@ together with retriving the hits.
 
 EIC-Opticks can import geometries with GDML format automatically. There are
 about 10 primitives supported now, eg. G4Box. G4Trd or G4Trap are not supported
-yet, we are working on them. ```src/simg4oxmt``` takes GDML files through
-arguments, eg. ```src/simg4oxmt -g mygdml.gdml```.
+yet, we are working on them. ```GPUCerenkov``` takes GDML files through
+arguments, eg. ```GPUCerenkov -g mygdml.gdml```.
 
 The GDML must define all optical properties of surfaces of materials including:
 - Efficiency (used by EIC-Opticks to specify detection efficiency and assign

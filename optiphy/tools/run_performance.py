@@ -69,7 +69,7 @@ def main():
                     rm.write(run_mac_template.format(threads=threads, flag=flag))
 
                 # Run with time in bash to capture real/user/sys
-                cmd = f"time simg4oxmt -g {gdml_path} -m {run_mac_path}"
+                cmd = f"time GPUCerenkov -g {gdml_path} -m {run_mac_path}"
                 print(f"Running {threads} threads: {cmd}")
                 result = subprocess.run(
                     ["bash", "-c", cmd],

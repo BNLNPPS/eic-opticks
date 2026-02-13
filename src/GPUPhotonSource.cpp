@@ -4,6 +4,7 @@
 
 #include "FTFP_BERT.hh"
 #include "G4OpticalPhysics.hh"
+#include "G4RunManager.hh"
 #include "G4VModularPhysicsList.hh"
 
 #include "G4UIExecutive.hh"
@@ -12,51 +13,18 @@
 
 #include "sysrap/OPTICKS_LOG.hh"
 
-#include "g4appmt.h"
-
-#include "G4RunManager.hh"
-#include "G4RunManagerFactory.hh"
-#include "G4VUserActionInitialization.hh"
+#include "GPUPhotonSource.h"
+#include "config.h"
 
 using namespace std;
 
-struct ActionInitialization : public G4VUserActionInitialization
-{
-  private:
-    G4App *fG4App; // Store the pointer to G4App
-
-  public:
-    // Note the signature: now we take a pointer to the G4App itself
-    ActionInitialization(G4App *app) : G4VUserActionInitialization(), fG4App(app)
-    {
-    }
-
-    virtual void BuildForMaster() const override
-    {
-        SetUserAction(fG4App->run_act_);
-    }
-
-    virtual void Build() const override
-    {
-        SetUserAction(fG4App->prim_gen_);
-        SetUserAction(fG4App->run_act_);
-        SetUserAction(fG4App->event_act_);
-        SetUserAction(fG4App->tracking_);
-        SetUserAction(fG4App->stepping_);
-    }
-};
-
 int main(int argc, char **argv)
 {
-
-    long seed = static_cast<long>(time(nullptr));
-    CLHEP::HepRandom::setTheSeed(seed);
-    G4cout << "Random seed set to: " << seed << G4endl;
     OPTICKS_LOG(argc, argv);
 
-    argparse::ArgumentParser program("simg4ox", "0.0.0");
+    argparse::ArgumentParser program("GPUPhotonSource", "0.0.0");
 
-    string gdml_file, macro_name;
+    string gdml_file, config_name, macro_name;
     bool interactive;
 
     program.add_argument("-g", "--gdml")
@@ -64,6 +32,12 @@ int main(int argc, char **argv)
         .default_value(string("geom.gdml"))
         .nargs(1)
         .store_into(gdml_file);
+
+    program.add_argument("-c", "--config")
+        .help("the name of a config file")
+        .default_value(string("dev"))
+        .nargs(1)
+        .store_into(config_name);
 
     program.add_argument("-m", "--macro")
         .help("path to G4 macro")
@@ -76,6 +50,8 @@ int main(int argc, char **argv)
         .flag()
         .store_into(interactive);
 
+    program.add_argument("-s", "--seed").help("fixed random seed (default: time-based)").scan<'i', long>();
+
     try
     {
         program.parse_args(argc, argv);
@@ -87,19 +63,36 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    long seed;
+    if (program.is_used("--seed"))
+    {
+        seed = program.get<long>("--seed");
+    }
+    else
+    {
+        seed = static_cast<long>(time(nullptr));
+    }
+    CLHEP::HepRandom::setTheSeed(seed);
+    G4cout << "Random seed set to: " << seed << G4endl;
+
+    gphox::Config cfg(config_name);
+
     // Configure Geant4
     // The physics list must be instantiated before other user actions
     G4VModularPhysicsList *physics = new FTFP_BERT;
     physics->RegisterPhysics(new G4OpticalPhysics);
 
-    auto *run_mgr = G4RunManagerFactory::CreateRunManager();
-    run_mgr->SetUserInitialization(physics);
+    G4RunManager run_mgr;
+    run_mgr.SetUserInitialization(physics);
 
-    G4App *g4app = new G4App(gdml_file);
-
-    ActionInitialization *actionInit = new ActionInitialization(g4app);
-    run_mgr->SetUserInitialization(actionInit);
-    run_mgr->SetUserInitialization(g4app->det_cons_);
+    G4App *g4app = new G4App(cfg, gdml_file);
+    run_mgr.SetUserInitialization(g4app->det_cons_);
+    run_mgr.SetUserAction(g4app->prim_gen_);
+    run_mgr.SetUserAction(g4app->run_act_);
+    run_mgr.SetUserAction(g4app->event_act_);
+    run_mgr.SetUserAction(g4app->tracking_);
+    run_mgr.SetUserAction(g4app->stepping_);
+    run_mgr.Initialize();
 
     G4UIExecutive *uix = nullptr;
     G4VisManager *vis = nullptr;

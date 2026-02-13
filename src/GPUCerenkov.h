@@ -358,6 +358,40 @@ struct RunAction : G4UserRunAction
             std::cout << "Opticks: NumCollected:  " << sev->GetNumGenstepFromGenstep(0) << std::endl;
             std::cout << "Opticks: NumCollected:  " << sev->GetNumPhotonCollected(0) << std::endl;
             std::cout << "Opticks: NumHits:  " << num_hits << std::endl;
+            std::ofstream outFile("opticks_hits_output.txt");
+            if (!outFile.is_open())
+            {
+                std::cerr << "Error opening output file!" << std::endl;
+                return;
+            }
+
+            for (int idx = 0; idx < int(num_hits); idx++)
+            {
+                sphoton hit;
+                sev->getHit(hit, idx);
+                G4ThreeVector position = G4ThreeVector(hit.pos.x, hit.pos.y, hit.pos.z);
+                G4ThreeVector direction = G4ThreeVector(hit.mom.x, hit.mom.y, hit.mom.z);
+                G4ThreeVector polarization = G4ThreeVector(hit.pol.x, hit.pol.y, hit.pol.z);
+                int theCreationProcessid;
+                if (OpticksPhoton::HasCerenkovFlag(hit.flagmask))
+                {
+                    theCreationProcessid = 0;
+                }
+                else if (OpticksPhoton::HasScintillationFlag(hit.flagmask))
+                {
+                    theCreationProcessid = 1;
+                }
+                else
+                {
+                    theCreationProcessid = -1;
+                }
+                outFile << hit.time << " " << hit.wavelength << "  " << "(" << position.x() << ", " << position.y()
+                        << ", " << position.z() << ")  " << "(" << direction.x() << ", " << direction.y() << ", "
+                        << direction.z() << ")  " << "(" << polarization.x() << ", " << polarization.y() << ", "
+                        << polarization.z() << ")  " << "CreationProcessID=" << theCreationProcessid << std::endl;
+            }
+
+            outFile.close();
         }
     }
 };
@@ -446,29 +480,28 @@ struct SteppingAction : G4UserSteppingAction
                         U4::CollectGenstep_G4Cerenkov_modified(aTrack, aStep, fNumPhotons, BetaInverse, Pmin, Pmax,
                                                                maxCos, maxSin2, MeanNumberOfPhotons1,
                                                                MeanNumberOfPhotons2);
-
-                        const G4Event *event = G4EventManager::GetEventManager()->GetConstCurrentEvent();
-                        if (!event)
-                            return; // Always check for null
-                        G4int eventid = event->GetEventID();
-
-                        unsigned int num_hits = 0;
-
-                        if (num_hits > 0)
+                    }
+                }
+                if ((*procPost)[i3]->GetProcessName() == "Scintillation")
+                {
+                    G4Scintillation *proc1 = (G4Scintillation *)(*procPost)[i3];
+                    fNumPhotons = proc1->GetNumPhotons();
+                    if (fNumPhotons > 0)
+                    {
+                        aTrack = aStep->GetTrack();
+                        const G4Material *aMaterial = aTrack->GetMaterial();
+                        G4MaterialPropertiesTable *MPT = aMaterial->GetMaterialPropertiesTable();
+                        if (!MPT || !MPT->ConstPropertyExists(kSCINTILLATIONTIMECONSTANT1))
                         {
-                            G4HCtable *hctable = G4SDManager::GetSDMpointer()->GetHCtable();
-                            for (G4int i = 0; i < hctable->entries(); ++i)
-                            {
-                                std::string sdn = hctable->GetSDname(i);
-                                std::size_t found = sdn.find("PhotonDetector");
-                                if (found != std::string::npos)
-                                {
-                                    std::cout << "PhotonDetector: " << sdn << std::endl;
-                                    PhotonSD *aSD =
-                                        (PhotonSD *)G4SDManager::GetSDMpointer()->FindSensitiveDetector(sdn);
-                                }
-                            }
+                            G4cout << "WARNING: Material has no valid SCINTILLATIONTIMECONSTANT1 data. Skipping "
+                                      "Scintillation calculation."
+                                   << G4endl;
+                            return;
                         }
+                        G4double SCINTILLATIONTIMECONSTANT1 = MPT->GetConstProperty(kSCINTILLATIONTIMECONSTANT1);
+
+                        U4::CollectGenstep_DsG4Scintillation_r4695(aTrack, aStep, fNumPhotons, 1,
+                                                                   SCINTILLATIONTIMECONSTANT1);
                     }
                 }
             }
