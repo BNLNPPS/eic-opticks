@@ -185,6 +185,7 @@ struct PhotonSD : public G4VSensitiveDetector
 
     void AddOpticksHits()
     {
+        G4AutoLock lock(&genstep_mutex);
         SEvt *sev = SEvt::Get_EGPU();
         unsigned int num_hits = sev->GetNumHit(0);
 
@@ -208,8 +209,7 @@ struct PhotonSD : public G4VSensitiveDetector
             {
                 theCreationProcessid = -1;
             }
-            std::cout << hit.wavelength << " " << position << " " << direction << " " << polarization << std::endl;
-
+            //std::cout << hit.wavelength << " " << position << " " << direction << " " << polarization << std::endl;
             PhotonHit *newHit = new PhotonHit(0, hit.wavelength, hit.time, position, direction, polarization);
             fPhotonHitsCollection->insert(newHit);
         }
