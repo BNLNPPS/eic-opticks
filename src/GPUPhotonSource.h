@@ -40,37 +40,9 @@
 #include "config.h"
 #include "torch.h"
 
-bool IsSubtractionSolid(G4VSolid *solid)
-{
-    if (!solid)
-        return false;
-
-    if (dynamic_cast<G4SubtractionSolid *>(solid))
-        return true;
-
-    G4BooleanSolid *booleanSolid = dynamic_cast<G4BooleanSolid *>(solid);
-    if (booleanSolid)
-    {
-        G4VSolid *solidA = booleanSolid->GetConstituentSolid(0);
-        G4VSolid *solidB = booleanSolid->GetConstituentSolid(1);
-
-        if (IsSubtractionSolid(solidA) || IsSubtractionSolid(solidB))
-            return true;
-    }
-
-    return false;
-}
-
-std::string str_tolower(std::string s)
-{
-    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::tolower(c); });
-    return s;
-}
-
 struct PhotonHit : public G4VHit
 {
     PhotonHit() = default;
-
     PhotonHit(G4double energy, G4double time, G4ThreeVector position, G4ThreeVector direction,
               G4ThreeVector polarization)
         : photon()
