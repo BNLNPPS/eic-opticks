@@ -127,6 +127,7 @@ SUTIL_INLINE SUTIL_HOSTDEVICE unsigned long long min(unsigned long long a, unsig
 
 namespace sysrap
 { // avoid name conflict with std::lerp function
+{ // avoid name conflict with std::lerp function
 
 /** lerp */
 SUTIL_INLINE SUTIL_HOSTDEVICE float lerp(const float a, const float b, const float t)
