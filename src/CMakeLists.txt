@@ -32,10 +32,34 @@ target_include_directories(simg4ox PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
 )
 
-# simg4ox runs Geant4 and OptiX simulations
-add_executable(simg4oxmt simg4oxmt.cpp g4appmt.h)
-target_link_libraries(simg4oxmt gphox)
-target_include_directories(simg4oxmt PRIVATE
+# GPUCerenkov - Cerenkov-only example with Opticks GPU raytracing
+add_executable(GPUCerenkov GPUCerenkov.cpp GPUCerenkov.h)
+target_link_libraries(GPUCerenkov gphox)
+target_include_directories(GPUCerenkov PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+)
+
+# GPURaytrace example - Cerenkov + Scintillation with Opticks GPU raytracing
+add_executable(GPURaytrace GPURaytrace.cpp GPURaytrace.h)
+target_link_libraries(GPURaytrace gphox)
+target_include_directories(GPURaytrace PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+)
+
+# GPUPhotonSource - optical photon input via SetInputPhoton with Opticks GPU simulation
+add_executable(GPUPhotonSource GPUPhotonSource.cpp GPUPhotonSource.h)
+target_link_libraries(GPUPhotonSource gphox)
+target_include_directories(GPUPhotonSource PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+)
+
+# GPUPhotonSourceMinimal - GPU-only ray tracing (no G4 optical photon tracking)
+add_executable(GPUPhotonSourceMinimal GPUPhotonSourceMinimal.cpp GPUPhotonSourceMinimal.h)
+target_link_libraries(GPUPhotonSourceMinimal gphox)
+target_include_directories(GPUPhotonSourceMinimal PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
 )
@@ -50,7 +74,7 @@ target_include_directories(simtox PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
 )
 
-install(TARGETS consgeo simg4ox simg4oxmt simtox gphox
+install(TARGETS consgeo simg4ox GPUCerenkov GPURaytrace GPUPhotonSource GPUPhotonSourceMinimal simtox gphox
     EXPORT ${PROJECT_NAME}Targets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
