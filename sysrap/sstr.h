@@ -11,6 +11,10 @@
 #include <algorithm>
 #include <csignal>
 
+#include <charconv> // std::from_chars
+#include <type_traits>
+
+
 struct sstr
 {
     enum { MATCH_ALL, MATCH_START, MATCH_END } ;
@@ -73,8 +77,14 @@ struct sstr
     static bool prefix_suffix( char** pfx, char** sfx, const char* start_sfx, const char* str );
 
 
+
     template<typename T>
-    static void split(std::vector<T>& elem, const char* str, char delim  );
+    static int split(std::vector<T>& elem, const char* str, char delim  );
+
+    static int split_count(const char* str, char delim  );
+    static bool looks_like_list(const char* str, char delim, int len_min=1, int len_max=4 );
+
+
 
     template<typename T>
     static std::string desc( const std::vector<T>& elem );
@@ -145,7 +155,13 @@ struct sstr
 
     static void truncated_copy( char* dst, const char* src, int dst_size );
     static void Extract( std::vector<long>& vals, const char* s );
-    static long ExtractLong( const char* s, long fallback );
+
+    template <typename T>
+    static void Extract_(std::vector<T>& vals, const char* s);
+
+
+    static long   ExtractLong( const char* s, long fallback );
+    static size_t ExtractSize( const char* s, size_t fallback );
 
 
     static bool LooksLikePath(const char* arg);
@@ -210,6 +226,8 @@ same chars as the query string *q*, eg::
     s : abcdefg
     q : abcd
 
+    ssstr::StartsWith("abcdefg", "abcd" ) == true
+
 **/
 
 inline bool sstr::StartsWith( const char* s, const char* q)  // synonym for sstr::MatchStart
@@ -223,6 +241,15 @@ inline bool sstr::MatchEnd( const char* s, const char* q)
     int pos = strlen(s) - strlen(q) ;
     return pos > 0 && strncmp(s + pos, q, strlen(q)) == 0 ;
 }
+
+/**
+sstr::EndsWith
+----------------
+
+sstr::EndsWith("file.npy", ".npy") == true
+
+**/
+
 inline bool sstr::EndsWith( const char* s, const char* q)
 {
     int pos = strlen(s) - strlen(q) ;
@@ -605,11 +632,8 @@ inline int sstr::ekv_split( std::vector<std::pair<std::string, std::string> > & 
 
 
 
-
-
-
 template<typename T>
-inline void sstr::split( std::vector<T>& elem, const char* str, char delim )
+inline int sstr::split( std::vector<T>& elem, const char* str, char delim )
 {
     std::stringstream ss;
     ss.str(str)  ;
@@ -621,7 +645,28 @@ inline void sstr::split( std::vector<T>& elem, const char* str, char delim )
         iss >> v ;
         elem.push_back(v) ;
     }
+    int count = elem.size();
+    return count ;
 }
+
+inline int sstr::split_count( const char* str, char delim )
+{
+    std::stringstream ss;
+    ss.str(str)  ;
+    std::string s;
+    int count(0);
+    while (std::getline(ss, s, delim)) count += 1 ;
+    return count ;
+}
+
+inline bool sstr::looks_like_list(const char* str, char delim, int len_min, int len_max )
+{
+    int len = split_count(str, delim);
+    return len >= len_min && len <= len_max ;
+}
+
+
+
 
 template<typename T>
 inline std::string sstr::desc( const std::vector<T>& elem )
@@ -1064,7 +1109,7 @@ inline void sstr::ParseScale( const char* spec, T& scale )
             case 'H': scale = 100'000           ; break ;
             case 'M': scale = 1'000'000         ; break ;
             case 'G': scale = 1'000'000'000     ; break ;  // maximum 32 bit int 2,147,483,647 , uint 4.29 billion
-            case 'T': scale = 1'000'000'000'000 ; break ;  // 40 bits of integer needed to hold a trillion 
+            case 'T': scale = 1'000'000'000'000 ; break ;  // 40 bits of integer needed to hold a trillion
         }
     }
 }
@@ -1161,20 +1206,106 @@ The 2nd strtol endptr arg increments p beyond each group of integer digits
 
 inline void sstr::Extract( std::vector<long>& vals, const char* s )  // static
 {
+    bool invalid = strlen(s) == 1 && ( s[0] == '+' || s[0] == '-' ) ;
+    if(invalid) return ;
+
     char* s0 = strdup(s);
     char* p = s0 ;
+
     while (*p)
     {
-        if( (*p >= '0' && *p <= '9') || *p == '+' || *p == '-') vals.push_back(strtol(p, &p, 10)) ;
-        else p++ ;
+        if( (*p >= '0' && *p <= '9') || *p == '+' || *p == '-')
+        {
+            // EDGE CASE PROTECTION:
+            // If it's a sign, make sure the NEXT char is a digit.
+            // If it's just a sign followed by space or another sign, skip it.
+            if ((*p == '+' || *p == '-') && !(p[1] >= '0' && p[1] <= '9'))
+            {
+                p++;
+                continue;
+            }
+
+            char* endptr;
+            long val = strtol(p, &endptr, 10);
+
+            // Ensure we actually consumed characters
+            if (p != endptr)
+            {
+                vals.push_back(val);
+                p = endptr;
+            }
+            else
+            {
+                p++;
+            }
+        }
+        else
+        {
+            p++ ;
+        }
     }
     free(s0);
 }
+
+
+/**
+sstr::Extract_
+---------------
+
+When T is unsigned/size_t skip signs in the string but still parse digits.
+
+**/
+
+template <typename T>
+inline void sstr::Extract_(std::vector<T>& vals, const char* s)
+{
+    if (!s) return;
+    const char* p = s;
+    const char* end = s + std::strlen(s);
+
+    while (p < end)
+    {
+        if ((*p >= '0' && *p <= '9') || *p == '+' || *p == '-')
+        {
+            const char* parse_start = p;
+            if constexpr (std::is_unsigned_v<T>)  // compile time variation
+            {
+                if (*p == '+' || *p == '-') parse_start++; // Skip sign for unsigned parsing
+            }
+
+            T val;
+            auto [ptr, ec] = std::from_chars(parse_start, end, val);
+
+            if (ec == std::errc()) {
+                vals.push_back(val);
+                p = ptr; // Advance to where the number ended
+            } else {
+                p++; // It was just a lone '+' or '-' without digits
+            }
+        }
+        else
+        {
+            p++;
+        }
+    }
+}
+
+
+
 
 inline long sstr::ExtractLong( const char* s, long fallback ) // static
 {
     std::vector<long> vals;
     Extract(vals, s);
+    return vals.size() == 1 ? vals[0] : fallback ;
+}
+
+
+
+inline size_t sstr::ExtractSize( const char* s, size_t fallback ) // static
+{
+    std::vector<size_t> vals;
+    Extract_(vals, s);
     return vals.size() == 1 ? vals[0] : fallback ;
 }
 

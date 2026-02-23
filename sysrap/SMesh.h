@@ -24,6 +24,7 @@ NB SMesh.h is used in two situtions
 #include <glm/gtx/string_cast.hpp>
 
 #include "stra.h"
+#include "s_bb.h"
 #include "NPFold.h"
 
 struct SMesh
@@ -41,7 +42,10 @@ struct SMesh
     // 3:vec3, 12:byte_stride 0:byte_offet
 
     const char* name    ;            // metadata : loaddir or manually set name
+    const char* loaddir ;
     glm::tmat4x4<double> tr0 = {} ;  // informational for debug only, as gets applied by init
+    int nidx = -1 ;
+
     std::vector<std::string> names ; // used to hold subnames in concat SMesh
     int   lvid = -1 ;      // set by Import from NPFold metadata for originals
 
@@ -53,18 +57,26 @@ struct SMesh
     glm::tvec3<float> mx = {} ;
     glm::tvec4<float> ce = {} ;
 
+    struct zmax_functor {
+        float operator()(const SMesh& mesh) const { return mesh.mx.z ; }
+    };
+
+    struct extent_functor {
+        float operator()(const SMesh& mesh) const { return mesh.ce.w ; }
+    };
+
 
     static SMesh* Load(const char* dir, const char* rel );
     static SMesh* Load(const char* dir );
     static SMesh* LoadTransformed(const char* dir, const char* rel,  const glm::tmat4x4<double>* tr );
     static SMesh* LoadTransformed(const char* dir,                   const glm::tmat4x4<double>* tr );
 
-    static SMesh* Import(const NPFold* fold, const glm::tmat4x4<double>* tr=nullptr );
+    static SMesh* Import(const NPFold* fold, const glm::tmat4x4<double>* tr=nullptr, int nidx=-1 );
     static SMesh* MakeCopy( const SMesh* src );
     SMesh* copy() const ;
 
     static bool IsConcat( const NPFold* fold );
-    void import(          const NPFold* fold, const glm::tmat4x4<double>* tr );
+    void import_(         const NPFold* fold, const glm::tmat4x4<double>* tr );
     void import_concat(   const NPFold* fold, const glm::tmat4x4<double>* tr );
     void import_original( const NPFold* fold, const glm::tmat4x4<double>* tr );
 
@@ -109,8 +121,10 @@ struct SMesh
     std::string descVtx() const ;
     std::string descTriVtx() const ;
     std::string descVtxNrm() const ;
+    std::string descName() const ;
     std::string descShape() const ;
     std::string descRange() const ;
+    std::string descRangeNumPy() const ;
 
 
     static std::string Desc2D_Ref_2D_int_float(const NP* a, const NP* b,  int limit, const char* label);
@@ -206,10 +220,14 @@ inline SMesh* SMesh::LoadTransformed(const char* dir, const glm::tmat4x4<double>
 }
 
 
-inline SMesh* SMesh::Import(const NPFold* fold, const glm::tmat4x4<double>* tr)
+inline SMesh* SMesh::Import(const NPFold* fold, const glm::tmat4x4<double>* tr, int nidx)
 {
+    //std::cout << "SMesh::Import fold.loaddir " << ( fold->loaddir ? fold->loaddir : "-" ) << "\n" ;
+
     SMesh* mesh = new SMesh ;
-    mesh->import(fold, tr);
+    mesh->import_(fold, tr);
+    mesh->nidx = nidx ;
+    mesh->loaddir = fold->loaddir ? strdup(fold->loaddir) : nullptr ;
     return mesh ;
 }
 
@@ -219,6 +237,8 @@ inline SMesh* SMesh::MakeCopy( const SMesh* src ) // static
 
     dst->name = src->name ? strdup(src->name) : nullptr ;
     dst->tr0  = src->tr0 ;
+    dst->nidx = src->nidx ;
+    dst->loaddir = src->loaddir ? strdup(src->loaddir) : nullptr ;
     dst->names = src->names ;
     dst->lvid = src->lvid ;
 
@@ -259,7 +279,7 @@ inline bool SMesh::IsConcat( const NPFold* fold ) // static
     return vertices && vertices->ebyte == 4 && normals ;
 }
 
-inline void SMesh::import(const NPFold* fold, const glm::tmat4x4<double>* tr )
+inline void SMesh::import_(const NPFold* fold, const glm::tmat4x4<double>* tr )
 {
     lvid = fold->get_meta<int>("lvid", -1);
     bool is_concat = IsConcat( fold );
@@ -273,6 +293,8 @@ inline void SMesh::import(const NPFold* fold, const glm::tmat4x4<double>* tr )
     {
         import_original( fold, tr );
     }
+
+
 }
 
 inline void SMesh::import_concat(const NPFold* fold, const glm::tmat4x4<double>* tr )
@@ -632,6 +654,7 @@ inline std::string SMesh::desc() const
     ss
        << "[SMesh::desc"
        << std::endl
+       << descName()
        << descShape()
        << std::endl
        << descRange()
@@ -652,6 +675,18 @@ inline std::string SMesh::desc() const
     return str ;
 }
 
+inline std::string SMesh::descName() const
+{
+    static const char * SPACER = "ridx    0 pidx    36 " ;
+
+    std::stringstream ss ;
+    ss
+       << " lvid " << std::setw(3) << lvid
+       << std::setw(strlen(SPACER)) << " "
+       ;
+    std::string str = ss.str();
+    return str ;
+}
 
 inline std::string SMesh::descShape() const
 {
@@ -669,23 +704,37 @@ inline std::string SMesh::descShape() const
 
 inline std::string SMesh::descRange() const
 {
+    std::array<float,6> bb = {mn[0],mn[1],mn[2],mx[0],mx[1],mx[2]} ;
+
+    const float* _bb = bb.data();
+    const float* _ce = glm::value_ptr(ce);
+
     std::stringstream ss ;
-    ss << "SMesh::descRange" << std::endl ;
-    ss << " mn [" ;
-    for(int i=0 ; i < 3 ; i++ ) ss << std::fixed << std::setw(7) << std::setprecision(3) << mn[i] << " " ;
-    ss << "]" ;
-
-    ss << " mx [" ;
-    for(int i=0 ; i < 3 ; i++ ) ss << std::fixed << std::setw(7) << std::setprecision(3) << mx[i] << " " ;
-    ss << "]" ;
-
-    ss << " ce [" ;
-    for(int i=0 ; i < 4 ; i++ ) ss << std::fixed << std::setw(7) << std::setprecision(3) << ce[i] << " " ;
-    ss << "]" ;
-
+    ss << "SMesh::descRange  " ;
+    ss << " ce " << s_bb::Desc_<float,4>( _ce ) ;
+    ss << " bb " << s_bb::Desc_<float,6>( _bb) ;
+    ss <<  descName() ;
     std::string str = ss.str();
     return str ;
 }
+
+inline std::string SMesh::descRangeNumPy() const
+{
+    std::array<float,6> bb = {mn[0],mn[1],mn[2],mx[0],mx[1],mx[2]} ;
+    const float* _ce = glm::value_ptr(ce);
+    const float* _bb = bb.data();
+
+    std::stringstream ss ;
+    ss << s_bb::DescNumPy_<float,4>( _ce, "ce", false ) ;
+    ss << s_bb::DescNumPy_<float,6>( _bb, "bb", false ) ;
+    ss << " # SMesh::descRangeNumPy " <<  descName() ;
+    std::string str = ss.str();
+    return str ;
+}
+
+
+
+
 
 
 

@@ -39,8 +39,10 @@
 #    define CONST_STATIC_INIT( ... ) = __VA_ARGS__
 #endif
 
+
 #include <vector_functions.h>
 #include <vector_types.h>
+
 
 #include <cmath>
 #include <cstdlib>
@@ -52,13 +54,21 @@
 #    define MAKE_LONGLONG4 make_longlong4_32a
 #    define MAKE_ULONGLONG4 make_ulonglong4_32a
 #else
-#    include <cuda.h>
-#    if (CUDA_VERSION >= 13000)
-#        define LONGLONG4 longlong4_32a
-#        define ULONGLONG4 ulonglong4_32a
-#        define DOUBLE4 double4_32a
-#        define MAKE_LONGLONG4 make_longlong4_32a
-#        define MAKE_ULONGLONG4 make_ulonglong4_32a
+#    ifdef WITH_CUDA
+#        include <cuda.h>
+#        if (CUDA_VERSION >= 13000)
+#            define LONGLONG4 longlong4_32a
+#            define ULONGLONG4 ulonglong4_32a
+#            define DOUBLE4 double4_32a
+#            define MAKE_LONGLONG4 make_longlong4_32a
+#            define MAKE_ULONGLONG4 make_ulonglong4_32a
+#        else
+#            define LONGLONG4 longlong4
+#            define ULONGLONG4 ulonglong4
+#            define DOUBLE4 double4
+#            define MAKE_LONGLONG4 make_longlong4
+#            define MAKE_ULONGLONG4 make_ulonglong4
+#        endif
 #    else
 #        define LONGLONG4 longlong4
 #        define ULONGLONG4 ulonglong4
@@ -125,15 +135,29 @@ SUTIL_INLINE SUTIL_HOSTDEVICE unsigned long long min(unsigned long long a, unsig
     return a < b ? a : b;
 }
 
-namespace sysrap
-{ // avoid name conflict with std::lerp function
 
-/** lerp */
+
+
+
+/**
+lerp
+----
+
+For C++20 compilation have adopted the suggestion from Nicola Mori, although
+I did not succeed to reproduce the issue.
+
+notes/issues/cpp20_nicolamori_scuda_curand_math_lerp_conflict.rst
+
+**/
+
+#if __cplusplus <= 201703L
 SUTIL_INLINE SUTIL_HOSTDEVICE float lerp(const float a, const float b, const float t)
 {
   return a + t*(b-a);
 }
-
+#else
+using std::lerp;
+#endif
 
 
 
@@ -143,8 +167,6 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float bilerp(const float x00, const float x10, con
 {
   return lerp( lerp( x00, x10, u ), lerp( x01, x11, u ), v );
 }
-
-} // namespace sysrap
 
 template <typename IntegerType>
 SUTIL_INLINE SUTIL_HOSTDEVICE IntegerType roundUp(IntegerType x, IntegerType y)
@@ -303,9 +325,6 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator/=(float2& a, const float s)
 }
 /** @} */
 
-namespace sysrap
-{ // avoid name conflict with std::lerp function
-
 /** lerp */
 SUTIL_INLINE SUTIL_HOSTDEVICE float2 lerp(const float2& a, const float2& b, const float t)
 {
@@ -318,8 +337,6 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float2 bilerp(const float2& x00, const float2& x10
 {
   return lerp( lerp( x00, x10, u ), lerp( x01, x11, u ), v );
 }
-
-} // namespace sysrap
 
 /** clamp
 * @{
@@ -540,9 +557,6 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator/=(float3& a, const float s)
 }
 /** @} */
 
-namespace sysrap
-{ // avoid name conflict with std::lerp function
-
 /** lerp */
 SUTIL_INLINE SUTIL_HOSTDEVICE float3 lerp(const float3& a, const float3& b, const float t)
 {
@@ -555,8 +569,6 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float3 bilerp(const float3& x00, const float3& x10
 {
   return lerp( lerp( x00, x10, u ), lerp( x01, x11, u ), v );
 }
-
-} // namespace sysrap
 
 /** clamp
 * @{
@@ -597,10 +609,58 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float3 normalize(const float3& v)
   return v * invLen;
 }
 
-SUTIL_INLINE SUTIL_HOSTDEVICE float normalize_z(const float3& v)  // CLHEP ThreeVector calls this cosTheta
+SUTIL_INLINE SUTIL_HOSTDEVICE float normalize_cost(const float3& v)  // formerly normalize_z,  CLHEP ThreeVector calls this cosTheta
 {
   return v.z / sqrtf(dot(v, v));
 }
+
+
+/**
+normalize_fphi
+--------------
+
+atan2f range is -pi to pi, so add pi, giving range 0 to 2pi
+which is then normalized to give fphi in range 0:1
+
+Note discontinuity of phi close to [-1,0,0] flipping between pi and -pi,
+
+    In [4]: np.arctan2(+0.00000001, -1)
+    Out[4]: np.float64(3.141592643589793)
+
+    In [5]: np.arctan2(-0.00000001, -1)
+    Out[5]: np.float64(-3.141592643589793)
+
+Which corresponds to fphi flipping between 0 and 1::
+
+    In [6]: (np.arctan2(-0.00000001, -1) + np.pi)/(2*np.pi)
+    Out[6]: np.float64(1.591549421246358e-09)
+
+    In [7]: (np.arctan2(+0.00000001, -1) + np.pi)/(2*np.pi)
+    Out[7]: np.float64(0.9999999984084506)
+
+No such issue at [1,0,0] where fphi close to 0.5::
+
+    In [8]: (np.arctan2(+0.00000001, 1) + np.pi)/(2*np.pi)
+    Out[8]: np.float64(0.5000000015915494)
+
+    In [9]: (np.arctan2(-0.00000001, 1) + np.pi)/(2*np.pi)
+    Out[9]: np.float64(0.49999999840845055)
+
+
+**/
+
+
+SUTIL_INLINE SUTIL_HOSTDEVICE float normalize_fphi(const float3& v)
+{
+  return (atan2f(v.y, v.x) + M_PIf) / (2.0f * M_PIf);
+}
+
+SUTIL_INLINE SUTIL_HOSTDEVICE float phi_from_fphi( float fphi )
+{
+   // recover phi angle in range -pi to pi from fphi in range 0:1
+   return ( fphi * 2.0f - 1.f ) * M_PIf ;
+}
+
 
 
 /** floor */
@@ -788,9 +848,6 @@ SUTIL_INLINE SUTIL_HOSTDEVICE void operator/=(float4& a, const float s)
 }
 /** @} */
 
-namespace sysrap
-{ // avoid name conflict with std::lerp function
-
 /** lerp */
 SUTIL_INLINE SUTIL_HOSTDEVICE float4 lerp(const float4& a, const float4& b, const float t)
 {
@@ -803,8 +860,6 @@ SUTIL_INLINE SUTIL_HOSTDEVICE float4 bilerp(const float4& x00, const float4& x10
 {
   return lerp( lerp( x00, x10, u ), lerp( x01, x11, u ), v );
 }
-
-} // namespace sysrap
 
 /** clamp
 * @{

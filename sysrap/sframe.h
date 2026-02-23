@@ -1,8 +1,8 @@
 #pragma once
 
 /**
-sframe.h
-===========
+sframe.h : NEW CODE SHOULD NOT USE sframe.h : INSTEAD USE sfr.h
+==================================================================
 
 TODO: see if this can be replaced with sfr.h ?
 
@@ -99,6 +99,7 @@ struct sframe
     void cleanup();
 
     sfr spawn_lite() const ;
+    void populate( const sfr& l );
 
     void zero() ;
     bool is_zero() const ;
@@ -109,6 +110,8 @@ struct sframe
     static sframe Load_(const char* path );
     static sframe Fabricate(float tx=0.f, float ty=0.f, float tz=0.f);
     static int PopulateFromRaw(sframe& fr, const char* raw, char delim);
+
+    // DO NOT ADD METHODS TO THIS : INSTEAD USE sfr.h
 
     void set_grid(const std::vector<int>& cegs, float gridscale);
     int ix0() const ;
@@ -177,6 +180,8 @@ struct sframe
 
     NP* transform_photon_m2w( const NP* ph, bool normalize=true ) const ; // hit OR photon (hmm could do record too)
     NP* transform_photon_w2m( const NP* ph, bool normalize=true ) const ;
+    NP* transform_photon( const NP* ph, bool normalize, bool inverse  ) const ;
+
 
     void transform_m2w( sphoton& p, bool normalize=true ) const ;
     void transform_w2m( sphoton& p, bool normalize=true ) const ;
@@ -187,6 +192,9 @@ struct sframe
 
     void setTranslate(float x, float y, float z);
     void setTransform(const qat4* m2w_ );
+
+    void set_m2w(const glm::tmat4x4<double>& g_m2w);
+    void set_w2m(const glm::tmat4x4<double>& g_w2m);
 
 };
 
@@ -263,6 +271,18 @@ inline sfr sframe::spawn_lite() const
 
     return l ;
 }
+
+inline void sframe::populate( const sfr& l )
+{
+    set_m2w(l.m2w);
+    set_w2m(l.w2m);
+
+    ce.x = l.ce.x ;
+    ce.y = l.ce.y ;
+    ce.z = l.ce.z ;
+    ce.w = l.ce.w ;
+}
+
 
 
 
@@ -405,12 +425,16 @@ NOTE NEAR DUPLICATION WITH stree::get_frame_from_raw
 
 inline int sframe::PopulateFromRaw(sframe& fr, const char* raw, char delim ) // static
 {
+
+    // 1. split *raw* into elem values using delim
+
     std::vector<double> elem ;
     sstr::split<double>( elem, raw, delim );
     int num_elem = elem.size();
 
     std::cout
         << "sframe::PopulateFromRaw"
+        << " raw [" << ( raw ? raw : "-" ) << "]"
         << " num_elem " << num_elem
         << " elem " << sstr::desc<double>(elem)
         << "\n"
@@ -457,7 +481,7 @@ inline void sframe::set_grid(const std::vector<int>& cegs, float gridscale)
     q2.i.z = cegs[6] ;  // num_photon
     q2.f.w = gridscale ;
 
-    assert( cegs[7] == 1 ); // expecting 1 for cegs[7] other than fine regions where 2 (or 4) might be used
+    //assert( cegs[7] == 1 ); // expecting 1 for cegs[7] other than fine regions where 2 (or 4) might be used
 
 }
 
@@ -689,20 +713,22 @@ That will be narrowed down to float prior to upload by QEvt::setInputPhoton
 
 inline NP* sframe::transform_photon_m2w( const NP* ph, bool normalize ) const
 {
-    if( ph == nullptr ) return nullptr ;
-    if(!tr_m2w) std::cerr << "sframe::transform_photon_m2w MUST sframe::prepare before calling this " << std::endl;
-    assert( tr_m2w) ;
-    NP* pht = Tran<double>::PhotonTransform(ph, normalize,  tr_m2w );
-    assert( pht->ebyte == 8 );
-    return pht ;
+    bool inverse = false ;
+    return transform_photon(ph, normalize, inverse);
+}
+inline NP* sframe::transform_photon_w2m( const NP* ph, bool normalize ) const
+{
+    bool inverse = true ;
+    return transform_photon(ph, normalize, inverse);
 }
 
-inline NP* sframe::transform_photon_w2m( const NP* ph, bool normalize  ) const
+inline NP* sframe::transform_photon( const NP* ph, bool normalize, bool inverse  ) const
 {
     if( ph == nullptr ) return nullptr ;
-    if(!tr_w2m) std::cerr << "sframe::transform_photon_w2m MUST sframe::prepare before calling this " << std::endl;
-    assert( tr_w2m ) ;
-    NP* pht = Tran<double>::PhotonTransform(ph, normalize, tr_w2m );
+    Tran<double>* tr = inverse ? tr_w2m : tr_m2w ;
+    if(!tr) std::cerr << "sframe::transform_photon MUST sframe::prepare before calling sframe::transform_photon " << std::endl;
+    assert( tr ) ;
+    NP* pht = Tran<double>::PhotonTransform(ph, normalize, tr, false );
     assert( pht->ebyte == 8 );
     return pht ;
 }
@@ -741,6 +767,30 @@ inline void sframe::setTransform(const qat4* m2w_ )  // UNTESTED
     qat4::copy(m2w, *m2w_ );
     qat4::copy(w2m, *w2m_ );
 }
+
+
+inline void sframe::set_m2w(const glm::tmat4x4<double>& g_m2w)
+{
+    const qat4* q_m2w = Tran<double>::ConvertFrom(g_m2w);
+    qat4::copy(m2w, *q_m2w);
+}
+inline void sframe::set_w2m(const glm::tmat4x4<double>& g_w2m)
+{
+    const qat4* q_w2m = Tran<double>::ConvertFrom(g_w2m);
+    qat4::copy(w2m, *q_w2m);
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 inline std::ostream& operator<<(std::ostream& os, const sframe& fr)
 {

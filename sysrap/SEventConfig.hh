@@ -1,14 +1,17 @@
 #pragma once
-#include <cstdint>
 #include <string>
 #include <vector>
 #include <limits>
+#include <cstdint>
 #include "plog/Severity.h"
 #include "SYSRAP_API_EXPORT.hh"
 
 struct NP ;
+
+#ifdef WITH_CUDA
 struct scontext ;
 struct salloc ;
+#endif
 
 /**
 SEventConfig
@@ -45,6 +48,63 @@ Static collection of methods and values approach is convenient and
 fits with the envvar controls while things are simple.
 But getting a bit awkward eg for automating max photon config
 based on available VRAM. Perhaps singleton future.
+
+
+CAUTION that env setup is done prior to the static initialization that happens as libSysRap.so is loaded
+----------------------------------------------------------------------------------------------------------
+
+This means that when using a boost-python "main" must do environ setup prior to libSysRap.so
+being loaded. More specifically the compiler generates a function that sets the statics called::
+
+    _GLOBAL__sub_I_SEventConfig.cc
+
+
+TODO : More dynamic settings ?
+-------------------------------
+
+Many settings (which exactly?) configured from envvars via static initializers
+at loading of libSysRap.so have side effects on other settings which mean that
+post initialization changes to those basis settings although they can be done
+they do not dynamically change the dependent settings. This can result in
+inconsistency, confusion and crashes.
+
+How to improve this:
+
+1. identify dependencies between settings and the initialization code that adds dependency
+2. rejig such that post-initialization setters propagate to dependent settings
+3. document dependency between settings
+
+**Another way is to reduce dependencies between settings,
+instead derive things from basis settings when they are needed.**
+
++-----------------------------+------------------------------------------+
+|  Settings with dependents   |    Notes                                 |
++=============================+==========================================+
+|  OPTICKS_EVENT_MODE         | Configs gather and save component masks  |
++-----------------------------+------------------------------------------+
+|  OPTICKS_MODE_LITE          | Changes some comps to "lite" variants    |
++-----------------------------+------------------------------------------+
+|  ... many more ?...         |                                          |
++-----------------------------+------------------------------------------+
+
+It is possible that some settings have other consequences that mean that they
+cannot be changed. Document those and add asserts when change attempts are made.
+
+
+
+TODO : client->server settings/metadata
+----------------------------------------
+
+1. client needs to pass its settings across to server, either:
+
+   * key:value pairs in HTTP headers
+   * genstep metadata [favor this as its persistable]
+
+2. some settings/metadata that cannot be changed like geometry digest
+   needs to be checked for match between client and server with asserts
+   when it does not match
+
+   * test client/server uses "secret" string
 
 
 Settings
@@ -132,6 +192,7 @@ struct SYSRAP_API SEventConfig
 
     static int  RecordLimit(); // sseq::SLOTS typically 32
     static void LIMIT_Check();
+    static void ORDER_Check();
     static std::string Desc();
 
     //static std::string DescHitMask();
@@ -186,6 +247,12 @@ struct SYSRAP_API SEventConfig
     static constexpr const char* kMaxPrd       = "OPTICKS_MAX_PRD" ;
     static constexpr const char* kMaxTag       = "OPTICKS_MAX_TAG" ;
     static constexpr const char* kMaxFlat      = "OPTICKS_MAX_FLAT" ;
+
+    static constexpr const char* kModeSave      = "OPTICKS_MODE_SAVE" ;
+    static constexpr const char* kModeClient    = "OPTICKS_MODE_CLIENT" ;
+    static constexpr const char* kModeLite      = "OPTICKS_MODE_LITE" ;
+    static constexpr const char* kModeMerge     = "OPTICKS_MODE_MERGE" ;
+    static constexpr const char* kMergeWindow   = "OPTICKS_MERGE_WINDOW" ; // ns
 
     static constexpr const char* kMaxExtentDomain    = "OPTICKS_MAX_EXTENT_DOMAIN" ;
     static constexpr const char* kMaxTimeDomain      = "OPTICKS_MAX_TIME_DOMAIN" ;
@@ -254,11 +321,20 @@ struct SYSRAP_API SEventConfig
     static int64_t MaxRecord();  // full photon step record
     static int64_t MaxRec();     // compressed photon step record
     static int64_t MaxAux();     // auxiliary photon step record, used for debug
+
+
+    // MOST OF THE BELOW MAX ARE ACTUALLY JUST BOOLEAN SWITCHES ...
     static int64_t MaxSup();     // supplementry photon level info
     static int64_t MaxSeq();     // seqhis slots
     static int64_t MaxPrd();
     static int64_t MaxTag();
     static int64_t MaxFlat();
+
+    static int64_t ModeSave();
+    static int64_t ModeClient();
+    static int64_t ModeLite();
+    static int64_t ModeMerge();
+    static float   MergeWindow();
 
     static float MaxExtentDomain() ;
     static float MaxTimeDomain() ;
@@ -300,6 +376,13 @@ struct SYSRAP_API SEventConfig
 
     static std::string DescGatherComp();
     static std::string DescSaveComp();
+
+    static bool HasComp_(unsigned comp, const char* q_names, char q_delim=',');
+    static bool HasSaveComp(  const char* q_names, char q_delim=',');
+    static bool HasGatherComp(const char* q_names, char q_delim=',');
+
+
+
 
     static void GatherCompList( std::vector<unsigned>& gather_comp ) ;
     static int NumGatherComp();
@@ -369,7 +452,13 @@ struct SYSRAP_API SEventConfig
     static void SetMaxSeq(    int max_seq);
     static void SetMaxPrd(    int max_prd);
     static void SetMaxTag(    int max_tag);
-    static void SetMaxFlat(    int max_flat);
+    static void SetMaxFlat(   int max_flat);
+
+    static void SetModeSave( int mode );
+    static void SetModeClient( int mode );
+    static void SetModeLite(  int mode );
+    static void SetModeMerge( int mode );
+    static void SetMergeWindow( float merge_window_ns );
 
     static void SetMaxExtentDomain( float max_extent);
     static void SetMaxTimeDomain(   float max_time );
@@ -408,7 +497,7 @@ struct SYSRAP_API SEventConfig
 
     static void SetSaveComp_(unsigned mask);
     static void SetSaveComp(const char* names, char delim=',') ;
-
+    static bool IsCompConfigured();
 
     // STATIC VALUES SET EARLY, MANY BASED ON ENVVARS
 
@@ -446,6 +535,12 @@ struct SYSRAP_API SEventConfig
     static int _MaxPrdDefault ;
     static int _MaxTagDefault ;
     static int _MaxFlatDefault ;
+
+    static int _ModeSaveDefault ;
+    static int _ModeClientDefault ;
+    static int _ModeLiteDefault ;
+    static int _ModeMergeDefault ;
+    static float _MergeWindowDefault ;
 
     static float _MaxExtentDomainDefault ;
     static float _MaxTimeDomainDefault  ;
@@ -523,6 +618,12 @@ struct SYSRAP_API SEventConfig
     static int _MaxTag ;
     static int _MaxFlat ;
 
+    static int _ModeSave ;
+    static int _ModeClient ;
+    static int _ModeLite ;
+    static int _ModeMerge ;
+    static float _MergeWindow ;
+
     static float _MaxExtentDomain ;
     static float _MaxTimeDomain  ;
 
@@ -549,14 +650,16 @@ struct SYSRAP_API SEventConfig
     static const char* _InputPhotonRecordTime ;
     static const char* _InputPhotonRecordSlice ;
 
+#ifdef WITH_CUDA
     static scontext* CONTEXT ;
     static salloc*   ALLOC ;
     static std::string GetGPUMeta();
+#endif
 
     static int   Initialize_COUNT ;
+    static void  Initialize_Meta();
     static int   Initialize();
 
-    static void  Initialize_Meta();
     static void  Initialize_EventName();
 
 
@@ -571,6 +674,16 @@ struct SYSRAP_API SEventConfig
     static const char* EventMode_NOTE()   ;
 
     static void  Initialize_Comp();
+
+    static unsigned PhotonComp();
+    static unsigned PhotonCompOne();
+    static const char* PhotonCompOneName();
+
+    static unsigned HitComp();             // potentially bitwise combination of multiple comp
+    static unsigned HitCompOne();          // single bit hit comp : the canonical one decided by ModeLite ModeMerge
+    static const char* HitCompOneName();
+
+
     static void  Initialize_Comp_Simulate_(unsigned& gather_mask, unsigned& save_mask );
     static void  Initialize_Comp_Simtrace_(unsigned& gather_mask, unsigned& save_mask );
     static void  Initialize_Comp_Render_(  unsigned& gather_mask, unsigned& save_mask );
@@ -583,12 +696,16 @@ struct SYSRAP_API SEventConfig
     static void SetDevice( size_t totalGlobalMem_bytes, std::string name );
     static void SetDeviceName( const char* name );
 
-    static size_t HeuristicMaxSlot(         size_t totalGlobalMem_bytes );
-    static size_t HeuristicMaxSlot_Rounded( size_t totalGlobalMem_bytes );
+    static size_t HeuristicMaxSlot(         size_t totalGlobalMem_bytes, int lite, int merge );
+    static size_t HeuristicMaxSlot_Rounded( size_t totalGlobalMem_bytes, int lite, int merge );
     static std::string DescDevice(size_t totalGlobalMem_bytes, std::string name );
 
+#ifdef WITH_CUDA
     static salloc*   AllocEstimate(int _max_slot=0);
     static uint64_t  AllocEstimateTotal(int _max_slot=0);
+#endif
+
+
 
 };
 

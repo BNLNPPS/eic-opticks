@@ -6,9 +6,25 @@ SProf.hh
 Collecting full process lifecycle into SProf is convenient
 BUT: have to avoid only saving at end of run : as with jobs prone to run out of
 memory want to have at least some of the profile data even when the job fails
-Hence better to write the run meta at the end of every event
-overwriting what was there before. The overwrite duplication is OK
-as the expected number of profile stamps is small
+
+
+Multiple calls to SProf::Write that overwrite and extend
+----------------------------------------------------------
+
+This is done for several reasons:
+
+1. want to have profile info even when job crashes, eg from OOM
+2. number of stamps is intended to be small enough that not a resource issue
+
+
+Ordinarily SProf::Clear is never called
+----------------------------------------
+
+Objective of SProf is to capture profile time stamps and memory usage
+throughout the full lifecycle of a process, so there is no need to
+ever clear. Only in postprocessing where wish to read in profile
+info from some other process is it approriate to SProf::Clear before
+reading.
 
 
 Usage
@@ -52,10 +68,12 @@ Slurm array running without overwriting SProf.txt and other logs
 
 ::
 
-    LOGDIR=$SLURM_ARRAY_TASK_ID
+    ID=$(printf "J%0.6d" "${SLURM_ARRAY_TASK_ID:-0}")
+    LOGDIR=logs/$ID
     mkdir -p $LOGDIR
-    cd $LOGDIR
+    pushd $LOGDIR
     ...invoke executable...
+    popd
 
 
 Former Kludge, now removed
@@ -74,6 +92,7 @@ was a kludge that was removed as it complicates things.
 
 #include <vector>
 #include <fstream>
+#include <sstream>
 #include "sprof.h"
 #include "ssys.h"
 #include "sstr.h"
@@ -117,6 +136,8 @@ struct SYSRAP_API SProf
     static const char* Path();
     static void Write(bool append=false);
     static void Read();
+
+    static std::string Annotation(const char* l0, size_t n0, const char* l1=nullptr, size_t n1=0, const char* l2=nullptr, size_t n2=0);
 };
 
 
@@ -317,5 +338,15 @@ inline void SProf::Read()
     fp.close();
 }
 
+
+inline std::string SProf::Annotation(const char* l0, size_t n0, const char* l1, size_t n1, const char* l2, size_t n2) // static
+{
+    std::stringstream ss ;
+    if(l0) ss << l0 << "=" << n0 ;
+    if(l1) ss << "," << l1 << "=" << n1 ;
+    if(l2) ss << "," << l2 << "=" << n2 ;
+    std::string str = ss.str();
+    return str ;
+}
 
 

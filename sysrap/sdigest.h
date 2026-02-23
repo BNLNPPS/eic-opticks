@@ -16,10 +16,24 @@ Example from /usr/include/openssl/opensslv.h::
 #include <array>
 #include <sstream>
 
-#include <openssl/md5.h>
-#include <openssl/opensslv.h>
+#if defined __APPLE__
 
-struct NP ; 
+#   define COMMON_DIGEST_FOR_OPENSSL
+#   include <CommonCrypto/CommonDigest.h>
+#   define SHA1 CC_SHA1
+
+#elif defined _MSC_VER
+
+#   include "md5.hh"
+
+#elif __linux
+
+#   include <openssl/md5.h>
+#   include <openssl/opensslv.h>
+
+#endif
+
+struct NP ;
 
 
 #if defined(__GNUC__) || defined(__clang__)

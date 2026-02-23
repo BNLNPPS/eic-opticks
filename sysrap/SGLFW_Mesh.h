@@ -181,6 +181,17 @@ inline void SGLFW_Mesh::render_drawElements() const
 
     if(instancecount > 0)
     {
+
+#ifdef __APPLE__
+        glDrawElementsInstanced(mode, count, type, indices, instancecount );
+        if(DUMP && render_count < 10 ) std::cout
+            << "SGLFW_Mesh::render_drawElements.glDrawElementsInstanced"
+            << " render_count " << render_count
+            << " instancecount " << instancecount
+            << std::endl
+            ;
+
+#else
         GLint basevertex = 0 ;
         GLuint baseinstance = 0 ;
         glDrawElementsInstancedBaseVertexBaseInstance(mode, count, type, indices, instancecount, basevertex, baseinstance );
@@ -192,6 +203,8 @@ inline void SGLFW_Mesh::render_drawElements() const
             << " instancecount " << instancecount
             << std::endl
             ;
+#endif
+
     }
     else
     {

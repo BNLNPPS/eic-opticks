@@ -15,6 +15,11 @@ However for clarity separate fields are used to
 distinguish photon test running that directly uses
 QEvt::setNumPhoton
 
+QEvt::getDevicePtr returns an instance of sevent.h : as such
+sevent.h can be regarded as the GPU side summary of QEvt
+related info.
+
+
 Users of sevent.h
 -------------------
 
@@ -86,6 +91,7 @@ struct sflat ;
 
 
 struct sphoton ;
+struct sphotonlite ;
 
 #if defined(__CUDACC__) || defined(__CUDABE__)
 #else
@@ -113,11 +119,11 @@ struct sevent
 
     // TODO: make all these below unsigned
     // sevent::init sets these max using values from SEventConfig
-    int64_t   max_curand ;
-    int64_t   max_slot   ;
-    int64_t   max_genstep ;  // eg:      100,000
-    int64_t   max_photon  ;  // eg:  100,000,000
-    int64_t   max_simtrace ; // eg: 100,000,000
+    size_t   max_curand ;
+    size_t   max_slot   ;
+    size_t   max_genstep ;  // eg:      100,000
+    size_t   max_photon  ;  // eg:  100,000,000
+    size_t   max_simtrace ; // eg: 100,000,000
 
     int   max_bounce  ; // eg: 0:32  (not including 32)
     int   max_record  ; // eg: 10  full step record
@@ -129,27 +135,34 @@ struct sevent
     int   max_aux     ; // eg 0, 16, 32 : when greater than zero typically follows max_record
     int   max_sup     ;
 
+    int   mode_lite    ; // 0 or 1 (also 2 when debug comparing)
+
     int   index ;
 
     //[ counts and pointers, zeroed by sevent::zero
     //  only first 4 are always in use, the last 7 are only relevant whilst debugging
     //
-    int64_t      num_curand ;
-    int64_t      num_genstep ;
-    int64_t      num_seed ;
-    int64_t      num_hit ;    // set by QEvt::gatherHit using SU::count_if_sphoton
-    int64_t      num_photon ;
+    size_t      num_curand ;
+    size_t      num_genstep ;
+    size_t      num_seed ;
 
-    int64_t      num_record ;
-    int64_t      num_rec ;
-    int64_t      num_seq ;
-    int64_t      num_prd ;
-    int64_t      num_tag ;
-    int64_t      num_flat ;
-    int64_t      num_simtrace ;
-    int64_t      num_aux ;
-    int64_t      num_sup ;
-    // TODO: make all these above unsigned
+    size_t       num_hit ;    // set by QEvt::gatherHit using SU::count_if_sphoton
+    size_t       num_hitmerged ;
+    size_t       num_photon ;
+
+    size_t       num_hitlite ;  // set by QEvt::gatherHitLite using SU::count_if_sphotonlite
+    size_t       num_hitlitemerged ;  // set by QEvt::gatherHitLite using SU::count_if_sphotonlite
+    size_t       num_photonlite ;
+
+    size_t      num_record ;
+    size_t      num_rec ;
+    size_t      num_seq ;
+    size_t      num_prd ;
+    size_t      num_tag ;
+    size_t      num_flat ;
+    size_t      num_simtrace ;
+    size_t      num_aux ;
+    size_t      num_sup ;
 
     // With QEvt device running the below are pointers to device buffers.
     // Most are allocated ONCE ONLY by QEvt::device_alloc_genstep/photon/simtrace
@@ -159,9 +172,14 @@ struct sevent
 
     quad6*   genstep ;    //QEvt::device_alloc_genstep
     int*     seed ;
+
     sphoton*     photon ;     //QEvt::device_alloc_photon
     sphoton*     hit ;        //QEvt::gatherHit_ allocates event by event depending on num_hit
+    sphoton*     hitmerged ;
 
+    sphotonlite* photonlite ; //QEvt::device_alloc_photon
+    sphotonlite* hitlite ;
+    sphotonlite* hitlitemerged ;
 
     sphoton* record ;
     srec*    rec ;
@@ -180,6 +198,10 @@ struct sevent
 #if defined(__CUDACC__) || defined(__CUDABE__)
 #else
     SEVENT_METHOD void init();
+    SEVENT_METHOD bool with_photon() const ;
+    SEVENT_METHOD bool with_photonlite() const ;
+    SEVENT_METHOD bool no_photon_or_photonlite_alloc() const ;
+
     SEVENT_METHOD void init_domain(float extent, float time_max);
 
     SEVENT_METHOD std::string descMax() const ;
@@ -192,6 +214,15 @@ struct sevent
     SEVENT_METHOD void get_meta(std::string& meta) const ;
 
     SEVENT_METHOD void zero();
+
+    template<typename T> SEVENT_METHOD T* get_photon_ptr() const ;
+    template<typename T> SEVENT_METHOD size_t get_photon_num() const ;
+
+    template<typename T> SEVENT_METHOD T**     get_hitmerged_ptr_ref(); // returning refs so non-const
+    template<typename T> SEVENT_METHOD size_t* get_hitmerged_num_ref();
+
+
+
 #endif
 
 #ifndef PRODUCTION
@@ -225,6 +256,7 @@ SEVENT_METHOD void sevent::init()
     max_aux      = SEventConfig::MaxAux()  ;
     max_sup      = SEventConfig::MaxSup()  ;
 
+    mode_lite     = SEventConfig::ModeLite() ;
 
     zero();  // pointers and counts
 
@@ -233,6 +265,13 @@ SEVENT_METHOD void sevent::init()
 
     init_domain( max_extent_domain, max_time_domain );
 }
+
+
+// these used from QEvt::device_alloc_photon
+SEVENT_METHOD bool sevent::with_photon() const {     return max_slot > 0 && ( mode_lite == 0 || mode_lite == 2 ) ; }
+SEVENT_METHOD bool sevent::with_photonlite() const { return max_slot > 0 && ( mode_lite == 1 || mode_lite == 2 ) ; }
+SEVENT_METHOD bool sevent::no_photon_or_photonlite_alloc() const { return photon == nullptr && photonlite == nullptr ; }
+
 
 /**
 sevent::init_domain
@@ -277,6 +316,7 @@ SEVENT_METHOD std::string sevent::descMax() const
         << " evt.max_prd       " << std::setw(w) << max_prd      << std::endl
         << " evt.max_tag       " << std::setw(w) << max_tag      << std::endl
         << " evt.max_flat      " << std::setw(w) << max_flat     << std::endl
+        << " evt.mode_lite     " << std::setw(w) << mode_lite    << std::endl
         ;
 
     std::string s = ss.str();
@@ -288,21 +328,24 @@ SEVENT_METHOD std::string sevent::descNum() const
     int w = 5 ;
     std::stringstream ss ;
     ss
-        << " sevent::descNum  "  << std::endl
-        << " evt.num_curand   "  << std::setw(w) << num_curand   << std::endl
-        << " evt.num_genstep  "  << std::setw(w) << num_genstep  << std::endl
-        << " evt.num_seed     "  << std::setw(w) << num_seed     << std::endl
-        << " evt.num_photon   "  << std::setw(w) << num_photon   << std::endl
-        << " evt.num_record   "  << std::setw(w) << num_record   << std::endl
-        << " evt.num_rec      "  << std::setw(w) << num_rec      << std::endl
-        << " evt.num_aux      "  << std::setw(w) << num_aux      << std::endl
-        << " evt.num_sup      "  << std::setw(w) << num_sup      << std::endl
-        << " evt.num_seq      "  << std::setw(w) << num_seq      << std::endl
-        << " evt.num_hit      "  << std::setw(w) << num_hit      << std::endl
-        << " evt.num_simtrace "  << std::setw(w) << num_simtrace << std::endl
-        << " evt.num_prd      "  << std::setw(w) << num_prd      << std::endl
-        << " evt.num_tag      "  << std::setw(w) << num_tag      << std::endl
-        << " evt.num_flat     "  << std::setw(w) << num_flat     << std::endl
+        << " sevent::descNum          "  << std::endl
+        << " evt.num_curand           "  << std::setw(w) << num_curand         << std::endl
+        << " evt.num_genstep          "  << std::setw(w) << num_genstep        << std::endl
+        << " evt.num_seed             "  << std::setw(w) << num_seed           << std::endl
+        << " evt.num_photon           "  << std::setw(w) << num_photon         << std::endl
+        << " evt.num_photonlite       "  << std::setw(w) << num_photonlite     << std::endl
+        << " evt.num_record           "  << std::setw(w) << num_record         << std::endl
+        << " evt.num_rec              "  << std::setw(w) << num_rec            << std::endl
+        << " evt.num_aux              "  << std::setw(w) << num_aux            << std::endl
+        << " evt.num_sup              "  << std::setw(w) << num_sup            << std::endl
+        << " evt.num_seq              "  << std::setw(w) << num_seq            << std::endl
+        << " evt.num_hit              "  << std::setw(w) << num_hit            << std::endl
+        << " evt.num_hitlite          "  << std::setw(w) << num_hitlite        << std::endl
+        << " evt.num_hitlitemerged    "  << std::setw(w) << num_hitlitemerged  << std::endl
+        << " evt.num_simtrace         "  << std::setw(w) << num_simtrace       << std::endl
+        << " evt.num_prd              "  << std::setw(w) << num_prd            << std::endl
+        << " evt.num_tag              "  << std::setw(w) << num_tag            << std::endl
+        << " evt.num_flat             "  << std::setw(w) << num_flat           << std::endl
         ;
     std::string s = ss.str();
     return s ;
@@ -325,6 +368,10 @@ SEVENT_METHOD std::string sevent::descBuf() const
         << std::endl
         << std::setw(20) << " evt.photon "      << std::setw(w) << ( photon  ? "Y" : "N" ) << " " << std::setw(20) << photon
         << std::setw(20) << " num_photon "      << std::setw(7) << num_photon
+        << std::setw(20) << " max_photon "      << std::setw(7) << max_photon
+        << std::endl
+        << std::setw(20) << " evt.photonlite "  << std::setw(w) << ( photonlite  ? "Y" : "N" ) << " " << std::setw(20) << photonlite
+        << std::setw(20) << " num_photonlite "  << std::setw(7) << num_photonlite
         << std::setw(20) << " max_photon "      << std::setw(7) << max_photon
         << std::endl
         << std::setw(20) << " evt.record "      << std::setw(w) << ( record  ? "Y" : "N" ) << " " << std::setw(20) << record
@@ -444,11 +491,13 @@ SEVENT_METHOD void sevent::get_meta(std::string& meta) const
     NP::SetMeta<int64_t>(meta,"evt.max_slot", max_slot);
     NP::SetMeta<int64_t>(meta,"evt.max_photon", max_photon);
     NP::SetMeta<int64_t>(meta,"evt.num_photon", num_photon);
+    NP::SetMeta<int64_t>(meta,"evt.num_photonlite", num_photonlite);
 
     NP::SetMeta<int64_t>(meta,"evt.max_curand/M", max_curand/M);
     NP::SetMeta<int64_t>(meta,"evt.max_slot/M", max_slot/M);
     NP::SetMeta<int64_t>(meta,"evt.max_photon/M", max_photon/M);
     NP::SetMeta<int64_t>(meta,"evt.num_photon/M", num_photon/M);
+    NP::SetMeta<int64_t>(meta,"evt.num_photonlite/M", num_photonlite/M);
 
     NP::SetMeta<int64_t>(meta,"evt.max_slot*evt.max_record", max_slot*max_record);
     NP::SetMeta<int64_t>(meta,"evt.max_slot*evt.max_record/M", max_slot*max_record/M);
@@ -491,6 +540,10 @@ SEVENT_METHOD void sevent::zero()
     num_hit = 0 ;
     num_photon = 0 ;
 
+    num_hitlite = 0 ;
+    num_hitlitemerged = 0 ;
+    num_photonlite = 0 ;
+
     num_record = 0 ;
     num_rec = 0 ;
     num_aux = 0 ;
@@ -505,7 +558,10 @@ SEVENT_METHOD void sevent::zero()
     genstep = nullptr ;
     seed = nullptr ;
     hit = nullptr ;
+    hitlite = nullptr ;
+    hitlitemerged = nullptr ;
     photon = nullptr ;
+    photonlite = nullptr ;
 
     record = nullptr ;
     rec = nullptr ;
@@ -517,6 +573,29 @@ SEVENT_METHOD void sevent::zero()
     flat = nullptr ;
     simtrace = nullptr ;
 }
+
+
+
+
+
+template<typename T> SEVENT_METHOD T*           sevent::get_photon_ptr() const { return nullptr; }
+template<>           SEVENT_METHOD sphoton*     sevent::get_photon_ptr<sphoton>() const { return photon; }
+template<>           SEVENT_METHOD sphotonlite* sevent::get_photon_ptr<sphotonlite>() const { return photonlite; }
+
+template<typename T> SEVENT_METHOD size_t sevent::get_photon_num() const { return 0; }
+template<>           SEVENT_METHOD size_t sevent::get_photon_num<sphoton>() const { return num_photon; }
+template<>           SEVENT_METHOD size_t sevent::get_photon_num<sphotonlite>() const { return num_photonlite; }
+
+template<typename T> SEVENT_METHOD T**           sevent::get_hitmerged_ptr_ref() {              return nullptr; }
+template<>           SEVENT_METHOD sphoton**     sevent::get_hitmerged_ptr_ref<sphoton>() {     return &hitmerged; }
+template<>           SEVENT_METHOD sphotonlite** sevent::get_hitmerged_ptr_ref<sphotonlite>() { return &hitlitemerged; }
+
+template<typename T> SEVENT_METHOD size_t* sevent::get_hitmerged_num_ref() {              return nullptr ; }
+template<>           SEVENT_METHOD size_t* sevent::get_hitmerged_num_ref<sphoton>() {     return &num_hitmerged; }
+template<>           SEVENT_METHOD size_t* sevent::get_hitmerged_num_ref<sphotonlite>() { return &num_hitlitemerged; }
+
+
+
 #endif     // ends host only block
 
 
@@ -608,7 +687,8 @@ SEVENT_METHOD void sevent::add_simtrace( unsigned idx, const quad4& p, const qua
     a.q3.f.x = p.q1.f.x ;                // initial dir
     a.q3.f.y = p.q1.f.y ;
     a.q3.f.z = p.q1.f.z ;
-    a.q3.u.w = prd->identity() ;  // identity from __closesthit__ch (( prim_idx & 0xffff ) << 16 ) | ( instance_id & 0xffff )
+    //a.q3.u.w = prd->identity() ;
+    a.q3.u.w = prd->iindex_identity() ;
 
     simtrace[idx] = a ;
     // NB this is the from zero slot idx not the offset "photon_idx"
