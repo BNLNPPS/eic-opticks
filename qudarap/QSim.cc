@@ -8,6 +8,7 @@
 #include "spath.h"
 #include "SProf.hh"
 
+#include "SComp.h"
 #include "SEvt.hh"
 #include "SSim.hh"
 #include "scuda.h"
@@ -15,7 +16,9 @@
 #include "salloc.h"
 #include "SEvent.hh"
 #include "SEventConfig.hh"
-#include "SCSGOptiX.h"
+
+//#include "SCSGOptiX.h"
+#include "SSimulator.h"
 
 #include "SGenstep.h"
 #include "sslice.h"
@@ -349,9 +352,12 @@ void QSim::init()
 
 /**
 QSim::setLauncher
+------------------
+
+Formerly used SCSGOptiX
 
 **/
-void QSim::setLauncher(SCSGOptiX* cx_ )
+void QSim::setLauncher(SSimulator* cx_ )
 {
     cx = cx_ ;
 }
@@ -377,10 +383,14 @@ void QSim::post_launch()
 QSim::simulate
 ---------------
 
-Two canonical invokations:
+This expects gensteps to have been collected into SEvt vectors of quad6
+prior to being called.
 
-1. G4CXOpticks::simulate for full dependency running
-2. CSGOptiX::simulate for pure CSGOptiX level testing such as by ~/o/cxs_min.sh
+Now only one canonical invokations, the higher level G4CXOpticks no longer
+directly uses QSim:
+
+1. CSGOptiX::simulate for pure CSGOptiX level testing such as by ~/o/cxs_min.sh
+
 
 Collected genstep are uploaded and the CSGOptiX kernel is launched to generate and propagate.
 
@@ -394,16 +404,22 @@ the launch.
 
        EGPU.SEvt::beginOfEvent
 
-       QEvt::setGenstepUpload(quad6*)
+       determine slices over gensteps depending on VRAM
 
-       SCSGOptiX::simulate_launch
+       for each slice
 
-       EGPU.SEvt::endOfEvent
+           QEvt::setGenstepUpload_NP
 
+           SSimulator::simulate_launch
 
+           SEvt::gather into *fold* below *topfold*
 
-This expects gensteps to have been collected into SEvt vectors of quad6
-prior to being called.
+       end for each slice
+
+       (NPFold)topfold->concat joining all arrays from the per-launch *fold* into the one *topfold*
+
+       EGPU.SEvt::endOfEvent [only when reset:true, not so in OJ running as need to defer until after hits collected]
+
 
 **/
 
@@ -411,7 +427,12 @@ bool QSim::KEEP_SUBFOLD = ssys::getenvbool(QSim__simulate_KEEP_SUBFOLD);
 
 double QSim::simulate(int eventID, bool reset_)
 {
+    SProf::SetTag(eventID, "A%0.3d_" ) ;
+
     assert( SEventConfig::IsRGModeSimulate() );
+
+    //cudaStream_t stream ;  cudaStreamCreate(&stream);
+    cudaStream_t stream = 0 ;
 
 
     int64_t tot_ph = 0 ;
@@ -480,7 +501,7 @@ double QSim::simulate(int eventID, bool reset_)
 
         sev->t_PreLaunch = sstamp::Now() ;
 
-        double dt = rc == 0 && cx != nullptr ? cx->simulate_launch() : -1. ;  //SCSGOptiX protocol
+        double dt = rc == 0 && cx != nullptr ? cx->simulate_launch() : -1. ;  //SSimulator protocol
 
         sev->t_PostLaunch = sstamp::Now() ;
         sev->t_Launch = dt ;
@@ -506,7 +527,10 @@ double QSim::simulate(int eventID, bool reset_)
         tot_gdt += ( t_DOWN - t_POST ) ;
     }
 
-    int64_t t_LEND = SProf::Add("QSim__simulate_LEND");
+
+    size_t max_slot_M = SEventConfig::MaxSlot()/M;
+    std::string anno = SProf::Annotation("slice",num_slice, "max_slot_M", max_slot_M);
+    int64_t t_LEND = SProf::Add("QSim__simulate_LEND", anno.c_str());
 
     std::stringstream ss ;
     std::ostream* out = CONCAT ? &ss : nullptr ;
@@ -515,6 +539,17 @@ double QSim::simulate(int eventID, bool reset_)
     LOG_IF(info, CONCAT) << ss.str() ;
     LOG_IF(fatal, concat_rc != 0) << " sev->topfold->concat FAILED " ;
     assert(concat_rc == 0);
+
+    bool has_hlm = sev->topfold->has_key(SComp::HITLITEMERGED_);
+    bool has_hm  = sev->topfold->has_key(SComp::HITMERGED_);
+    bool do_final_merge = num_slice > 1 && ( has_hlm || has_hm ) ;
+    LOG(LEVEL)
+         << " num_slice " << num_slice
+         << " has_hm " << ( has_hm ? "YES" : "NO " )
+         << " has_hlm " << ( has_hlm ? "YES" : "NO " )
+         << " do_final_merge " << ( do_final_merge ? "YES" : "NO " )
+         ;
+    if(do_final_merge) simulate_final_merge(tot_ph, stream);
 
 
     if(!KEEP_SUBFOLD) sev->topfold->clear_subfold();
@@ -573,6 +608,80 @@ double QSim::simulate(int eventID, bool reset_)
         ;
 
     return tot_dt ;
+}
+
+
+/**
+QSim::simulate_final_merge
+---------------------------
+
+* NB this normally only runs for large events with more
+  photons than fit in VRAM that cause multiple launches
+  to be done
+
+* requires topfold to have "hitlitemerged" array,
+  expected to be the result of simple concatenation
+  of individual launch "hitlitemerged" arrays
+
+* does CUDA thrust implemented hitlitemerged final merging
+
+
+TODO: use QEvt::FinalMerge_async once that makes sense
+
+**/
+
+void QSim::simulate_final_merge(int64_t tot_ph, cudaStream_t stream)
+{
+    bool has_hlm = sev->topfold->has_key(SComp::HITLITEMERGED_);
+    bool has_hm  = sev->topfold->has_key(SComp::HITMERGED_);
+
+    if( has_hlm )
+    {
+        const NP* hlm = sev->topfold->get(SComp::HITLITEMERGED_);
+        NP*       fin = QEvt::FinalMerge<sphotonlite>(hlm, stream);
+
+        float     hlm_frac = float(hlm->num_items())/float(tot_ph) ;
+        float     fin_frac = float(fin->num_items())/float(hlm->num_items()) ;
+
+        std::stringstream ss ;
+        ss
+            << " tot_ph " << tot_ph
+            << " hlm " << ( hlm ? hlm->sstr() : "-" )
+            << " fin " << ( fin ? fin->sstr() : "-" )
+            << " hlm/tot " << std::setw(7) << std::fixed << std::setprecision(4) << hlm_frac
+            << " fin/hlm " << std::setw(7) << std::fixed << std::setprecision(4) << fin_frac
+            ;
+
+        std::string note = ss.str();
+        fin->set_meta<std::string>("QSim__simulate_final_merge", note );
+
+        sev->topfold->set(SComp::HITLITEMERGED_, fin );
+
+        LOG(info) << note ;
+    }
+    if( has_hm )
+    {
+        const NP* hm = sev->topfold->get(SComp::HITMERGED_);
+        NP*       fi = QEvt::FinalMerge<sphoton>(hm, stream);
+
+        float     hm_frac = float(hm->num_items())/float(tot_ph) ;
+        float     fi_frac = float(fi->num_items())/float(hm->num_items()) ;
+
+        std::stringstream ss ;
+        ss
+            << " tot_ph " << tot_ph
+            << " hm " << ( hm ? hm->sstr() : "-" )
+            << " fi " << ( fi ? fi->sstr() : "-" )
+            << " hm/tot " << std::setw(7) << std::fixed << std::setprecision(4) << hm_frac
+            << " fi/hm "  << std::setw(7) << std::fixed << std::setprecision(4) << fi_frac
+            ;
+
+        std::string note = ss.str();
+        fi->set_meta<std::string>("QSim__simulate_final_merge", note );
+
+        sev->topfold->set(SComp::HITMERGED_, fi );
+        LOG(info) << note ;
+    }
 }
 
 

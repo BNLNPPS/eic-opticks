@@ -8,7 +8,10 @@
 
 #include "scuda.h"
 #include "squad.h"
+
 #include "sphoton.h"
+#include "sphotonlite.h"
+
 #include "sslice.h"
 
 #ifndef PRODUCTION
@@ -24,7 +27,9 @@
 
 #include "sqat4.h"
 #include "stran.h"
+
 #include "SU.hh"
+#include "SPM.hh"
 
 #include "SComp.h"
 #include "SGenstep.h"
@@ -77,8 +82,6 @@ QEvt::QEvt
 Canonical QEvt instance resides within QSim and is instanciated by QSim::QSim.
 Instanciation allocates device buffers with sizes configured by SEventConfig
 
-* As selector is only needed CPU side it is not down in sevent.h
-  but it could be in SEvt.hh
 
 Holds:
 
@@ -96,7 +99,8 @@ Q: Where is the SEvt::EGPU instanciated ?
 QEvt::QEvt()
     :
     sev(SEvt::Get_EGPU()),
-    selector(sev ? sev->selector : nullptr),
+    photon_selector(sev ? sev->photon_selector : nullptr),
+    photonlite_selector(sev ? sev->photonlite_selector : nullptr),
     evt(sev ? sev->evt : nullptr),
     d_evt(QU::device_alloc<sevent>(1,"QEvt::QEvt/sevent")),
     gs(nullptr),
@@ -116,7 +120,7 @@ QEvt::init
 
 Only configures limits, no allocation yet. Allocation happens in QEvt::setGenstep QEvt::setNumPhoton
 
-HMM: hostside sevent.h instance could reside in SEvt together with selector then hostside setup
+HMM: hostside sevent.h instance could reside in SEvt together with photon_selector then hostside setup
 can be common between the branches
 
 **/
@@ -127,7 +131,8 @@ void QEvt::init()
 
     assert(sev);
     assert(evt);
-    assert(selector);
+    assert(photon_selector);
+    assert(photonlite_selector);
 
     LOG(LEVEL) << " QEvt::init calling SEvt/setCompProvider " ;
     sev->setCompProvider(this);
@@ -230,7 +235,7 @@ int QEvt::setGenstepUpload_NP(const NP* gs_, const sslice* gss_ )
         << " gss_consistent " << ( gss_consistent ? "YES" : "NO " ) << "\n"
         ;
 
-    int64_t last_rng_state_idx = gss->ph_offset + gss->ph_count ;
+    size_t last_rng_state_idx = gss->ph_offset + gss->ph_count ;
     bool in_range = last_rng_state_idx <= evt->max_curand ;
 
     LOG_IF(fatal, !in_range)
@@ -546,7 +551,7 @@ void QEvt::checkInputPhoton() const
     bool expected_shape = input_photon->has_shape( -1, 4, 4) ;
     bool expected_ebyte = input_photon->ebyte == 4 ;
 
-    int numph = input_photon->shape[0] ;
+    size_t numph = input_photon->shape[0] ;
     bool expected_numph = evt->num_seed == numph ;
 
     LOG_IF(fatal, !expected_shape) << " !expected_shape " << input_photon->sstr() ;
@@ -566,6 +571,7 @@ void QEvt::checkInputPhoton() const
 bool QEvt::hasGenstep() const { return evt->genstep != nullptr ; }
 bool QEvt::hasSeed() const {    return evt->seed != nullptr ; }
 bool QEvt::hasPhoton() const {  return evt->photon != nullptr ; }
+bool QEvt::hasPhotonLite() const {  return evt->photonlite != nullptr ; }
 bool QEvt::hasRecord() const { return evt->record != nullptr ; }
 bool QEvt::hasRec() const    { return evt->rec != nullptr ; }
 bool QEvt::hasSeq() const    { return evt->seq != nullptr ; }
@@ -573,7 +579,9 @@ bool QEvt::hasPrd() const    { return evt->prd != nullptr ; }
 bool QEvt::hasTag() const    { return evt->tag != nullptr ; }
 bool QEvt::hasFlat() const   { return evt->flat != nullptr ; }
 bool QEvt::hasHit() const    { return evt->hit != nullptr ; }
+bool QEvt::hasHitLite() const    { return evt->hitlite != nullptr ; }
 bool QEvt::hasSimtrace() const  { return evt->simtrace != nullptr ; }
+
 
 
 
@@ -671,11 +679,48 @@ void QEvt::gatherPhoton(NP* p) const
 
 NP* QEvt::gatherPhoton() const
 {
-    //NP* p = NP::Make<float>( evt->num_photon, 4, 4);
     NP* p = sev->makePhoton();
     gatherPhoton(p);
     return p ;
 }
+
+
+
+
+
+
+
+void QEvt::gatherPhotonLite(NP* l) const
+{
+    bool expected_arr =  sphotonlite::expected(l);
+    LOG(expected_arr ? LEVEL : fatal) << "[ evt.num_photon " << evt->num_photon << " l.sstr " << l->sstr() << " evt.photon " << evt->photon ;
+    LOG(info) << "[ evt.num_photon " << evt->num_photon << " l.sstr " << l->sstr() << " evt.photon " << evt->photon ;
+    assert(expected_arr );
+
+    int rc = QU::copy_device_to_host<sphotonlite>( (sphotonlite*)l->bytes(), evt->photonlite, evt->num_photon );
+
+    LOG_IF(fatal, rc != 0)
+         << " QU::copy_device_to_host photonlite FAILED "
+         << " evt->photonlite " << ( evt->photonlite ? "Y" : "N" )
+         << " evt->num_photon " <<  evt->num_photon
+         ;
+
+    if(rc != 0) std::raise(SIGINT) ;
+
+    LOG(LEVEL) << "] evt.num_photon " << evt->num_photon  ;
+}
+
+
+NP* QEvt::gatherPhotonLite() const
+{
+    NP* l = sev->makePhotonLite();
+    gatherPhotonLite(l);
+    return l ;
+}
+
+
+
+
 
 
 #ifndef PRODUCTION
@@ -827,7 +872,7 @@ NP* QEvt::gatherRec() const
 QEvt::getNumHit  TODO:rejig
 -----------------------------------
 
-HMM: applies selector to the GPU photon array, thats surprising
+HMM: applies photon_selector to the GPU photon array, thats surprising
 for a "get" method... TODO: maybe rearrange to do that once only
 at the gatherHit stage and subsequently just get the count from
 SEvt::fold
@@ -835,23 +880,39 @@ SEvt::fold
 **/
 
 
-unsigned QEvt::getNumHit() const
+size_t QEvt::getNumHit() const
 {
     assert( evt->photon );
     assert( evt->num_photon );
     LOG_IF(info, LIFECYCLE) ;
 
-    evt->num_hit = SU::count_if_sphoton( evt->photon, evt->num_photon, *selector );
+    evt->num_hit = SU::count_if_sphoton( evt->photon, evt->num_photon, *photon_selector );
 
     LOG(LEVEL) << " evt.photon " << evt->photon << " evt.num_photon " << evt->num_photon << " evt.num_hit " << evt->num_hit ;
     return evt->num_hit ;
+}
+
+
+
+size_t QEvt::getNumHitLite() const
+{
+    assert( evt->photonlite );
+    assert( evt->num_photonlite );
+    assert( 0 && "WHO CALLS THIS : BETTER TO GET FROM ALREADY GATHERED ?");
+
+    LOG_IF(info, LIFECYCLE) ;
+
+    evt->num_hitlite = SU::count_if_sphotonlite( evt->photonlite, evt->num_photonlite, *photonlite_selector );
+
+    LOG(LEVEL) << " evt.photonlite " << evt->photonlite << " evt.num_photonlite " << evt->num_photonlite << " evt.num_hitlite " << evt->num_hitlite ;
+    return evt->num_hitlite ;
 }
 
 /**
 QEvt::gatherHit
 ------------------
 
-1. on device count *evt.num_hit* passing the photon *selector*
+1. on device count *evt.num_hit* passing the photon *photon_selector*
 
 7. return NP hits array to caller, who becomes owner of the array
 
@@ -872,8 +933,8 @@ always be present, unlike hits.
 
 NP* QEvt::gatherHit() const
 {
-    // hasHit at this juncture is misleadingly always false,
-    // because the hits array is derived by *gatherHit_* which  selects from the photons
+    // hasHit (more correctly "hasHitArray") at this juncture is misleadingly always false,
+    // because the hits array is derived (selecting from the photons) by *gatherHit_*
 
     bool has_photon = hasPhoton();
 
@@ -885,28 +946,161 @@ NP* QEvt::gatherHit() const
     LOG_IF(fatal, evt->num_photon == 0 ) << " evt->num_photon ZERO " ;
     assert( evt->num_photon );
 
-    evt->num_hit = SU::count_if_sphoton( evt->photon, evt->num_photon, *selector );
+    evt->num_hit = SU::count_if_sphoton( evt->photon, evt->num_photon, *photon_selector );
+    NP* hit = evt->num_hit > 0 ? gatherHit_() : nullptr ;
 
     LOG(LEVEL)
-         << " evt.photon " << evt->photon
-         << " evt.num_photon " << evt->num_photon
-         << " evt.num_hit " << evt->num_hit
-         << " selector.hitmask " << selector->hitmask
-         << " SEventConfig::HitMask " << SEventConfig::HitMask()
-         << " SEventConfig::HitMaskLabel " << SEventConfig::HitMaskLabel()
-         ;
-
-    NP* hit = evt->num_hit > 0 ? gatherHit_() : nullptr ;
+        << " evt.photon " << evt->photon
+        << " evt.num_photon " << evt->num_photon
+        << " evt.num_hit " << evt->num_hit
+        << " hit " << ( hit ? hit->sstr() : "-" )
+        << " photon_selector.hitmask " << photon_selector->hitmask
+        << " SEventConfig::HitMask " << SEventConfig::HitMask()
+        << " SEventConfig::HitMaskLabel " << SEventConfig::HitMaskLabel()
+        << " SEventConfig::ModeLite " << SEventConfig::ModeLite()
+        << " SEventConfig::ModeMerge " << SEventConfig::ModeMerge()
+        ;
 
     return hit ;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NP* QEvt::gatherHitLite() const
+{
+    // hasHitLite at this juncture is misleadingly always false,
+    // because the hitlite array is derived by *gatherHitLite_* which  selects from the photonlite
+
+    bool has_photonlite = hasPhotonLite();
+
+    LOG_IF(LEVEL, !has_photonlite) << " gatherHitLite called when there is no photonlite array " ;
+    if(!has_photonlite) return nullptr ;
+
+    assert( evt->photonlite );
+
+    LOG_IF(fatal, evt->num_photonlite == 0 ) << " evt->num_photonlite ZERO " ;
+    assert( evt->num_photonlite );
+
+    evt->num_hitlite = SU::count_if_sphotonlite( evt->photonlite, evt->num_photonlite, *photonlite_selector );
+    NP* hitlite = evt->num_hitlite > 0 ? gatherHitLite_() : nullptr ;
+
+    LOG(LEVEL)
+        << " evt.photonlite " << evt->photonlite
+        << " evt.num_photonlite " << evt->num_photonlite
+        << " evt.num_hitlite " << evt->num_hitlite
+        << " hitlite " << ( hitlite ? hitlite->sstr() : "-" )
+        << " photonlite_selector.hitmask " << photonlite_selector->hitmask
+        << " SEventConfig::HitMask " << SEventConfig::HitMask()
+        << " SEventConfig::HitMaskLabel " << SEventConfig::HitMaskLabel()
+        << " SEventConfig::ModeLite " << SEventConfig::ModeLite()
+        << " SEventConfig::ModeMerge " << SEventConfig::ModeMerge()
+        ;
+
+    return hitlite ;
+}
+
+
+
+/**
+QEvt::gatherHitLiteMerged
+---------------------------
+
+This selects from photonlite and then merges that
+both on GPU before gathering back the merged hits to CPU
+
+NB with multi-launch a further final merge is required,
+that is invoked from QSim::simulate
+
+
+
+**/
+
+NP* QEvt::gatherHitLiteMerged() const
+{
+    bool has_photonlite = hasPhotonLite();
+    LOG_IF(LEVEL, !has_photonlite) << " gatherHitLiteMerged called when there is no photonlite array " ;
+    if(!has_photonlite) return nullptr ;
+
+    cudaStream_t stream = 0 ;
+    NP* hitlitemerged = PerLaunchMerge<sphotonlite>(evt, stream);
+
+    LOG(LEVEL)
+        << " evt.photonlite " << evt->photonlite
+        << " evt.num_photonlite " << evt->num_photonlite
+        << " evt.num_hitlitemerged " << evt->num_hitlitemerged
+        << " hitlitemerged " << ( hitlitemerged ? hitlitemerged->sstr() : "-" )
+        << " photonlite_selector.hitmask " << photonlite_selector->hitmask
+        << " SEventConfig::HitMask " << SEventConfig::HitMask()
+        << " SEventConfig::HitMaskLabel " << SEventConfig::HitMaskLabel()
+        << " SEventConfig::ModeLite " << SEventConfig::ModeLite()
+        << " SEventConfig::ModeMerge " << SEventConfig::ModeMerge()
+        << " SEventConfig::MergeWindow " << SEventConfig::MergeWindow()
+        ;
+
+    return hitlitemerged ;
+}
+
+NP* QEvt::gatherHitMerged() const
+{
+    bool has_photon = hasPhoton();
+    LOG_IF(LEVEL, !has_photon) << " gatherHitMerged called when there is no photon array " ;
+    if(!has_photon) return nullptr ;
+
+    assert( evt->photon );
+    LOG_IF(fatal, evt->num_photon == 0 ) << " evt->num_photon ZERO " ;
+    assert( evt->num_photon );
+
+    cudaStream_t stream = 0 ;
+    NP* hitmerged = PerLaunchMerge<sphoton>(evt, stream);
+
+    LOG(LEVEL)
+        << " evt.photon " << evt->photon
+        << " evt.num_photon " << evt->num_photon
+        << " evt.num_hitmerged " << evt->num_hitmerged
+        << " hitmerged " << ( hitmerged ? hitmerged->sstr() : "-" )
+        << " photon_selector.hitmask " << photon_selector->hitmask
+        << " SEventConfig::HitMask " << SEventConfig::HitMask()
+        << " SEventConfig::HitMaskLabel " << SEventConfig::HitMaskLabel()
+        << " SEventConfig::ModeLite " << SEventConfig::ModeLite()
+        << " SEventConfig::ModeMerge " << SEventConfig::ModeMerge()
+        << " SEventConfig::MergeWindow " << SEventConfig::MergeWindow()
+        ;
+
+    return hitmerged ;
+}
+
+
+
+
+
+
+
+
+
+
 
 /**
 QEvt::gatherHit_
 --------------------
 
 1. allocate *evt.hit* GPU buffer using *evt.num_hit*
-2. SU::copy_if_device_to_device_presized_sphoton from *evt.photon* to *evt.hit* using the photon *selector*
+2. SU::copy_if_device_to_device_presized_sphoton from *evt.photon* to *evt.hit* using the *photon_selector*
 3. host allocate the NP hits array using *evt.num_hit*
 4. copy hits from device to the host NP hits array
 5. free *evt.hit* on device
@@ -919,21 +1113,214 @@ QEvt::gatherHit_
 NP* QEvt::gatherHit_() const
 {
     LOG_IF(info, LIFECYCLE) ;
+
     evt->hit = QU::device_alloc<sphoton>( evt->num_hit, "QEvt::gatherHit_:sphoton" );
 
-    SU::copy_if_device_to_device_presized_sphoton( evt->hit, evt->photon, evt->num_photon,  *selector );
+    SU::copy_if_device_to_device_presized_sphoton( evt->hit, evt->photon, evt->num_photon,  *photon_selector );
 
-    NP* hit = NP::Make<float>( evt->num_hit, 4, 4 );
+    NP* hit = sphoton::zeros( evt->num_hit );
 
     QU::copy_device_to_host<sphoton>( (sphoton*)hit->bytes(), evt->hit, evt->num_hit );
 
     QU::device_free<sphoton>( evt->hit );
 
     evt->hit = nullptr ;
+
     LOG(LEVEL) << " hit.sstr " << hit->sstr() ;
 
     return hit ;
 }
+
+
+NP* QEvt::gatherHitLite_() const
+{
+    LOG_IF(info, LIFECYCLE) ;
+
+    evt->hitlite = QU::device_alloc<sphotonlite>( evt->num_hitlite, "QEvt::gatherHitLite_:sphotonlite" );
+
+    SU::copy_if_device_to_device_presized_sphotonlite( evt->hitlite, evt->photonlite, evt->num_photonlite,  *photonlite_selector );
+
+    NP* hitlite = sphotonlite::zeros( evt->num_hitlite );
+
+    QU::copy_device_to_host<sphotonlite>( (sphotonlite*)hitlite->bytes(), evt->hitlite, evt->num_hitlite );
+
+    QU::device_free<sphotonlite>( evt->hitlite );
+
+    evt->hitlite = nullptr ;
+
+    LOG(LEVEL) << " hitlite.sstr " << hitlite->sstr() ;
+
+    return hitlite ;
+}
+
+
+
+/**
+QEvt::PerLaunchMerge
+----------------------
+
+Canonical usage from::
+
+    QEvt::gatherHitMerged
+    QEvt::gatherHitLiteMerged
+
+Where those get invoked from SEvt::gather called from QSim::simulate
+
+**/
+
+template<typename T>
+NP* QEvt::PerLaunchMerge(sevent* evt, cudaStream_t stream ) // static
+{
+    // below four calls return whats appropriate depending on template type of sphoton OR sphotonlite
+    // dealing with either  photonlite/hitlitemerged OR photon/hitmerged
+
+    T* d_in = evt->get_photon_ptr<T>();
+    size_t num_in = evt->get_photon_num<T>();
+
+    T** d_out_ref = evt->get_hitmerged_ptr_ref<T>();
+    size_t* num_out_ref = evt->get_hitmerged_num_ref<T>();
+
+    SPM::merge_partial_select(
+         d_in,
+         num_in,
+         d_out_ref,
+         num_out_ref,
+         SEventConfig::HitMask(),
+         SEventConfig::MergeWindow(),
+         stream);
+
+    cudaStreamSynchronize(stream); // blocks until all preceeding operations in stream complete
+
+    NP* out = T::zeros( *num_out_ref ); // hitmerged OR hitlitemerged
+
+    SPM::copy_device_to_host_async<T>( (T*)out->bytes(), *d_out_ref, *num_out_ref, stream );
+
+    cudaFreeAsync(*d_out_ref, stream);
+    *d_out_ref = nullptr ;
+
+    cudaStreamSynchronize(stream); // blocks until all preceeding operations in stream complete
+
+    LOG(LEVEL) << " out.sstr " << ( out ? out->sstr() : "-" )  ;
+
+    return out ;
+}
+
+template NP* QEvt::PerLaunchMerge<sphoton>(    sevent* evt, cudaStream_t stream);
+template NP* QEvt::PerLaunchMerge<sphotonlite>(sevent* evt, cudaStream_t stream);
+
+
+
+/**
+QEvt::FinalMerge
+----------------
+
+The canonical argument array this is used with is concat_hitlitemerged
+invoked from QSim::simulate_final_merge
+
+Conceptually the FinalMerge and PerLaunchMerge use the same processing
+with both flagmask selection and hit merging using (identity,timebucket) key
+with typical OPTICKS_MERGE_WINDOW of 1 (ns).  However the two cases differ
+in their inputs:
+
++----------------+---------------------------------------+----------------------------------+
+| Method         |  Input                                |   Output                         |
++================+=======================================+==================================+
+| PerLaunchMerge |  photonlite device array              |  hitlitemerged NP array on host  |
++----------------+---------------------------------------+----------------------------------+
+| FinalMerge     |  concat hitlitemerge NP array on host |  ditto                           |
++----------------+---------------------------------------+----------------------------------+
+
+**/
+
+template<typename T>
+NP* QEvt::FinalMerge(const NP* all, cudaStream_t stream ) // static
+{
+    NP_future merge_result = FinalMerge_async<T>(all, stream );
+
+    cudaStream_t consumer ;
+    cudaStreamCreate(&consumer);
+
+    merge_result.wait(consumer);
+
+    NP* out = merge_result.arr ;
+
+    return out ;
+}
+
+template NP* QEvt::FinalMerge<sphoton>(    const NP* all, cudaStream_t stream);
+template NP* QEvt::FinalMerge<sphotonlite>(const NP* all, cudaStream_t stream);
+
+
+
+
+
+
+/**
+QEvt::FinalMerge_async
+-----------------------
+
+**/
+
+
+template<typename T>
+NP_future QEvt::FinalMerge_async(const NP* all, cudaStream_t stream ) // static
+{
+    size_t num_all = all->num_items();
+
+    // 1. alloc and upload concatenation of the per-launch merged hits
+
+    T* d_all = nullptr;
+    if(num_all > 0)
+    {
+        cudaMallocAsync(&d_all, num_all * sizeof(T), stream);
+        cudaMemcpyAsync(d_all, (T*)all->bytes(), num_all * sizeof(T), cudaMemcpyHostToDevice, stream);
+    }
+
+    // 2. invoke final merge
+
+    SPM_future<T> merge_result = SPM::merge_partial_select_async<T>(
+        d_all ? d_all : nullptr,
+        num_all,
+        SPM::ALREADY_HITMASK_SELECTED,
+        SEventConfig::MergeWindow(),
+        stream);
+
+    if(d_all) cudaFreeAsync(d_all, stream);
+
+
+    //printf("QEvt::FinalMerge_async after wait on merge_result.count %ld \n", merge_result.count);
+
+    // 4. use merge result to host alloc and download
+
+    static cudaStream_t dl_stream = []{ cudaStream_t s; cudaStreamCreate(&s); return s; }();
+
+    NP_future result;
+    result.arr = T::zeros( merge_result.count );
+    cudaEventCreateWithFlags(&result.ready, cudaEventDisableTiming);
+
+    if( merge_result.count > 0 && merge_result.ptr )
+    {
+        // normal path : work to do
+        cudaStreamWaitEvent(dl_stream, merge_result.ready, 0);
+
+        SPM::copy_device_to_host_async<T>( (T*)result.arr->bytes(), merge_result.ptr, merge_result.count, dl_stream );
+
+        cudaFreeAsync(merge_result.ptr, dl_stream);
+
+        cudaEventRecord(result.ready, dl_stream);
+    }
+    else
+    {
+        cudaEventRecord(result.ready, stream);
+    }
+
+    if (merge_result.ready) cudaEventDestroy(merge_result.ready);
+
+    return result ;
+}
+// sed -n '/^NP_future QEvt::FinalMerge_async/,/^}/p' ~/o/qudarap/QEvt.cc | pbcopy
+
+
 
 
 /**
@@ -985,14 +1372,13 @@ NP* QEvt::gatherComponent_(unsigned cmp) const
     NP* a = nullptr ;
     switch(cmp)
     {
-        //case SCOMP_GENSTEP:   a = getGenstep()     ; break ;
-#ifndef PRODUCTION
-        case SCOMP_GENSTEP:   a = gatherGenstepFromDevice() ; break ;
-#endif
-        case SCOMP_INPHOTON:  a = getInputPhoton() ; break ;
-
-        case SCOMP_PHOTON:    a = gatherPhoton()   ; break ;
-        case SCOMP_HIT:       a = gatherHit()      ; break ;
+        case SCOMP_INPHOTON:      a = getInputPhoton()          ; break ;
+        case SCOMP_PHOTON:        a = gatherPhoton()            ; break ;
+        case SCOMP_PHOTONLITE:    a = gatherPhotonLite()        ; break ;
+        case SCOMP_HIT:           a = gatherHit()               ; break ;
+        case SCOMP_HITLITE:       a = gatherHitLite()           ; break ;
+        case SCOMP_HITLITEMERGED: a = gatherHitLiteMerged()     ; break ;
+        case SCOMP_HITMERGED:     a = gatherHitMerged()         ; break ;
 #ifndef PRODUCTION
         case SCOMP_DOMAIN:    a = gatherDomain()      ; break ;
         case SCOMP_RECORD:    a = gatherRecord()   ; break ;
@@ -1003,6 +1389,9 @@ NP* QEvt::gatherComponent_(unsigned cmp) const
         case SCOMP_SIMTRACE:  a = gatherSimtrace() ; break ;
         case SCOMP_TAG:       a = gatherTag()      ; break ;
         case SCOMP_FLAT:      a = gatherFlat()     ; break ;
+        case SCOMP_GENSTEP:   a = gatherGenstepFromDevice() ; break ;
+#else
+        case SCOMP_GENSTEP:   a = getGenstep()     ; break ;
 #endif
     }
     return a ;
@@ -1028,25 +1417,26 @@ when collecting records : that is ok as running with records is regarded as debu
 
 **/
 
-void QEvt::setNumPhoton(unsigned num_photon )
+void QEvt::setNumPhoton(size_t num_photon )
 {
     LOG_IF(info, LIFECYCLE) << " num_photon " << num_photon ;
     LOG(LEVEL);
 
     sev->setNumPhoton(num_photon);
-    if( evt->photon == nullptr ) device_alloc_photon();
+
+    bool noalloc = evt->no_photon_or_photonlite_alloc();
+    if(noalloc) device_alloc_photon();
+
     uploadEvt();
 }
 
 
-void QEvt::setNumSimtrace(unsigned num_simtrace)
+void QEvt::setNumSimtrace(size_t num_simtrace)
 {
     sev->setNumSimtrace(num_simtrace);
     if( evt->simtrace == nullptr ) device_alloc_simtrace();
     uploadEvt();
 }
-
-
 
 
 
@@ -1058,12 +1448,44 @@ QEvt::device_alloc_photon
 Buffers are allocated on device and the device pointers are collected
 into hostside sevent.h "evt"
 
+Q: With multi-launch within an event running, is this called for every launch ?
+A: NO IT SHOULD NOT (WOULD BE A LEAK IF IT DID)
+   Although QEvt::setNumPhoton is necessarily called for every launch by QEvt::setGenstepUpload
+   the noalloc check means that this only gets called the first time which allocs with
+   the size of arrays based on max_slot (the maximum possible number of photons in one launch)
+   allowing reuse of the same buffers.
+
+::
+
+    BP=QEvt::device_alloc_photon cxs_min.sh
+
+    (gdb) bt
+    #0  QEvt::device_alloc_photon (this=0x186569c0) at /home/blyth/opticks/qudarap/QEvt.cc:1370
+    #1  0x00007ffff5ec1a37 in QEvt::setNumPhoton (this=0x186569c0, num_photon=257899584) at /home/blyth/opticks/qudarap/QEvt.cc:1337
+    #2  0x00007ffff5ebb428 in QEvt::setGenstepUpload (this=0x186569c0, qq0=0x1dba8700, gs_start=0, gs_stop=16) at /home/blyth/opticks/qudarap/QEvt.cc:426
+    #3  0x00007ffff5eb9efa in QEvt::setGenstepUpload_NP (this=0x186569c0, gs_=0x1e6a8780, gss_=0x1e6262e0) at /home/blyth/opticks/qudarap/QEvt.cc:225
+    #4  0x00007ffff5e716c9 in QSim::simulate (this=0x18656a20, eventID=0, reset_=true) at /home/blyth/opticks/qudarap/QSim.cc:481
+    #5  0x00007ffff7e35b54 in CSGOptiX::simulate (this=0x1866b3e0, eventID=0, reset=true) at /home/blyth/opticks/CSGOptiX/CSGOptiX.cc:777
+    #6  0x00007ffff7e3255c in CSGOptiX::SimulateMain () at /home/blyth/opticks/CSGOptiX/CSGOptiX.cc:177
+    #7  0x0000000000404a95 in main (argc=1, argv=0x7fffffffaf28) at /home/blyth/opticks/CSGOptiX/tests/CSGOptiXSMTest.cc:13
+    (gdb)
+
+
+Q: Are these buffers ever dealloc ?
+A: NO, dont think so : same buffers reused for all launches of all events so
+   they get "cleaned up" when the CUDA context is reclaimed
+
 **/
 
 void QEvt::device_alloc_photon()
 {
     LOG_IF(info, LIFECYCLE) ;
     SetAllocMeta( QU::alloc, evt );   // do this first as memory errors likely to happen in following lines
+
+    bool with_photon     = evt->with_photon();
+    bool with_photonlite = evt->with_photonlite();
+    bool noalloc = evt->no_photon_or_photonlite_alloc();
+
 
     LOG(LEVEL)
         << " evt.max_slot   " << evt->max_slot
@@ -1077,10 +1499,16 @@ void QEvt::device_alloc_photon()
         << " evt.num_prd    " << evt->num_prd
         << " evt.num_tag    " << evt->num_tag
         << " evt.num_flat   " << evt->num_flat
+        << " evt.with_photon " << evt->with_photon()
+        << " evt.with_photonlite " << evt->with_photonlite()
+        << " evt.noalloc " << noalloc
 #endif
         ;
 
-    evt->photon  = evt->max_slot > 0 ? QU::device_alloc_zero<sphoton>( evt->max_slot, "QEvt::device_alloc_photon/max_slot*sizeof(sphoton)" ) : nullptr ;
+    assert( noalloc );
+
+    evt->photon     = with_photon     ? QU::device_alloc_zero<sphoton>(     evt->max_slot, "QEvt::device_alloc_photon/max_slot*sizeof(sphoton)"     ) : nullptr ;
+    evt->photonlite = with_photonlite ? QU::device_alloc_zero<sphotonlite>( evt->max_slot, "QEvt::device_alloc_photon/max_slot*sizeof(sphotonlite)" ) : nullptr ;
 
 #ifndef PRODUCTION
     evt->record  = evt->max_record > 0 ? QU::device_alloc_zero<sphoton>( evt->max_slot * evt->max_record, "max_slot*max_record*sizeof(sphoton)" ) : nullptr ;
@@ -1143,11 +1571,11 @@ void QEvt::uploadEvt()
     QU::copy_host_to_device<sevent>(d_evt, evt, 1 );
 }
 
-unsigned QEvt::getNumPhoton() const
+size_t QEvt::getNumPhoton() const
 {
     return evt->num_photon ;
 }
-unsigned QEvt::getNumSimtrace() const
+size_t QEvt::getNumSimtrace() const
 {
     return evt->num_simtrace ;
 }
@@ -1158,8 +1586,8 @@ extern "C" void QEvt_checkEvt(dim3 numBlocks, dim3 threadsPerBlock, sevent* evt,
 
 void QEvt::checkEvt()
 {
-    unsigned width = getNumPhoton() ;
-    unsigned height = 1 ;
+    size_t width = getNumPhoton() ;
+    size_t height = 1 ;
     LOG(info) << " width " << width << " height " << height ;
 
     dim3 numBlocks ;
