@@ -108,8 +108,9 @@ def create_simulation():
     sim.physics_manager.set_production_cut("waterbox", "electron", 0.1 * mm)
 
     # Optical properties files
-    optical_props_file = Path(__file__).parent / "WaterOpticalProperties.xml"
-    surface_props_file = Path(__file__).parent / "SurfaceProperties.xml"
+    geom_dir = Path(__file__).parent / "geom"
+    optical_props_file = geom_dir / "WaterOpticalProperties.xml"
+    surface_props_file = geom_dir / "SurfaceProperties.xml"
     sim.physics_manager.optical_properties_file = str(optical_props_file)
     sim.physics_manager.surface_properties_file = str(surface_props_file)
 
