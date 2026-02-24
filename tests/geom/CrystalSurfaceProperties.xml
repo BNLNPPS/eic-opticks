@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding='utf-8'?>
+<surfaces>
+  <!-- SiPM detector surface: 100% quantum efficiency, no reflectivity -->
+  <!-- Matches ex.gdml DetectorSurface (FIN1: DETECT) -->
+  <surface model="glisur" name="DetectorSurface" type="dielectric_dielectric" finish="polished">
+    <propertiestable>
+      <propertyvector name="REFLECTIVITY" energyunit="eV">
+        <ve energy="1.0" value="0.0"/>
+        <ve energy="4.0" value="0.0"/>
+      </propertyvector>
+      <propertyvector name="EFFICIENCY" energyunit="eV">
+        <ve energy="1.0" value="1.0"/>
+        <ve energy="4.0" value="1.0"/>
+      </propertyvector>
+    </propertiestable>
+  </surface>
+
+  <!-- Crystal wrapping surface: 98% reflectivity, no detection -->
+  <!-- Matches ex.gdml CrystalSurface (FIN2 & FIN6: POLISH, 0.98RC) -->
+  <surface model="glisur" name="CrystalSurface" type="dielectric_dielectric" finish="polished">
+    <propertiestable>
+      <propertyvector name="REFLECTIVITY" energyunit="eV">
+        <ve energy="1.0" value="0.98"/>
+        <ve energy="4.0" value="0.98"/>
+      </propertyvector>
+      <propertyvector name="EFFICIENCY" energyunit="eV">
+        <ve energy="1.0" value="0.0"/>
+        <ve energy="4.0" value="0.0"/>
+      </propertyvector>
+    </propertiestable>
+  </surface>
+</surfaces>
