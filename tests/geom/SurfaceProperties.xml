@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding='utf-8'?>
+<surfaces>
+  <!-- Detector surface: dielectric_metal with 25% quantum efficiency, no reflectivity -->
+  <surface model="unified" name="DetectorSurface" type="dielectric_metal" sigmaalpha="0.0" finish="polished">
+    <propertiestable>
+      <propertyvector name="REFLECTIVITY" energyunit="eV">
+        <ve energy="1.55" value="0.0"/>
+        <ve energy="4.00" value="0.0"/>
+        <ve energy="7.00" value="0.0"/>
+      </propertyvector>
+      <propertyvector name="EFFICIENCY" energyunit="eV">
+        <ve energy="1.55" value="0.25"/>
+        <ve energy="4.00" value="0.25"/>
+        <ve energy="7.00" value="0.25"/>
+      </propertyvector>
+    </propertiestable>
+  </surface>
+</surfaces>
