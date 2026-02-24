@@ -9,7 +9,7 @@
 # USAGE:
 #   ./setup_opengate_opticks.sh [OPENGATE_DIR]
 #
-#   OPENGATE_DIR: Path to OpenGATE source (default: /workspaces/opengate)
+#   OPENGATE_DIR: Path to OpenGATE source (default: /src/opengate)
 #
 # PREREQUISITES:
 #   - eic-opticks installed at /opt/eic-opticks (or set OPTICKS_PREFIX)
@@ -25,7 +25,7 @@ set -e  # Exit on error
 apt update
 apt install -y git
 
-cd /workspaces/
+cd src/
 git clone --recursive https://github.com/OpenGATE/opengate.git
 cd eic-opticks/
 
@@ -44,7 +44,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OPTICKS_FILES_DIR="${SCRIPT_DIR}/opengate_opticks"
 
 # OpenGATE directory (first argument or default)
-OPENGATE_DIR="${1:-/workspaces/opengate}"
+OPENGATE_DIR="${1:-/src/opengate}"
 
 # eic-Opticks installation
 OPTICKS_PREFIX="${OPTICKS_PREFIX:-/opt/eic-opticks}"
@@ -453,8 +453,8 @@ echo_info "Configuring Python environment..."
 VENV_CFG=""
 if [ -n "${VIRTUAL_ENV}" ]; then
     VENV_CFG="${VIRTUAL_ENV}/pyvenv.cfg"
-elif [ -f "/workspaces/eic-opticks/.venv/pyvenv.cfg" ]; then
-    VENV_CFG="/workspaces/eic-opticks/.venv/pyvenv.cfg"
+elif [ -f "/src/eic-opticks/.venv/pyvenv.cfg" ]; then
+    VENV_CFG="/src/eic-opticks/.venv/pyvenv.cfg"
 fi
 
 if [ -n "${VENV_CFG}" ] && [ -f "${VENV_CFG}" ]; then
@@ -520,7 +520,7 @@ pip install -e . 2>&1 | tail -5
 # But verify the path is correct
 CORE_PATH=$(GLIBC_TUNABLES=glibc.rtld.optional_static_tls=2000000 python3 -c "import opengate_core; print(opengate_core.__file__)" 2>/dev/null || echo "")
 
-if [ -z "${CORE_PATH}" ] || [[ "${CORE_PATH}" != *"/workspaces/opengate/core/build/"* ]]; then
+if [ -z "${CORE_PATH}" ] || [[ "${CORE_PATH}" != *"/src/opengate/core/build/"* ]]; then
     echo_warn "opengate_core not pointing to our build, copying manually..."
     SITE_PACKAGES=$(python3 -c "import site; print(site.getsitepackages()[0])")
 
@@ -551,7 +551,7 @@ export GLIBC_TUNABLES=glibc.rtld.optional_static_tls=2000000
 
 python3 << 'VERIFY_EOF'
 import sys
-sys.path.insert(0, '/workspaces/opengate')
+sys.path.insert(0, '/src/opengate')
 
 try:
     import opengate as gate
@@ -593,7 +593,7 @@ echo ""
 echo "  export GLIBC_TUNABLES=glibc.rtld.optional_static_tls=2000000"
 echo "  python3 << 'EOF'"
 echo "import sys"
-echo "sys.path.insert(0, '/workspaces/opengate')"
+echo "sys.path.insert(0, '/src/opengate')"
 echo "import opengate as gate"
 echo "from opengate.managers import actor_types, _has_opticks"
 echo "print(f'eic-Opticks available: {_has_opticks}')"
