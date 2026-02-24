@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<materials>
+  <!-- CsI scintillation crystal - matches ex.gdml Crystal material -->
+  <material name="G4_CESIUM_IODIDE">
+    <propertiestable>
+      <!-- Refractive index (constant across visible range) -->
+      <propertyvector name="RINDEX" energyunit="eV">
+        <ve energy="1.0" value="1.82"/>
+        <ve energy="4.0" value="1.82"/>
+      </propertyvector>
+      <!-- Absorption length -->
+      <propertyvector name="ABSLENGTH" unit="mm" energyunit="eV">
+        <ve energy="1.0" value="400.0"/>
+        <ve energy="4.0" value="400.0"/>
+      </propertyvector>
+      <!-- Scintillation yield: 5000 photons/MeV -->
+      <property name="SCINTILLATIONYIELD" value="5000" unit="1/MeV"/>
+      <property name="RESOLUTIONSCALE" value="1.0"/>
+      <!-- Component 1 (fast): 87% yield, 21.5 ns decay -->
+      <property name="SCINTILLATIONYIELD1" value="0.87"/>
+      <property name="SCINTILLATIONTIMECONSTANT1" value="21.5" unit="ns"/>
+      <propertyvector name="SCINTILLATIONCOMPONENT1" energyunit="eV">
+        <ve energy="1.5" value="0.0"/>
+        <ve energy="2.0" value="0.2"/>
+        <ve energy="2.5" value="0.6"/>
+        <ve energy="2.896" value="1.0"/>
+        <ve energy="3.2" value="0.6"/>
+        <ve energy="3.5" value="0.2"/>
+        <ve energy="4.0" value="0.0"/>
+      </propertyvector>
+      <!-- Component 2 (slow): 13% yield, 43.8 ns decay -->
+      <property name="SCINTILLATIONYIELD2" value="0.13"/>
+      <property name="SCINTILLATIONTIMECONSTANT2" value="43.8" unit="ns"/>
+      <propertyvector name="SCINTILLATIONCOMPONENT2" energyunit="eV">
+        <ve energy="1.5" value="0.0"/>
+        <ve energy="2.0" value="0.2"/>
+        <ve energy="2.5" value="0.6"/>
+        <ve energy="2.896" value="1.0"/>
+        <ve energy="3.2" value="0.6"/>
+        <ve energy="3.5" value="0.2"/>
+        <ve energy="4.0" value="0.0"/>
+      </propertyvector>
+      <!-- Legacy property names required by Opticks GPU simulation -->
+      <propertyvector name="FASTCOMPONENT" energyunit="eV">
+        <ve energy="1.5" value="0.0"/>
+        <ve energy="2.0" value="0.2"/>
+        <ve energy="2.5" value="0.6"/>
+        <ve energy="2.896" value="1.0"/>
+        <ve energy="3.2" value="0.6"/>
+        <ve energy="3.5" value="0.2"/>
+        <ve energy="4.0" value="0.0"/>
+      </propertyvector>
+      <propertyvector name="SLOWCOMPONENT" energyunit="eV">
+        <ve energy="1.5" value="0.0"/>
+        <ve energy="2.0" value="0.2"/>
+        <ve energy="2.5" value="0.6"/>
+        <ve energy="2.896" value="1.0"/>
+        <ve energy="3.2" value="0.6"/>
+        <ve energy="3.5" value="0.2"/>
+        <ve energy="4.0" value="0.0"/>
+      </propertyvector>
+      <property name="FASTTIMECONSTANT" value="21.5" unit="ns"/>
+      <property name="SLOWTIMECONSTANT" value="43.8" unit="ns"/>
+      <property name="YIELDRATIO" value="0.87"/>
+      <propertyvector name="REEMISSIONPROB" energyunit="eV">
+        <ve energy="1.0" value="0.0"/>
+        <ve energy="4.0" value="0.0"/>
+      </propertyvector>
+    </propertiestable>
+  </material>
+
+  <!-- Air - world volume -->
+  <material name="G4_AIR">
+    <propertiestable>
+      <propertyvector name="RINDEX" energyunit="eV">
+        <ve energy="1.0" value="1.0"/>
+        <ve energy="4.0" value="1.0"/>
+      </propertyvector>
+      <propertyvector name="ABSLENGTH" unit="mm" energyunit="eV">
+        <ve energy="1.0" value="10000.0"/>
+        <ve energy="4.0" value="10000.0"/>
+      </propertyvector>
+    </propertiestable>
+  </material>
+
+  <!-- Silicon dioxide - grease, window, SiPM detector -->
+  <material name="G4_SILICON_DIOXIDE">
+    <propertiestable>
+      <propertyvector name="RINDEX" energyunit="eV">
+        <ve energy="1.0" value="1.50"/>
+        <ve energy="4.0" value="1.50"/>
+      </propertyvector>
+      <propertyvector name="ABSLENGTH" unit="mm" energyunit="eV">
+        <ve energy="1.0" value="1000.0"/>
+        <ve energy="4.0" value="1000.0"/>
+      </propertyvector>
+    </propertiestable>
+  </material>
+</materials>
