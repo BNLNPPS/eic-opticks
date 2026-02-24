@@ -8,6 +8,12 @@ sphoton_test.sh
    ~/o/sysrap/tests/sphoton_test.sh
    TEST=make_record_array ~/o/sysrap/tests/sphoton_test.sh
 
+   TEST=set_lpos ~/o/sysrap/tests/sphoton_test.sh
+
+   CPPSTD=c++20 ~/o/sysrap/tests/sphoton_test.sh
+
+
+
 EOU
 }
 
@@ -24,7 +30,16 @@ mkdir -p $FOLD
 bin=$FOLD/$name
 script=$name.py
 
-vars="BASH_SOURCE PWD FOLD CUDA_PREFIX name bin script TEST"
+vars="BASH_SOURCE PWD FOLD CUDA_PREFIX name bin script TEST cppstd CPPSTD opt"
+
+cppstd=c++17
+CPPSTD=${CPPSTD:-$cppstd}
+
+opt=""
+if [ "$CPPSTD" == "c++20" ]; then
+    opt=-Wno-volatile
+fi 
+
 
 cuda_prefix=/usr/local/cuda
 CUDA_PREFIX=${CUDA_PREFIX:-$cuda_prefix}
@@ -33,17 +48,22 @@ CUDA_PREFIX=${CUDA_PREFIX:-$cuda_prefix}
 #test=set_flag
 #test=add_flagmask
 #test=ChangeTimeInsitu
-test=index
+#test=index
+#test=demoarray
+#test=GetIndexBeyondCursorContiguousIdentity
+#test=GetContiguousIIndexStartIndices
+test=localize
 
 TEST=${TEST:-$test}
 export TEST
+
 
 if [ "${arg/info}" != "$arg" ]; then
     for var in $vars ; do printf "%30s : %s \n" "$var" "${!var}" ; done
 fi
 
 if [ "${arg/build}" != "$arg" ]; then
-    gcc $name.cc -std=c++17 -lstdc++ -lm -lcrypto -lssl \
+    gcc $name.cc -std=$CPPSTD -lstdc++ $opt -lm -lcrypto -lssl \
            -I.. \
            -I$CUDA_PREFIX/include \
            -I$OPTICKS_PREFIX/externals/glm/glm \

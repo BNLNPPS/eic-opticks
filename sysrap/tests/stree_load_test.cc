@@ -6,6 +6,7 @@ stree_load_test.cc
 
     ~/o/sysrap/tests/stree_load_test.sh
 
+    TEST=get_inst IIDX=100                      ~/o/sysrap/tests/stree_load_test.sh
     TEST=pick_lvid_ordinal_node                 ~/o/sysrap/tests/stree_load_test.sh
     TEST=find_inst_gas                          ~/o/sysrap/tests/stree_load_test.sh
 
@@ -29,8 +30,11 @@ stree_load_test.cc
 
 struct stree_load_test
 {
+    const char* TEST ;
     const stree* st ;
-    stree_load_test(const stree* st_);
+
+    stree_load_test();
+    void init();
 
     int get_combined_transform(int LVID, int NDID  );
     int get_inst(int idx) const ;
@@ -44,6 +48,14 @@ struct stree_load_test
     int get_frame_scan() const ;
     int get_frame_MOI() const ;
     int get_prim_aabb() const ;
+    int desc_repeat_index() const ;
+
+    int get_global_aabb() const ;
+    int get_global_aabb_check() const ;
+
+    int get_global_aabb_sibling_overlaps() const ;
+
+
     int desc_factor_nodes(int fidx) const ;
     int desc_repeat_node(int ridx, int rord) const ;
     int desc_repeat_nodes() const ;
@@ -64,13 +76,33 @@ struct stree_load_test
     int save_desc(const char* fold) const ;
     int make_tree_digest() const ;
 
+    int desc_nodes_with_center_within_ce() const ;
+    int desc_prim() const ;
+
+
     int main();
 };
 
-inline stree_load_test::stree_load_test(const stree* st_)
+inline stree_load_test::stree_load_test()
     :
-    st(st_)
+    TEST(ssys::getenvvar("TEST", nullptr)),
+    st(nullptr)
 {
+    init();
+}
+
+inline void stree_load_test::init()
+{
+    bool noload = strcmp(TEST,"get_global_aabb_check") == 0 ;
+    if(!noload)
+    {
+        st = stree::Load();
+        if( st == nullptr ) std::cout << "stree_load_test::init FAILED TO LOAD TREE \n" ;
+    }
+
+    std::cout << "[stree_load_test::init\n" ;
+    std::cout << ( st ? st->desc_id() : "-" ) << "\n" ;
+    std::cout << "]stree_load_test::init\n" ;
 }
 
 
@@ -111,8 +143,9 @@ inline int stree_load_test::get_combined_transform( int LVID, int NDID )
         glm::tmat4x4<double> v(1.) ;
 
         std::stringstream* out = dump_NDID ? new std::stringstream : nullptr ;
+        stree::VTR* t_stack = nullptr ;
 
-        st->get_combined_transform(t, v, node, nd, out );
+        st->get_combined_transform(t, v, node, nd, out, t_stack );
 
         tvs.push_back(t);
         tvs.push_back(v);
@@ -436,7 +469,10 @@ inline int stree_load_test::get_prim_aabb() const
                 if(      i == 0 ) node = &st->nds[k] ;
                 else if( i == 1 ) node = &st->rem[k] ;
                 else if( i == 2 ) node = &st->nds[st->inst_nidx[k]] ;
-                st->get_prim_aabb( pbb.data(), *node, nullptr );
+
+                std::ostream* out = nullptr ;
+                stree::VTR* t_stack = nullptr ;
+                st->get_prim_aabb( pbb.data(), *node, out, t_stack );
                 std::cout
                     << " [" << std::setw(5) << k << "]"
                     << " : "
@@ -448,6 +484,160 @@ inline int stree_load_test::get_prim_aabb() const
     }
     return 0 ;
 }
+
+
+/**
+stree_load_test::desc_repeat_index
+-------------------------------------
+
+
+::
+
+    stree_load_test::desc_repeat_index
+    [stree::desc_repeat_index
+    [stree::desc_repeat_index N[nds.npy]
+       0 :       3431
+       1 :     128000
+       2 :     113913
+       3 :      59268
+       4 :       9596
+       5 :       2400
+       6 :        590
+       7 :        590
+       8 :       1770           ## 590*3 = 1770
+       9 :      64480           ## 496*130 =
+      10 :        370
+      11 :       2118           ## 353*6 = 2118
+    TOT: :     386526
+    ]stree::desc_repeat_index N[nds.npy]
+    [stree::desc_repeat_index R[rem.npy]
+       0 :       3087
+    TOT: :       3087
+    ]stree::desc_repeat_index R[rem.npy]
+    [stree::desc_repeat_index T[tri.npy]
+       0 :        344
+    TOT: :        344
+    ]stree::desc_repeat_index T[tri.npy]
+     N_tot     386526 N0       3431 (R_tot + T_tot)       3431 N0_expect YES
+     R_tot       3087 R0       3087 R0_expect YES
+     T_tot        344 T0        344 T0_expect YES
+    ]stree::desc_repeat_index
+
+
+
+    (ok) A[blyth@localhost CSGFoundry]$ cat.py mmlabel.txt
+    0    3087:sWorld
+    1    5:PMT_3inch_pmt_solid
+    2    9:NNVTMCPPMTsMask_virtual
+    3    12:HamamatsuR12860sMask_virtual
+    4    4:mask_PMT_20inch_vetosMask_virtual
+    5    4:PMT_8inch_pmt_solid
+    6    1:sStrutBallhead
+    7    1:base_steel
+    8    3:uni_acrylic1
+    9    130:sPanel
+    10   1:sStrut_0
+    11   6:PMT_20inch_pmt_solid_head
+    12   344:ConnectingCutTube_0
+
+    THE SOLID WITH INDEX 12 IS AN EXTRA FOR THE TRIANGULATED NODES
+    THAT ALL HAVE repeat_index zero
+
+**/
+
+
+inline int stree_load_test::desc_repeat_index() const
+{
+    std::cout << "[stree_load_test::desc_repeat_index\n" ;
+    std::cout << st->desc_repeat_index() << "\n" ;
+    std::cout << "]stree_load_test::desc_repeat_index\n" ;
+    return 0 ;
+}
+
+
+inline int stree_load_test::get_global_aabb() const
+{
+    std::cout << "[stree_load_test::get_global_aabb \n" ;
+
+    NPFold* f = st->get_global_aabb();
+    f->save("$TMPFOLD/get_global_aabb");
+
+    std::cout << "]stree_load_test::get_global_aabb \n" ;
+    return 0 ;
+}
+
+
+/**
+stree_load_test::get_global_aabb_check
+----------------------------------------
+
+This approach yields too many overlaps to wade thru
+
+**/
+
+inline int stree_load_test::get_global_aabb_check() const
+{
+    NPFold* f = NPFold::Load("$TMPFOLD/get_global_aabb");
+    const NP* bb = f->get("bb");
+    const NP* ii = f->get("ii");
+
+    const double* bbv = bb->cvalues<double>();
+    const size_t* iiv = ii->cvalues<size_t>();
+
+    std::cout << "[stree_load_test::get_global_aabb_check \n" ;
+    std::cout << " bb " << ( bb ? bb->sstr() : "-" ) << "\n";
+    std::cout << " ii " << ( ii ? ii->sstr() : "-" ) << "\n";
+
+    enum { bb_nj = 6 };
+
+    assert( bb->shape[0] == ii->shape[0] );
+    assert( bb->shape[1] == bb_nj );
+    assert( ii->shape[1] == snode::NV );
+
+    struct Overlap
+    {
+        size_t i, j ;
+    };
+
+    std::vector<Overlap> overlap ;
+
+    size_t num_bb = bb->shape[0] ;
+    for( size_t i = 0 ; i < num_bb ; i++ )
+    for( size_t j = 0 ; j < num_bb ; j++ )
+    {
+        if( j >= i ) continue ;
+        const double* a = &bbv[bb_nj*i+0] ;
+        const double* b = &bbv[bb_nj*j+0] ;
+        bool has_overlap = s_bb::HasOverlap<double>( a, b );
+        if(has_overlap) overlap.push_back( {i, j} );
+    }
+    std::cout
+       << " overlap " << overlap.size()
+       << "\n"
+       ;
+
+    std::cout << "]stree_load_test::get_global_aabb_check \n" ;
+    return 0 ;
+}
+
+
+
+
+inline int stree_load_test::get_global_aabb_sibling_overlaps() const
+{
+    std::cout << "[stree_load_test::get_global_aabb_sibling_overlaps \n" ;
+
+    NPFold* f = st->get_global_aabb_sibling_overlaps();
+    f->save("$TMPFOLD/get_global_aabb_sibling_overlaps");
+
+    std::cout << "]stree_load_test::get_global_aabb_sibling_overlaps \n" ;
+    return 0 ;
+}
+
+
+
+
+
 
 
 inline int stree_load_test::desc_factor_nodes(int fidx) const
@@ -531,6 +721,50 @@ inline int stree_load_test::desc_solids() const
 inline int stree_load_test::desc_solid(int lvid) const
 {
     std::cout << st->desc_solid(lvid) ;
+
+    std::vector<int> nodes ;
+    char src = 'N' ;
+    st->find_lvid_nodes(nodes, lvid, src );
+
+    std::cout
+        << "st.find_lvid_nodes (structural nodes) "
+        << " lvid " << lvid
+        << " src " << src
+        << " nodes.size " << nodes.size()
+        << "\n"
+        ;
+
+    for(size_t i=0 ; i < nodes.size() ; i++ )
+    {
+        int nidx = nodes[i];
+        std::cout << " nidx " << nidx << "\n" ;
+
+        const glm::tmat4x4<double>& m2w = st->m2w[nidx] ;
+        std::cout << "m2w\n" << stra<double>::Desc(m2w) << "\n" ;
+
+        const glm::tmat4x4<double>& gtd = st->gtd[nidx] ;
+        std::cout << "gtd\n" << stra<double>::Desc(m2w) << "\n" ;
+    }
+
+
+
+
+    std::vector<sn*> nds ;    // CSG constituent nodes of the LV
+    sn::GetLVNodes(nds, lvid );
+    int num_nds = nds.size();
+    std::cout
+        << " sn::Desc(nds) (csg nodes) lvid " << lvid << " num_nds " << num_nds
+        << "\n"
+        << sn::Desc(nds)
+        << "\n"
+        << " sn::DescXform(nds) (csg nodes) lvid " << lvid << " num_nds " << num_nds
+        << sn::DescXform(nds)
+        << "\n"
+        << " sn::DescXformFull(nds) (csg nodes) lvid " << lvid << " num_nds " << num_nds
+        << sn::DescXformFull(nds)
+        << "\n"
+        ;
+
     return 0 ;
 }
 inline int stree_load_test::desc() const
@@ -577,17 +811,26 @@ inline int stree_load_test::make_tree_digest() const
     return 0 ;
 }
 
+inline int stree_load_test::desc_nodes_with_center_within_ce() const
+{
+     std::vector<double>* ce = ssys::getenv_vec<double>("CE", "-6000,0,20000,1000");
+     assert(ce);
+     std::cout << st->desc_nodes_with_center_within_ce( ce->data() );
+     return 0 ;
+}
+
+
+inline int stree_load_test::desc_prim() const
+{
+     std::cout << st->desc_prim();
+     return 0 ;
+}
+
+
 
 
 inline int stree_load_test::main()
 {
-    //const char* test = "get_frame_MOI" ;
-    //const char* test = "get_frame_scan" ;
-    //const char* test = "desc" ;
-    const char* test = "desc_factor_nodes" ;
-    // THIS DEFAULT TRUMPED BY SETTING IN SCRIPT
-
-    const char* TEST = ssys::getenvvar("TEST", test);
     const char* TMPFOLD = ssys::getenvvar("TMPFOLD", nullptr);
 
     int LVID = ssys::getenvint("LVID",  0);
@@ -611,6 +854,12 @@ inline int stree_load_test::main()
     if(ALL||strcmp(TEST, "get_frame_MOI") == 0)                          rc += get_frame_MOI();
     if(ALL||strcmp(TEST, "get_frame_scan") == 0)                         rc += get_frame_scan();
     if(ALL||strcmp(TEST, "get_prim_aabb") == 0)                          rc += get_prim_aabb();
+
+    if(ALL||strcmp(TEST, "get_global_aabb") == 0)                        rc += get_global_aabb();
+    if(ALL||strcmp(TEST, "get_global_aabb_check") == 0)                  rc += get_global_aabb_check();
+    if(ALL||strcmp(TEST, "get_global_aabb_sibling_overlaps") == 0)       rc += get_global_aabb_sibling_overlaps();
+
+    if(ALL||strcmp(TEST, "desc_repeat_index") == 0)                      rc += desc_repeat_index();
     if(ALL||strcmp(TEST, "desc_factor_nodes") == 0)                      rc += desc_factor_nodes(FIDX);
     if(ALL||strcmp(TEST, "desc_repeat_node") == 0)                       rc += desc_repeat_node(RIDX, RORD);
     if(ALL||strcmp(TEST, "desc_repeat_nodes") == 0)                      rc += desc_repeat_nodes();
@@ -627,6 +876,8 @@ inline int stree_load_test::main()
     if(ALL||strcmp(TEST, "desc") == 0)                                   rc += desc();
     if(ALL||strcmp(TEST, "save_desc") == 0)                              rc += save_desc(TMPFOLD);
     if(ALL||strcmp(TEST, "make_tree_digest") == 0)                       rc += make_tree_digest();
+    if(ALL||strcmp(TEST, "desc_nodes_with_center_within_ce") == 0)       rc += desc_nodes_with_center_within_ce();
+    if(ALL||strcmp(TEST, "desc_prim") == 0)                              rc += desc_prim();
 
     return rc ;
 }
@@ -634,16 +885,16 @@ inline int stree_load_test::main()
 
 int main(int argc, char** argv)
 {
-    stree* st = stree::Load();
-    if( st == nullptr ) std::cout << argv[0] << " FAILED TO LOAD TREE \n" ;
-    if( st == nullptr ) return 1 ;
-
-    stree_load_test test(st);
-    return test.main();
+    stree_load_test t;
+    return t.main();
 }
 
 /**
     TEST=desc_solid LVID=43 ~/o/sysrap/tests/stree_load_test.sh  run
+    TEST=desc_solid LVID=124 ~/o/sysrap/tests/stree_load_test.sh  run
+    TEST=desc_solid LVID=32 ~/o/sysrap/tests/stree_load_test.sh
+
+
     TEST=desc_node_ELVID ELVID=43,44,45,46 ~/o/sysrap/tests/stree_load_test.sh
     TEST=desc_node_ECOPYNO ECOPYNO=52400   ~/o/sysrap/tests/stree_load_test.sh
     TEST=desc_node_EBOUNDARY EBOUNDARY=303   ~/o/sysrap/tests/stree_load_test.sh
