@@ -3,8 +3,6 @@
 #include <sstream>
 #include <iomanip>
 
-#define GLM_ENABLE_EXPERIMENTAL
-
 #include <glm/gtx/transform.hpp>
 #include "NP.hh"
 #include "CSGView.h"

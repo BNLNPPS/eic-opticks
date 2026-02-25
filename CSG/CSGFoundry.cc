@@ -8,8 +8,6 @@
 #include <csignal>
 #include <cstdlib>
 
-#define GLM_ENABLE_EXPERIMENTAL
-
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -46,7 +44,11 @@
 
 #include "OpticksCSG.h"
 #include "CSGSolid.h"
+
+#ifdef WITH_CUDA
 #include "CU.h"
+#endif
+
 #include "CSGFoundry.h"
 #include "SName.h"
 #include "CSGTarget.h"
@@ -1041,7 +1043,13 @@ void CSGFoundry::gasCE(float4& ce, const std::vector<unsigned>& gas_idxs ) const
 
 
 
+/**
+CSGFoundry::iasCE
+------------------
 
+Finds BB of the IAS and uses that to fill in ce (CenterExtent).
+
+**/
 
 
 void CSGFoundry::iasCE(float4& ce, unsigned ias_idx_, unsigned long long emm ) const
@@ -2421,6 +2429,80 @@ std::string CSGFoundry::descMeshPrim() const
     return ss.str();
 }
 
+std::string CSGFoundry::descPrimRange() const
+{
+    int num_solid = solid.size();
+    std::stringstream ss ;
+    ss << "[CSGFoundry::descPrimRange" << " num_solid " << std::setw(2) << num_solid << "\n" ;
+    for(int i=0 ; i < num_solid ; i++ ) ss << descPrimRange(i) ;
+    ss << "[CSGFoundry::descPrimRange" << " num_solid " << std::setw(2) << num_solid << "\n" ;
+    std::string str = ss.str() ;
+    return str ;
+}
+
+
+
+
+std::string CSGFoundry::descPrimRange(int solidIdx) const
+{
+    const CSGSolid& so = solid[solidIdx];
+    std::string dr = CSGPrim::DescRange(prim.data(), so.primOffset, so.numPrim, &meshname) ;
+    if(strlen(dr.c_str()) == 0) return "" ;
+
+    std::stringstream ss ;
+    ss
+       << "[CSGFoundry::descPrimRange" << " solidIdx " << std::setw(2) << solidIdx
+       << " so.primOffset " << std::setw(5) << so.primOffset
+       << " so.numPrim " << std::setw(5) << so.numPrim
+       << "\n"
+       << dr
+       << "\n"
+       << "]CSGFoundry::descPrimRange" << " solidIdx " << std::setw(2) << solidIdx
+       << "\n"
+       ;
+
+    std::string str = ss.str() ;
+    return str ;
+}
+
+
+std::string CSGFoundry::comparePrimRange(int solidIdx, const SMeshGroup* mg) const
+{
+    const CSGSolid& so = solid[solidIdx];
+    std::stringstream ss ;
+    ss
+       << "[CSGFoundry::comparePrimRange" << " solidIdx " << std::setw(2) << solidIdx
+       << " so.primOffset " << std::setw(5) << so.primOffset
+       << " so.numPrim " << std::setw(5) << so.numPrim
+       << " mg " << ( mg ? "YES" : "NO " )
+       << "\n"
+       ;
+
+    ss << CSGPrim::DescRange(prim.data(), so.primOffset, so.numPrim, &meshname, mg );
+
+    ss << "]CSGFoundry::comparePrimRange" << " solidIdx " << std::setw(2) << solidIdx
+       << "\n"
+       ;
+
+    std::string str = ss.str() ;
+    return str ;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2792,6 +2874,18 @@ Relevant envvars : CFBASE and GEOM
 )" ;
 const char* CSGFoundry::LoadFailNotes(){ return load_FAIL_base_null_NOTES ; } // static
 
+/**
+CSGFoundry::load
+------------------
+
+1. requires non-null base_ directory
+2. asserts that conventional rel directory of CSGFoundry is used
+3. records the resolved cfbase
+4. invokes load of "<cfbase>/CSGFoundry" directory
+
+**/
+
+
 void CSGFoundry::load(const char* base_, const char* rel)
 {
     LOG_IF(error, base_ == nullptr) << load_FAIL_base_null_NOTES ;
@@ -2835,9 +2929,10 @@ std::string CSGFoundry::descBase() const
     const char* cfb = getCFBase();
     const char* ocfb = getOriginCFBase();
     std::stringstream ss ;
-    ss << "CSGFoundry.descBase " << std::endl
-       << " CFBase       " << ( cfb ? cfb : "-" ) << std::endl
-       << " OriginCFBase " << ( ocfb ? ocfb : "-" ) << std::endl
+    ss << "[CSGFoundry.descBase \n"
+       << " CFBase       " << ( cfb ? cfb : "-" ) << "\n"
+       << " OriginCFBase " << ( ocfb ? ocfb : "-" ) << "\n"
+       << "]CSGFoundry.descBase \n"
        ;
     return ss.str();
 }
@@ -3053,7 +3148,10 @@ CSGFoundry* CSGFoundry::Load() // static
 
     SGeoConfig::GeometrySpecificSetup(src->id);
 
+    // convert ELV envvar with include/exclude names into bitset indicating selected lvid using the list of names
     const SBitSet* elv = SGeoConfig::ELV(src->id);
+
+    // use the bitset to partially copy geometry
     CSGFoundry* dst = elv ? CSGFoundry::CopySelect(src, elv) : src  ;
 
 
@@ -3073,7 +3171,7 @@ CSGFoundry* CSGFoundry::Load() // static
     }
 
 
-    AfterLoadOrCreate();
+    //AfterLoadOrCreate();  // TRY TO REPLACE WITH SSim::afterLoadOrCreate
 
     LOG(LEVEL) << "] argumentless " ;
     SProf::Add("CSGFoundry__Load_TAIL");
@@ -3284,6 +3382,8 @@ void CSGFoundry::upload()
 
     assert( tran.size() == itra.size() );
 
+
+#ifdef WITH_CUDA
     bool is_uploaded_0 = isUploaded();
     LOG_IF(fatal, is_uploaded_0) << "HAVE ALREADY UPLOADED : THIS CANNOT BE DONE MORE THAN ONCE " ;
     assert(is_uploaded_0 == false);
@@ -3297,6 +3397,11 @@ void CSGFoundry::upload()
     bool is_uploaded_1 = isUploaded();
     LOG_IF(fatal, !is_uploaded_1) << "FAILED TO UPLOAD" ;
     assert(is_uploaded_1 == true);
+#else
+    LOG(fatal) << " COMPILATION WITH_CUDA required to upload " ;
+    std::exit(1);
+#endif
+
 }
 
 bool CSGFoundry::isUploaded() const
@@ -3420,6 +3525,7 @@ std::string CSGFoundry::descGAS() const
 
 
 
+
 /**
 CSGFoundry::parseMOI
 -------------------------
@@ -3445,6 +3551,8 @@ const char* CSGFoundry::getName(unsigned midx) const
 {
     return id->getName(midx);
 }
+
+
 
 
 /**
@@ -3492,27 +3600,61 @@ Grab these from remote with::
 )" ;
 
 
-sframe CSGFoundry::getFrame() const
+sframe CSGFoundry::getFrame() const // TODO: MIGRATE TO sfr.h
 {
     const char* moi_or_iidx = ssys::getenvvar("MOI",sframe::DEFAULT_FRS); // DEFAULT_FRS "-1"
     return getFrame(moi_or_iidx);
 }
-sframe CSGFoundry::getFrame(const char* frs) const
+
+/**
+CSGFoundry::getFrame
+--------------------
+
+The FRAME_TRANSITION starts moving away from sframe by
+switching to stree::getFrame to provide sfr which is used to
+populate the sframe
+
+Currently sframe::populate lacks handling of the grid metadata
+needed for simtrace. Actually seems that metadata not much used and
+anyhow if it was needed could include into the genstep metadata.
+
+**/
+
+
+sframe CSGFoundry::getFrame(const char* q_spec) const //  TODO: MIGRATE TO sfr.h
 {
     sframe fr = {} ;
-    int rc = getFrame(fr, frs ? frs : sframe::DEFAULT_FRS );
-    LOG_IF(error, rc != 0) << " frs " << frs << std::endl << getFrame_NOTES ;
-    if(rc != 0) std::raise(SIGINT);
 
+#ifdef FRAME_TRANSITION
+    stree* tree = getTree();
+    assert(tree);
+    sfr f = tree->get_frame(q_spec);
+    fr.populate(f);
+#else
+    const char* arg = frs ? frs : sframe::DEFAULT_FRS ;
+    int rc = getFrame(fr, arg );
+    LOG_IF(error, rc != 0) << " arg" << arg << std::endl << getFrame_NOTES ;
+    if(rc != 0) std::raise(SIGINT);
+#endif
     fr.prepare();  // creates Tran<double>
+
     return fr ;
 }
 
 
 
+#ifndef FRAME_TRANSITION
+
 /**
 CSGFoundry::getFrame
 ---------------------
+
+
+FRAME_TRANSITION SEEKS TO ELIMINATE THIS
+
+
+
+
 
 frs
     frame specification string is regarded to "looks_like_moi" when
@@ -3535,11 +3677,19 @@ Q: is indexing by MOI and inst_idx equivalent ? OR: Can a MOI be converted into 
 
 TODO : AVOID DUPLICATION BETWEEN THIS AND stree::get_frame
 
+
+looks_like_raw:true
+    frs contains "," delimiting center_extent CE values eg::
+
+         MOI=0.000,0.000,18935.000,1435.000 FULLSCREEN=0 cxr_min.sh
+
+
 **/
 
 
 
-int CSGFoundry::getFrame(sframe& fr, const char* frs ) const
+
+int CSGFoundry::getFrame(sframe& fr, const char* frs ) const  //  TODO: MIGRATE TO sfr.h
 {
 
     bool VERBOSE = ssys::getenvbool(getFrame_VERBOSE) ;
@@ -3547,6 +3697,7 @@ int CSGFoundry::getFrame(sframe& fr, const char* frs ) const
 
     int rc = 0 ;
 
+    bool looks_like_axis = sstr::StartsWith(frs,stree::AXIS_PFX) ;
     bool looks_like_raw = strstr(frs,",") ;
     bool looks_like_moi = sstr::StartsWithLetterAZaz(frs) || strstr(frs, ":") || strcmp(frs,"-1") == 0 ;
 
@@ -3557,7 +3708,17 @@ int CSGFoundry::getFrame(sframe& fr, const char* frs ) const
         << " looks_like_raw " << ( looks_like_raw ? "YES" : "NO " )
         ;
 
-    if(looks_like_raw)
+    if(looks_like_axis)
+    {
+        // ASSERTS WITHOUT THIS FROM TOO MANY ELEM IN PopulateFromRaw
+        // BUT SUSPECT THE sframe NOT REALLY USED
+        //
+        // ABOVE IS NOT TRUE, THE PERSISTED sframe STILL USED FROM CSGOptiX/cxt_min.py for simtrace plotting
+        // SO STILL MUST DO THINGS IN DUPLICATE
+        sfr lf = sfr::MakeFromAxis<float>(frs + strlen(stree::AXIS_PFX), ',');
+        fr.populate(lf);
+    }
+    else if(looks_like_raw)
     {
         rc = sframe::PopulateFromRaw(fr, frs, ',' );
     }
@@ -3579,13 +3740,6 @@ int CSGFoundry::getFrame(sframe& fr, const char* frs ) const
             << " rc " << rc
             ;
 
-        LOG_IF(info, VERBOSE)
-            << "[" << getFrame_VERBOSE << "] " << ( VERBOSE ? "YES" : "NO " )
-            << "[fr.desc\n"
-            << fr.desc()
-            << "]fr.desc\n"
-            ;
-
     }
     else
     {
@@ -3604,11 +3758,19 @@ int CSGFoundry::getFrame(sframe& fr, const char* frs ) const
     fr.set_propagate_epsilon( SEventConfig::PropagateEpsilon() );
     fr.frs = strdup(frs);
     fr.prepare();  // needed for spawn_lite to work
-    // LOG(LEVEL) << " fr " << fr ;    // no grid has been set at this stage, just ce,m2w,w2m
+
+    LOG_IF(info, VERBOSE)
+        << "[" << getFrame_VERBOSE << "] " << ( VERBOSE ? "YES" : "NO " )
+        << "[fr.desc\n"
+        << fr.desc()
+        << "]fr.desc\n"
+        ;
 
     LOG_IF(error, rc != 0) << "Failed to lookup frame with frs [" << frs << "] looks_like_moi " << looks_like_moi  ;
     return rc ;
 }
+#endif
+
 
 int CSGFoundry::getFrame(sframe& fr, int inst_idx) const
 {
@@ -3637,8 +3799,9 @@ int CSGFoundry::getFrame(sframe& fr, int midx, int mord, int gord) const
     int rc = 0 ;
     if( midx == -1 )
     {
+        unsigned ias_idx = 0 ; // only one IAS
         unsigned long long emm = 0ull ;   // hmm instance var ?
-        iasCE(fr.ce, emm);
+        iasCE(fr.ce, ias_idx, emm);
     }
     else
     {
@@ -3727,40 +3890,45 @@ sframe CSGFoundry::getFrameE() const
 CSGFoundry::AfterLoadOrCreate
 -------------------------------
 
-Called from some high level methods eg: CSGFoundry::Load
+Called from CSGFoundry::Load
 
 The idea behind this is to auto connect SEvt with the frame
 from the geometry.
 
 HMM: not called after Create, see CSGOptiX::initFrame
 
+
+Formerly frame mechanics had to be done up here at CSGFoundry level
+due to the need for geometry info to form the frame from envvar config.
+But after stree.h improvements there is no reason not to do within SSim+stree
+
+TODO: reposition SEvt prep into SSim::AfterLoadOrCreate and sframe/sfr prep into stree::AfterLoadOrCreate ?
+
+
+
+Trying to progress with FRAME_TRANSITION by replacing the old
+CSGFoundry::AfterLoadOrCreate with SSim::afterLoadOrCreate
+
+
 **/
 
 void CSGFoundry::AfterLoadOrCreate() // static
 {
+    assert(0 && "DONT USE THIS : THIS PREP DONE BY SSim::afterLoadOrCreate " );
+
     CSGFoundry* fd = CSGFoundry::Get();
-
-    SEvt::CreateOrReuse() ;   // creates 1/2 SEvt depending on OPTICKS_INTEGRATION_MODE
-
     if(!fd) return ;
 
-    sframe fr = fd->getFrameE() ;
+#ifdef WITH_OLD_FRAME
+    SEvt::CreateOrReuse() ;   // creates 1/2 SEvt depending on OPTICKS_INTEGRATION_MODE
 
+    sframe fr = fd->getFrameE() ;
     LOG(LEVEL) << fr ;
     SEvt::SetFrame(fr); // now only needs to be done once to transform input photons
+#endif
+
 }
 
-
-/**
-TODO CSGFoundry::flatIdxToMOI ?
----------------------------------
-
-Method to convert the flat global inst_idx into a more informative MOI mname:mord:gas_iidx
-that is likely to last longer before changing its meaning
-(although there can be several CSGPrim within the GAS inst_idx could simply use the first
-which should be the outer one)
-
-**/
 
 
 /**
@@ -3814,7 +3982,6 @@ int CSGFoundry::getTransform(qat4& q, int midx, int mord, int gord) const
 {
     return target->getTransform(q, midx, mord, gord);
 }
-
 
 
 /**
