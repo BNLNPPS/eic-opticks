@@ -137,6 +137,7 @@ EIC-Opticks provides several examples demonstrating GPU-accelerated optical phot
 | `GPURaytrace` | Cerenkov + Scintillation | 8x8 CsI crystal + SiPM array | Realistic detector simulation |
 | `GPUPhotonSource` | Optical photons (torch) | Any GDML | G4 + GPU side-by-side validation |
 | `GPUPhotonSourceMinimal` | Optical photons (torch) | Any GDML | GPU-only test |
+| `GPUPhotonFileSource` | Optical photons (text file) | Any GDML | GPU-only, user-defined photons from file |
 
 ### Example 1: GPUCerenkov (Cerenkov Only)
 
@@ -246,6 +247,39 @@ GPUPhotonSourceMinimal -g tests/geom/opticks_raindrop.gdml -c dev -m run.mac -s 
 
 **Source files:** `src/GPUPhotonSourceMinimal.cpp`, `src/GPUPhotonSourceMinimal.h`
 
+### Example 5: GPUPhotonFileSource (File Input, GPU-Only)
+
+`GPUPhotonFileSource` reads optical photons from a plain text file and runs
+GPU-only simulation via eic-opticks. Each line in the input file defines one
+photon with 11 space-separated values:
+
+```
+# pos_x pos_y pos_z time mom_x mom_y mom_z pol_x pol_y pol_z wavelength
+-10.0 -30.0 -90.0  0.0  0.0 0.287348 0.957826  1.0 0.0 0.0  420.0
+-10.0 -30.0 -90.0  0.0  0.0 0.287348 0.957826  1.0 0.0 0.0  450.0
+```
+
+- Positions are in mm, time in ns, wavelength in nm
+- Momentum direction should be normalized
+- Polarization should be transverse to momentum and normalized
+- Lines starting with `#` are comments and blank lines are skipped
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `-g, --gdml` | Path to GDML file | `geom.gdml` |
+| `-p, --photons` | Path to input photon text file | (required) |
+| `-m, --macro` | Path to G4 macro | `run.mac` |
+| `-i, --interactive` | Open interactive viewer | off |
+| `-s, --seed` | Fixed random seed | time-based |
+
+```bash
+GPUPhotonFileSource -g tests/geom/opticks_raindrop.gdml -p my_photons.txt -m run.mac
+```
+
+**Output:** `opticks_hits_output.txt` — one hit per line
+
+**Source files:** `src/GPUPhotonFileSource.cpp`, `src/GPUPhotonFileSource.h`
+
 ### Torch configuration
 
 `GPUPhotonSource` and `GPUPhotonSourceMinimal` read photon source parameters from a
@@ -262,20 +296,23 @@ JSON config file (default `config/dev.json`). Key fields:
 
 ### Code Differences
 
-| Feature | GPUCerenkov | GPURaytrace | GPUPhotonSource | GPUPhotonSourceMinimal |
-|---------|-------------|-------------|-----------------|----------------------|
-| Cerenkov genstep collection | ✓ | ✓ | ✗ | ✗ |
-| Scintillation genstep collection | ✗ | ✓ | ✗ | ✗ |
-| Torch photon generation | ✗ | ✗ | ✓ | ✓ |
-| G4 optical photon tracking | ✓ | ✓ | ✓ | ✗ |
-| GPU simulation (eic-opticks) | ✓ | ✓ | ✓ | ✓ |
-| Multi-threaded | ✓ | ✓ | ✗ | ✗ |
+| Feature | GPUCerenkov | GPURaytrace | GPUPhotonSource | GPUPhotonSourceMinimal | GPUPhotonFileSource |
+|---------|-------------|-------------|-----------------|----------------------|---------------------|
+| Cerenkov genstep collection | ✓ | ✓ | ✗ | ✗ | ✗ |
+| Scintillation genstep collection | ✗ | ✓ | ✗ | ✗ | ✗ |
+| Torch photon generation | ✗ | ✗ | ✓ | ✓ | ✗ |
+| Photon input from text file | ✗ | ✗ | ✗ | ✗ | ✓ |
+| G4 optical photon tracking | ✓ | ✓ | ✓ | ✗ | ✗ |
+| GPU simulation (eic-opticks) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Multi-threaded | ✓ | ✓ | ✗ | ✗ | ✗ |
 
 `GPUCerenkov` and `GPURaytrace` collect gensteps from charged particle interactions and
 pass them to eic-opticks for GPU photon generation and tracing. `GPUPhotonSource` and
 `GPUPhotonSourceMinimal` instead generate photons directly from a torch configuration.
 `GPUPhotonSource` runs both G4 and GPU tracking for validation, while
 `GPUPhotonSourceMinimal` skips G4 tracking entirely for a lean simplistic code so showcase what is needed for GPU only.
+`GPUPhotonFileSource` reads photons from a user-provided text file, enabling custom photon
+distributions without code changes.
 
 
 ### GDML Scintillation Properties for Geant4 11.x + eic-opticks
