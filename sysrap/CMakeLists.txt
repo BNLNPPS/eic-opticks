@@ -683,6 +683,7 @@ target_compile_definitions( ${name}
 
       OPTICKS_SYSRAP 
       WITH_CHILD
+      WITH_CUDA
       PLOG_LOCAL
       RNG_PHILOX
 
