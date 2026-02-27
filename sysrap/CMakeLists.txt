@@ -106,6 +106,7 @@ set(SOURCES
     OpticksPhoton.cc
 
     SU.cu 
+    SPM.cu
 
     SEventConfig.cc
     SFrameConfig.cc
