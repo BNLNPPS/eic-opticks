@@ -64,6 +64,14 @@ target_include_directories(GPUPhotonSourceMinimal PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
 )
 
+# GPUPhotonFileSource - reads photons from .npy file instead of torch generation
+add_executable(GPUPhotonFileSource GPUPhotonFileSource.cpp GPUPhotonFileSource.h)
+target_link_libraries(GPUPhotonFileSource gphox)
+target_include_directories(GPUPhotonFileSource PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+)
+
 # simtox creates a numpy file with initial photons for simulation
 add_executable(simtox simtox.cpp)
 
@@ -74,7 +82,7 @@ target_include_directories(simtox PRIVATE
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
 )
 
-install(TARGETS consgeo simg4ox GPUCerenkov GPURaytrace GPUPhotonSource GPUPhotonSourceMinimal simtox gphox
+install(TARGETS consgeo simg4ox GPUCerenkov GPURaytrace GPUPhotonSource GPUPhotonSourceMinimal GPUPhotonFileSource simtox gphox
     EXPORT ${PROJECT_NAME}Targets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
