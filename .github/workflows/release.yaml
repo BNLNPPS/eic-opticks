@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - '*'
+      - 'v*'
 
 jobs:
 
@@ -31,7 +31,7 @@ jobs:
       - name: Define environment variables
         run: |
           echo IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
-          echo IMAGE_TAG=$(echo "${{ github.ref_name }}-${{ matrix.cuda_version }}-${{ matrix.target }}-${{ matrix.os }}") >> $GITHUB_ENV
+          echo IMAGE_TAG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')-${{ matrix.cuda_version }}-${{ matrix.target }}-${{ matrix.os }} >> $GITHUB_ENV
 
       - name: Checkout code
         uses: actions/checkout@v4
