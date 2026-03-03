@@ -3,25 +3,27 @@
 sphoton.h
 ============
 
-+----+----------------+----------------+----------------+----------------+------------------------------+
-| q  |      x         |      y         |     z          |      w         |  notes                       |
-+====+================+================+================+================+==============================+
-|    |  pos.x         |  pos.y         |  pos.z         |  time          |                              |
-| q0 |                |                |                |                |                              |
-|    |                |                |                |                |                              |
-+----+----------------+----------------+----------------+----------------+------------------------------+
-|    |  mom.x         |  mom.y         | mom.z          |  orient_iindex | orient:1bit iindex:31 bit    |
-| q1 |                |                |                | (unsigned)     |                              |
-|    |                |                |                | (1,3)          | (1,3) formerly iindex        |
-+----+----------------+----------------+----------------+----------------+------------------------------+
-|    |  pol.x         |  pol.y         |  pol.z         |  wavelength    |                              |
-| q2 |                |                |                |                |                              |
-|    |                |                |                |                |                              |
-+----+----------------+----------------+----------------+----------------+------------------------------+
-|    | boundary_flag  |  identity      |  index         |  flagmask      |  (unsigned)                  |
-| q3 |                |                |                |                |                              |
-|    | (3,0)          |  (3,1)         |  (3,2)         |  (3,3)         | (3,2) formerly orient_idx    |
-+----+----------------+----------------+----------------+----------------+------------------------------+
++----+-------------------------+------------------+-----------------+---------------------+------------------------------+
+| q  |               x         |        y         |      z          |           w         |  notes                       |
++====+=========================+==================+=================+=====================+==============================+
+|    |           pos.x         |    pos.y         |   pos.z         |       time          |                              |
+| q0 |                         |                  |                 |                     |                              |
+|    |                         |                  |                 |                     |                              |
++----+-------------------------+------------------+-----------------+---------------------+------------------------------+
+|    |           mom.x         |    mom.y         |  mom.z          |   u:hitcount_iindex |                              |
+| q1 |                         |                  |                 |      16b       16b  |                              |
+|    |                         |                  |                 | (1,3)               |                              |
++----+-------------------------+------------------+-----------------+---------------------+------------------------------+
+|    |           pol.x         |    pol.y         |   pol.z         |       wavelength    |                              |
+| q2 |                         |                  |                 |                     |                              |
+|    |                         |                  |                 |                     |                              |
++----+-------------------------+------------------+-----------------+---------------------+------------------------------+
+|    | u:orient_boundary_flag  |  u:identity      | u:index         |     u:flagmask      |                              |
+| q3 |    1b     15b      16b  |    8b 24b        |                 |                     |                              |
+|    |                         |  8b:extend index |                 |                     |                              |
+|    | (3,0)                   | (3,1)            | (3,2)           | (3,3)               |                              |
++----+-------------------------+------------------+-----------------+---------------------+------------------------------+
+
 
 
 iindex
@@ -39,6 +41,8 @@ iindex
 
 
 
+hitcount (16 bit)
+    WIP:use for thrust based hit merging, unclear where best to set it
 
 boundary (16 bit)
     boundary index of intersected geometry
@@ -131,33 +135,6 @@ See ana/p.py for python accessors such as::
 
 
 
-POSSIBLE FLAGS REARRANGEMENT
-------------------------------
-
-::
-
-    unsigned idx ;
-    unsigned orient_identity ;
-    unsigned boundary_flag ;
-    unsigned flagmask ;
-
-idx always exists for a photon,
-BUT: orient is only set on intersects together with boundary and identity
-(plus flag but that is also be set when no intersect)
-
-SO IT WOULD BE BETTER TO HAVE orient_identity and idx alone if identity can spare one bit ?
-
-    identity = (( prim_idx & 0xffff ) << 16 ) | ( instance_id & 0xffff ) ;
-
-JUNO max prim_idx ~3245 : so thats OK
-
-    In [1]: 0xffff
-    Out[1]: 65535
-
-    In [2]: 0x7fff
-    Out[2]: 32767
-
-
 **/
 
 
@@ -188,44 +165,57 @@ JUNO max prim_idx ~3245 : so thats OK
    struct NP ;
 #endif
 
+
+// set_orient_iindex removed
+
 struct sphoton
 {
-    float3 pos ;        // 0
+#if defined(__CUDACC__) || defined(__CUDABE__)
+#else
+    static constexpr const char* NAME = "sphoton" ;
+#endif
+
+
+    float3 pos ;        // 0th quad
     float  time ;
 
-    float3 mom ;        // 1
-    unsigned orient_iindex ;   //  ii = t.record[:,:,1,3].view(np.uint32) & 0x7fffffff
+    float3 mom ;        // 1st quad
+    unsigned hitcount_iindex ;   // hi16:hitcount, lo16:iindex
 
-    float3 pol ;         // 2
+    float3 pol ;        // 2nd quad
     float  wavelength ;
 
-    unsigned boundary_flag ;  // 3
-    unsigned identity ;       // [:,3,1]
-    unsigned index ;          // formerly *orient_idx* : changed to *index* when orient moved to (1,3)
-    unsigned flagmask ;
+                        // 3rd quad
+    unsigned orient_boundary_flag ;  // hi(1,15):(orient,boundary), lo16:flag
+    unsigned identity ;              // hi8  extend range of index, lo24:identity
+    unsigned index ;                 // lower 32 bits of the full index (extended into identity)
+    unsigned flagmask ;              // full32 for flagmask
 
     SPHOTON_METHOD void set_prd( unsigned  boundary, unsigned  identity, float  orient, unsigned iindex );
 
+    // hitcount starts as 1, hmm when to do that ?
+    SPHOTON_METHOD void set_hitcount_one_iindex( unsigned ii ){ hitcount_iindex = (                   0x00010000u ) | (( 0x0000ffffu & ii ) << 0 ); }
+    SPHOTON_METHOD void set_iindex__( unsigned ii ){            hitcount_iindex = ( hitcount_iindex & 0xffff0000u ) | (( 0x0000ffffu & ii ) << 0 ); }
+    SPHOTON_METHOD void set_hitcount( unsigned hc ){            hitcount_iindex = ( hitcount_iindex & 0x0000ffffu ) | (( 0x0000ffffu & hc ) << 16); }
 
-    SPHOTON_METHOD unsigned iindex() const {   return ( orient_iindex & 0x7fffffffu ) ;  }
-    SPHOTON_METHOD float    orient() const {   return ( orient_iindex & 0x80000000u ) ? -1.f : 1.f ; }
+    SPHOTON_METHOD unsigned iindex()   const {                 return ( hitcount_iindex & 0x0000ffffu ) >> 0  ; }
+    SPHOTON_METHOD unsigned hitcount() const {                 return ( hitcount_iindex & 0xffff0000u ) >> 16 ; }
 
-    SPHOTON_METHOD void set_orient(float orient){ orient_iindex = ( orient_iindex & 0x7fffffffu ) | (( orient < 0.f ? 0x1 : 0x0 ) << 31 ) ; } // clear orient bit and then set it
-    SPHOTON_METHOD void set_iindex(unsigned ii ){ orient_iindex = ( orient_iindex & 0x80000000u ) | ( 0x7fffffffu & ii ) ; }   // retain bit 31 asis
-    SPHOTON_METHOD void set_orient_iindex( float orient, unsigned ii ){ orient_iindex = (( orient < 0.f ? 0x1 : 0x0 ) << 31 ) | ( 0x7fffffffu & ii ) ; }
+    SPHOTON_METHOD unsigned flag() const {     return (orient_boundary_flag & 0x0000ffffu) >>  0 ; } // flag___     = lambda p:(p.view(np.uint32)[...,3,0] & 0xffff)
+    SPHOTON_METHOD unsigned boundary() const { return (orient_boundary_flag & 0x7fff0000u) >> 16 ; } // boundary___ = lambda p:(p.view(np.uint32)[...,3,0] & 0x7fff0000) >> 16
+    SPHOTON_METHOD float    orient() const {   return (orient_boundary_flag & 0x80000000u) ? -1.f : 1.f ; }
 
-    SPHOTON_METHOD unsigned flag() const {     return boundary_flag & 0xffffu ; } // flag___     = lambda p:p.view(np.uint32)[...,3,0] & 0xffff
-    SPHOTON_METHOD unsigned boundary() const { return boundary_flag >> 16 ; }     // boundary___ = lambda p:p.view(np.uint32)[...,3,0] >> 16
-
-    SPHOTON_METHOD void     set_flag(unsigned flag) {         boundary_flag = ( boundary_flag & 0xffff0000u ) | ( flag & 0xffffu ) ; flagmask |= flag ;  } // clear flag bits then set them
-    SPHOTON_METHOD void     set_boundary(unsigned boundary) { boundary_flag = ( boundary_flag & 0x0000ffffu ) | (( boundary & 0xffffu ) << 16 ) ; }        // clear boundary bits then set them
-
+    // bit manipulation approach of setters: clear bit(s) for flag/boundary/orient and then set them
+    SPHOTON_METHOD void     set_flag(unsigned flag) {         orient_boundary_flag = ( orient_boundary_flag & 0xffff0000u ) | (( flag     & 0xffffu         ) <<  0 ) ; flagmask |= flag ; }
+    SPHOTON_METHOD void     set_boundary(unsigned boundary) { orient_boundary_flag = ( orient_boundary_flag & 0x8000ffffu ) | (( boundary & 0x7fffu         ) << 16 ) ; }
+    SPHOTON_METHOD void     set_orient(float orient){         orient_boundary_flag = ( orient_boundary_flag & 0x7fffffffu ) | (( orient < 0.f ? 0x1u : 0x0u ) << 31 ) ; }
 
 
+    SPHOTON_METHOD void     set_flagmask(unsigned _flagmask) { flagmask = _flagmask ; }
     SPHOTON_METHOD void     addto_flagmask(unsigned flag) { flagmask |=  flag ; }
     SPHOTON_METHOD void     scrub_flagmask(unsigned flag) { flagmask &= ~flag ; }
 
-    SPHOTON_METHOD void zero_flags() { boundary_flag = 0u ; identity = 0u ; index = 0u ; flagmask = 0u ; orient_iindex = 0u ; }
+    SPHOTON_METHOD void zero_flags() { orient_boundary_flag = 0u ; identity = 0u ; index = 0u ; flagmask = 0u ; hitcount_iindex = 0u ; }
 
     SPHOTON_METHOD float* data() {               return &pos.x ; }
     SPHOTON_METHOD const float* cdata() const {  return &pos.x ; }
@@ -240,23 +230,81 @@ struct sphoton
         identity = ( static_cast<unsigned>((full_index >> 32) & 0xffu      ) << 24 ) | ( identity & 0xffffffu ) ;
     }
     SPHOTON_METHOD uint64_t get_index() const {  return (static_cast<uint64_t>(identity >> 24) << 32) | static_cast<uint64_t>(index); }
-    //SPHOTON_METHOD unsigned idx() const {      return index ;  }
 
 
-    SPHOTON_METHOD void     set_identity(unsigned id) { identity = ( identity & 0xff000000u ) | ( id & 0xffffffu ); }   // Preserve upper 8 bits of identity
-    SPHOTON_METHOD unsigned get_identity() const { return identity & 0xffffffu ; }
-
-
-
+    // upper 8 bits of identity field used to extend range of index beyond 4.29 billion
+    SPHOTON_METHOD void     set_identity(unsigned id) { identity = ( identity & 0xff000000u ) | ( id & 0x00ffffffu ); }
+    SPHOTON_METHOD unsigned get_identity() const {            return identity & 0x00ffffffu ; }
+    SPHOTON_METHOD unsigned pmtid() const
+    {
+        unsigned id = get_identity() ;
+        return id == 0 ? 0xffffffffu : id - 1 ;    // id:0 means not-a-sensor
+    }
 
 
     SPHOTON_METHOD void zero()
     {
        pos.x = 0.f ; pos.y = 0.f ; pos.z = 0.f ; time = 0.f ;
-       mom.x = 0.f ; mom.y = 0.f ; mom.z = 0.f ; orient_iindex = 0u ;
+       mom.x = 0.f ; mom.y = 0.f ; mom.z = 0.f ; hitcount_iindex = 0u ;
        pol.x = 0.f ; pol.y = 0.f ; pol.z = 0.f ; wavelength = 0.f ;
-       boundary_flag = 0u ; identity = 0u ; index = 0u ; flagmask = 0u ;
+       orient_boundary_flag = 0u ; identity = 0u ; index = 0u ; flagmask = 0u ;
     }
+
+#ifdef WITH_LOCALIZE
+    template<typename T>
+    SPHOTON_METHOD void localize(sphoton& l, const glm::tmat4x4<T>& tr, bool normalize) const
+    {
+        // promote float->T for transform then T->float for storage
+        glm::tvec4<T> p_pos(pos.x, pos.y, pos.z, T(1.f));
+        glm::tvec4<T> l_pos = tr * p_pos;
+        l.pos = make_float3(l_pos.x, l_pos.y, l_pos.z);
+
+        glm::tvec4<T> p_mom(mom.x, mom.y, mom.z, T(0.f));
+        glm::tvec4<T> l_mom_ = tr * p_mom;
+        glm::tvec3<T> l_mom(l_mom_);
+        if(normalize) l_mom = glm::normalize(l_mom);
+        l.mom = make_float3(l_mom.x, l_mom.y, l_mom.z);
+
+        glm::tvec4<T> p_pol(pol.x, pol.y, pol.z, T(0.f));
+        glm::tvec4<T> l_pol_ = tr * p_pol;
+        glm::tvec3<T> l_pol(l_pol_);
+        if(normalize) l_pol = glm::normalize(l_pol);
+        l.pol = make_float3(l_pol.x, l_pol.y, l_pol.z);
+    }
+#endif
+
+
+    struct key_functor
+    {
+        float    tw;
+        SPHOTON_METHOD uint64_t operator()(const sphoton& p) const
+        {
+            unsigned id = p.get_identity() ;
+            unsigned bucket = static_cast<unsigned>(p.time / tw);
+            return (uint64_t(id) << 48) | uint64_t(bucket);
+        }
+    };
+
+    struct reduce_op
+    {
+        SPHOTON_METHOD sphoton operator()(const sphoton& a, const sphoton& b) const
+        {
+            bool a_first = fminf(a.time, b.time) == a.time ;
+            sphoton r   = a_first ? a : b ;
+            r.flagmask  = a.flagmask | b.flagmask ;     // combined flagmask OR first flagmask ?
+            r.set_hitcount( a.hitcount() + b.hitcount() );
+            return r;
+        }
+    };
+
+    struct select_pred
+    {
+        unsigned mask;
+        SPHOTON_METHOD bool operator()(const sphoton& p) const { return (p.flagmask & mask) != 0; }
+    };
+
+
+
 
 #if defined(__CUDACC__) || defined(__CUDABE__)
 #else
@@ -283,7 +331,9 @@ struct sphoton
     SPHOTON_METHOD void transverse_mom_pol();
     SPHOTON_METHOD void set_polarization(float frac_twopi);
     SPHOTON_METHOD static sphoton make_ephoton();
-    SPHOTON_METHOD static NP* make_ephoton_array(int num_photon);
+    SPHOTON_METHOD static NP* make_ephoton_array(size_t num_photon);
+    SPHOTON_METHOD static NP* zeros(size_t num_photon) ;
+    SPHOTON_METHOD static NP* demoarray(size_t num_photon);
     SPHOTON_METHOD std::string digest(unsigned numval=16) const  ;
     SPHOTON_METHOD static bool digest_match( const sphoton& a, const sphoton& b, unsigned numval=16 ) ;
 
@@ -296,6 +346,8 @@ struct sphoton
 
     SPHOTON_METHOD static void MinMaxPost( float* mn, float* mx, const NP* a, bool skip_flagmask_zero );
     SPHOTON_METHOD static std::string DescMinMaxPost( const NP* _a, bool skip_flagmask_zero );
+    SPHOTON_METHOD static std::string Desc(const NP* a, size_t edge=20);
+    SPHOTON_METHOD static NP* MockupForMergeTest(size_t ni);
 
     template<typename T>
     SPHOTON_METHOD static bool IsPhotonArray( const NP* a );
@@ -306,9 +358,18 @@ struct sphoton
     SPHOTON_METHOD void transform(       const glm::tmat4x4<double>& tr, bool normalize=true );
 
     SPHOTON_METHOD void populate_simtrace_input( quad4& q ) const ;
+
+    SPHOTON_METHOD float get_cost() const ;
+    SPHOTON_METHOD float get_fphi() const ;
+    SPHOTON_METHOD void set_lpos(float lposcost, float lposfphi); // FOR TEMPLATE COMPATIBILITY WITH sphotonlite used only in tests
+
+    SPHOTON_METHOD static size_t GetIndexBeyondCursorContiguousIIndex( const sphoton* pp, size_t num, size_t cursor=0 );
+    SPHOTON_METHOD static void   GetContiguousIIndexStartIndices( std::vector<size_t>& starts, const sphoton* pp, size_t num );
 #endif
 
 };
+
+
 
 
 
@@ -321,12 +382,12 @@ struct sphotond
     double  time ;
 
     double3 mom ;
-    unsigned long long orient_iindex ;  // formerly float weight, but have never used that
+    unsigned long long hitcount_iindex ;
 
     double3 pol ;
     double  wavelength ;
 
-    unsigned long long boundary_flag ;
+    unsigned long long orient_boundary_flag ;
     unsigned long long identity ;
     unsigned long long index ;
     unsigned long long flagmask ;
@@ -354,14 +415,14 @@ SPHOTON_METHOD void sphotond::FromFloat( sphotond& d, const sphoton& s )
     d.mom.x = double(s.mom.x) ;
     d.mom.y = double(s.mom.y) ;
     d.mom.z = double(s.mom.z) ;
-    d.orient_iindex = ull(s.orient_iindex) ;
+    d.hitcount_iindex = ull(s.hitcount_iindex) ;
 
     d.pol.x = double(s.pol.x) ;
     d.pol.y = double(s.pol.y) ;
     d.pol.z = double(s.pol.z) ;
     d.wavelength  = double(s.wavelength) ;
 
-    d.boundary_flag = ull(s.boundary_flag) ;
+    d.orient_boundary_flag = ull(s.orient_boundary_flag) ;
     d.identity      = ull(s.identity) ;
     d.index         = ull(s.index) ;
     d.flagmask      = ull(s.flagmask) ;
@@ -421,8 +482,9 @@ See ~/opticks/notes/issues/sensor_identifier_offset_by_one_wrinkle.rst
 SPHOTON_METHOD void sphoton::set_prd( unsigned  boundary_, unsigned  identity_, float  orient_, unsigned iindex_ )
 {
     set_boundary(boundary_);
-    identity = identity_ ;
-    set_orient_iindex( orient_, iindex_ );
+    set_identity(identity_);  // formerly did identity = identity_ which scrubs hi index bits for huge simulations > 4.29 billion
+    set_orient( orient_ );
+    set_hitcount_one_iindex( iindex_ );
 }
 
 
@@ -435,6 +497,8 @@ SPHOTON_METHOD void sphoton::set_prd( unsigned  boundary_, unsigned  identity_, 
 #include "sdigest.h"
 #include "OpticksPhoton.hh"
 #include "NP.hh"
+
+
 
 SPHOTON_METHOD unsigned sphoton::flagmask_count() const
 {
@@ -529,6 +593,7 @@ SPHOTON_METHOD std::string sphoton::flagmask_() const
 {
     return OpticksPhoton::FlagMaskLabel(flagmask) ;
 }
+
 
 SPHOTON_METHOD std::string sphoton::descFlag() const
 {
@@ -630,14 +695,14 @@ This is called from QSimTest::mock_propagate
 
 **/
 
-SPHOTON_METHOD NP* sphoton::make_ephoton_array(int num_photon) // static
+SPHOTON_METHOD NP* sphoton::make_ephoton_array(size_t num_photon) // static
 {
     sphoton ep ;
     ep.ephoton() ;
 
-    NP* ph = NP::Make<float>(num_photon, 4, 4 );
+    NP* ph = zeros(num_photon);
     sphoton* pp  = (sphoton*)ph->bytes();
-    for(int i=0 ; i < num_photon ; i++)
+    for(size_t i=0 ; i < num_photon ; i++)
     {
         sphoton p = ep  ;  // start from ephoton
         p.pos.y = float(i)*100.f ;
@@ -645,6 +710,46 @@ SPHOTON_METHOD NP* sphoton::make_ephoton_array(int num_photon) // static
     }
     return ph ;
 }
+SPHOTON_METHOD NP* sphoton::zeros(size_t num_photon) // static
+{
+    NP* ph = NP::Make<float>(num_photon, 4, 4 );
+    return ph ;
+}
+
+SPHOTON_METHOD NP* sphoton::demoarray(size_t num_photon) // static
+{
+    NP* ph = zeros(num_photon);
+    sphoton* pp  = (sphoton*)ph->bytes();
+    for(size_t i=0 ; i < num_photon ; i++)
+    {
+        sphoton& p = pp[i] ;
+
+        p.pos = make_float3( 0.1f + i*0.1f, 0.2f + i*0.1f , 0.3f + i*0.1f );
+        p.time = i*0.1f ;
+
+        p.mom = make_float3( 0.1f + i*0.1f, 0.2f + i*0.1f , 0.3f + i*0.1f );
+        p.set_orient( i % 2 == 0 ? 1.f : -1.f );
+        p.set_hitcount_one_iindex( i*1000 );
+
+        p.pol = make_float3( 0.1f + i*0.1f, 0.2f + i*0.1f , 0.3f + i*0.1f );
+        p.wavelength = 400.f + 10.f*i ;
+
+        p.set_boundary( i*10 );
+        p.set_flag( i*100 );
+
+        uint64_t full_index = 0xffffffff + i ;
+        p.set_index( full_index );
+
+        p.set_identity(  i*200 );
+        p.set_flagmask( SURFACE_DETECT | EFFICIENCY_COLLECT );
+
+    }
+    return ph ;
+}
+
+
+
+
 
 
 
@@ -687,15 +792,14 @@ SPHOTON_METHOD float4 sphoton::DeltaMax( const sphoton& a, const sphoton& b )  /
 
 SPHOTON_METHOD bool sphoton::EqualFlags( const sphoton& a, const sphoton& b) // static
 {
-    return a.orient_iindex == b.orient_iindex &&
-           a.boundary_flag == b.boundary_flag &&
+    return a.hitcount_iindex == b.hitcount_iindex &&
+           a.orient_boundary_flag == b.orient_boundary_flag &&
            a.identity == b.identity &&
            a.index == b.index &&
            a.flagmask == b.flagmask
            ;
 
 }
-
 
 
 
@@ -820,6 +924,58 @@ SPHOTON_METHOD std::string sphoton::DescMinMaxPost( const NP* _a, bool skip_flag
     return str ;
 }
 
+SPHOTON_METHOD std::string sphoton::Desc(const NP* a, size_t edge) // static
+{
+    std::stringstream ss ;
+    ss << "[sphoton::Desc a.sstr " << ( a ? a->sstr() : "-" ) << "\n" ;
+    size_t ni = a->num_items();
+    sphoton* pp = (sphoton*)a->bytes();
+    for(size_t i=0 ; i < ni ; i++)
+    {
+        if(i < edge || i > (ni - edge)) ss << std::setw(6) << i << " : " << pp[i].desc() << "\n" ;
+        else if( i == edge )  ss << std::setw(6) << "" << " : " << "..." << "\n" ;
+    }
+
+    std::string str = ss.str() ;
+    return str ;
+}
+
+/**
+sphoton::MockupForMergeTest
+----------------------------
+
+See sutil::unmerge and SPM_test::merge_with_expectation
+for a better way to test merging with known expected result.
+
+**/
+
+
+SPHOTON_METHOD NP* sphoton::MockupForMergeTest(size_t ni) // static
+{
+    NP* a = NP::Make<float>(ni, 4, 4);
+    sphoton* aa = (sphoton*)a->bytes();
+    for(size_t i=0 ; i < ni ; i++)
+    {
+        sphoton& p = aa[i];
+        p.time = float( i % 100 )*0.1f ;
+        p.set_index(i);
+        p.set_identity( i % 100 );
+        p.set_hitcount( 1 );
+        p.flagmask = i % 5 == 0 ? EFFICIENCY_COLLECT : EFFICIENCY_CULL ;
+    }
+    return a ;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 template<typename T>
@@ -873,6 +1029,7 @@ SPHOTON_METHOD void sphoton::ChangeTimeInsitu( NP* a, float t0 )
         }
     }
 }
+
 
 
 
@@ -945,6 +1102,94 @@ SPHOTON_METHOD void sphoton::populate_simtrace_input( quad4& q ) const
 
 
 
+
+SPHOTON_METHOD float sphoton::get_cost() const
+{
+    return normalize_cost(pos);  // scuda.h
+}
+SPHOTON_METHOD float sphoton::get_fphi() const
+{
+    return normalize_fphi(pos);  // scuda.h
+}
+/**
+sphoton::set_lpos USED ONLY IN TESTS [ASSUMES UNIT RADIUS]
+-----------------------------------------------------------
+
+ONLY FOR TEMPLATE COMPATIBILITY WITH sphotonlite::set_lpos
+
+pos [-1,0,0] is problematic
+
+**/
+
+SPHOTON_METHOD void sphoton::set_lpos(float lposcost, float lposfphi)
+{
+    float cost = lposcost < -1.f ? -1.f : (lposcost > 1.f ? 1.f : lposcost);
+    float fphi = lposfphi < 0.f ? 0.f : (lposfphi >= 1.f ? 0.999999f : lposfphi);  // avoid exactly 1.0
+
+    float theta = acosf(cost);
+
+    float phi = (fphi * 2.0f - 1.0f) * M_PIf; // Recover original signed phi in [-π, π)
+
+    float sin_theta = sinf(theta);
+
+    pos.x = sin_theta * cosf(phi);
+    pos.y = sin_theta * sinf(phi);
+    pos.z = cost;
+}
+
+/**
+sphoton::GetIndexBeyondCursorContiguousIIndex
+--------------------------------------------------
+
+The "IIndex" is the instance-index that can be used to
+access a transform for the geometry.
+
+1. get *ii0* iindex at starting *cursor* index
+2. iterate ahead thru photon array until a different iindex is found
+   at which point the index of the new start is returned
+3. if no different iindex is found return num, which is one beyond
+   the highest valid index
+
+**/
+
+
+SPHOTON_METHOD size_t sphoton::GetIndexBeyondCursorContiguousIIndex( const sphoton* pp, size_t num, size_t cursor ) // static
+{
+    assert( cursor < num );
+    unsigned ii0 = pp[cursor].iindex();
+    for(size_t i=cursor+1 ; i < num ; i++)
+    {
+        unsigned ii = pp[i].iindex();
+        if( ii != ii0 ) return i ;
+    }
+    return num ;
+}
+
+/**
+sphoton::GetContiguousIIndexStartIndices
+-------------------------------------------
+
+Note that there is no need an equivalent sphotonlite implementation
+because the localization for sphotonlite is done directly.
+
+**/
+
+SPHOTON_METHOD void sphoton::GetContiguousIIndexStartIndices( std::vector<size_t>& starts, const sphoton* pp, size_t num )
+{
+    size_t cursor = 0 ;
+    starts.push_back(cursor);
+    do
+    {
+        cursor = sphoton::GetIndexBeyondCursorContiguousIIndex(pp, num, cursor );
+        starts.push_back(cursor);
+    }
+    while( cursor < num );
+}
+
+
+
+
+
 #endif
 
 
@@ -962,23 +1207,21 @@ inline std::ostream& operator<<(std::ostream& os, const sphoton& p )
 #endif
 
 
-
+/*
 union qphoton
 {
     quad4   q ;
     sphoton p ;
 };
+*/
 
 
 struct sphoton_selector
 {
-    unsigned hitmask ;
-    sphoton_selector(unsigned hitmask_) : hitmask(hitmask_) {};
+    uint32_t hitmask ;
+    sphoton_selector(uint32_t hitmask_) : hitmask(hitmask_) {};
     SPHOTON_METHOD bool operator() (const sphoton& p) const { return ( p.flagmask  & hitmask ) == hitmask  ; }   // require all bits of the mask to be set
     SPHOTON_METHOD bool operator() (const sphoton* p) const { return ( p->flagmask & hitmask ) == hitmask  ; }   // require all bits of the mask to be set
 };
-
-
-
 
 

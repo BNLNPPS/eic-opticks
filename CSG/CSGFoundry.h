@@ -10,6 +10,7 @@ struct NP ;
 struct SSim ;
 struct stree ;
 struct SScene ;
+struct SMeshGroup ;
 
 #include "scuda.h"
 #include "squad.h"
@@ -19,8 +20,9 @@ struct SScene ;
 #include "SGeo.hh"
 
 struct sframe ;
-struct SName ;
 struct CSGTarget ;
+
+struct SName ;
 struct CSGMaker ;
 struct CSGImport ;
 
@@ -35,6 +37,10 @@ struct CSGImport ;
 /**
 CSGFoundry
 ============
+
+The purpose of CSGFoundry is to hold the subset of geometry info that is
+needed on GPU in a form suitable for giving to OptiX.
+
 
 ::
 
@@ -82,10 +88,26 @@ plan
     array of float4 planes
 
 
+
+TODO: Remove WITH_SGEO SGeo pure virtual base struct
+-----------------------------------------------------
+
+The SGeo base enables holding pointer to CSGFoundry within SEvt
+using SEvt::setGeo. But now that all geometry info is better accessed
+from stree this complication can be removed ?
+
 **/
 
 
+#define FRAME_TRANSITION 1
+
+#define WITH_SGEO 1
+
+#ifdef WITH_SGEO
 struct CSG_API CSGFoundry : public SGeo
+#else
+struct CSG_API CSGFoundry
+#endif
 {
     static const plog::Severity LEVEL ;
     static const int  VERBOSE ;
@@ -94,17 +116,7 @@ struct CSG_API CSGFoundry : public SGeo
     static const char* RELDIR ;
     static const constexpr unsigned UNDEFINED = ~0u ;
 
-    // MOVED TO CSGMaker
-    //static CSGFoundry* MakeGeom(const char* geom);
-    //static CSGFoundry* MakeDemo();
-    //static CSGFoundry* LoadGeom(const char* geom=nullptr);
-
-
     const char* descELV() const ;
-
-    // moved down to SGeoConfig
-    //static const char* ELVString(const SName* id);
-    //static const SBitSet* ELV(const SName* id);
 
 
     static bool Load_saveAlt ;
@@ -178,6 +190,8 @@ struct CSG_API CSGFoundry : public SGeo
 
     void dumpPrim() const ;
     void dumpPrim(unsigned solidIdx ) const ;
+
+
     std::string descPrim() const ;
     std::string descPrim(unsigned solidIdx) const  ;
 
@@ -258,6 +272,12 @@ struct CSG_API CSGFoundry : public SGeo
 
     unsigned getNumMeshPrim(unsigned mesh_idx ) const ;
     std::string descMeshPrim() const ;
+    std::string descPrimRange() const ;
+    std::string descPrimRange(int solidIdx) const ;
+    std::string comparePrimRange(int solidIdx, const SMeshGroup* mg) const ;
+
+
+
 
     unsigned getNumSelectedPrimInSolid(const CSGSolid* solid, const SBitSet* elv ) const ;
 
@@ -372,6 +392,7 @@ struct CSG_API CSGFoundry : public SGeo
     sframe getFrame(const char* moi_or_iidx) const ;
 
     static constexpr const char* getFrame_VERBOSE = "CSGFoundry__getFrame_VERBOSE" ;
+
     int getFrame(sframe& fr, const char* frs ) const ;
     int getFrame(sframe& fr, int midx, int mord, int gord) const ;
     int getFrame(sframe& fr, int ins_idx ) const ;
@@ -380,10 +401,10 @@ struct CSG_API CSGFoundry : public SGeo
     sframe getFrameE() const ;
     static void AfterLoadOrCreate();
 
-
     // target
     int getCenterExtent(float4& ce, int midx, int mord, int gord=-1, qat4* m2w=nullptr, qat4* w2m=nullptr ) const ;
     int getTransform(   qat4& q   , int midx, int mord, int gord=-1) const ;
+
 
     template <typename T> void setMeta( const char* key, T value );
     template <typename T> T    getMeta( const char* key, T fallback);
@@ -411,7 +432,7 @@ struct CSG_API CSGFoundry : public SGeo
     int lookup_mtline(int mtindex) const ;
     std::string desc_mt() const ;
 
-    stree* getTree() const ;
+    stree* getTree() const ;  // from contained (const SSim*)sim
     SScene* getScene() const ;
     void setOverrideScene(SScene* _scene);
 

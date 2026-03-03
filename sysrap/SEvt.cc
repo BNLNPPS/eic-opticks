@@ -10,6 +10,8 @@
 #include "sprof.h"
 
 #include "sphoton.h"
+#include "sphotonlite.h"
+
 #include "srec.h"
 #include "sseq.h"
 #include "ssys.h"
@@ -198,7 +200,8 @@ SEvt::SEvt()
     t_PenultimatePoint(0),
     t_LastPoint(0),
     t_Launch(-2.),
-    selector(new sphoton_selector(SEventConfig::HitMask())),
+    photon_selector(new sphoton_selector(SEventConfig::HitMask())),
+    photonlite_selector(new sphotonlite_selector(SEventConfig::HitMask())),
     evt(new sevent),
     dbg(new sdebug),
     input_genstep(nullptr),
@@ -767,6 +770,7 @@ NP* SEvt::gatherG4State() const {  return g4state ; } // gather is used prior to
 const NP* SEvt::getG4State() const {  return topfold->get(SComp::Name(SCOMP_G4STATE)) ; }
 
 
+
 /**
 SEvt::setFrame
 ------------------
@@ -786,9 +790,20 @@ it was necessary to call this for every event due to the former call to addInput
 but now that the genstep setup is moved to SEvt::beginOfEvent it is only needed
 to call this for each frame, usually once only.
 
+
+simtrace stack::
+
+    SEvt::setFrame
+    SEvt::SetFrame
+    CSGFoundry::AfterLoadOrCreate
+    CSGFoundry::Load
+    CSGOptiX::SimtraceMain
+    main
+
 **/
 
 
+#ifdef WITH_OLD_FRAME
 void SEvt::setFrame(const sframe& fr )
 {
     const char* name = fr.get_name() ;
@@ -801,12 +816,26 @@ void SEvt::setFrame(const sframe& fr )
     frame = fr ;
     transformInputPhoton();
 }
+#else
+void SEvt::setFr(const sfr& _fr )
+{
+    fr = _fr ;
+    transformInputPhoton();
+}
+#endif
+
 
 void SEvt::setFramePlaceholder()
 {
+#ifdef WITH_OLD_FRAME
     sframe fr = sframe::Fabricate(0.f,0.f,0.f);
     setFrame(fr);
+#else
+    sfr fr = sfr::MakeFromTranslateExtent<float>(0.f,0.f,0.f,1000.f);
+    setFr(fr);
+#endif
 }
+
 
 
 
@@ -831,7 +860,11 @@ void SEvt::transformInputPhoton()
         << " hasInputPhoton " <<  hasInputPhoton()
         << " proceed " << ( proceed ? "YES" : "NO " )
         << "\n"
+#ifdef WITH_OLD_FRAME
         << frame.desc()
+#else
+        << fr.desc()
+#endif
         << "\n"
         ;
 
@@ -839,7 +872,11 @@ void SEvt::transformInputPhoton()
 
     bool normalize = true ;  // normalize mom and pol after doing the transform
 
+#ifdef WITH_OLD_FRAME
     NP* ipt = frame.transform_photon_m2w( input_photon, normalize );
+#else
+    NP* ipt = fr.transform_photon_m2w( input_photon, normalize );
+#endif
 
     if(transformInputPhoton_WIDE)  // see notes/issues/G4ParticleChange_CheckIt_warnings.rst
     {
@@ -856,6 +893,21 @@ void SEvt::transformInputPhoton()
 
 
 
+/**
+SEvt::createInputGenstep_simtrace
+----------------------------------
+
+Two modes:
+
+with_CEGS
+     normal way with envvars configuring a grid of gensteps
+     and the (sframe)frame
+
+!with_CEGS
+     little used simtrace mode without CEGS and with OPTICKS_INPUT_PHOTON
+     that must be via record.npy SRecord::getSimtraceAtTime
+
+**/
 
 NP* SEvt::createInputGenstep_simtrace()
 {
@@ -873,16 +925,12 @@ NP* SEvt::createInputGenstep_simtrace()
 
     if(with_CEGS)
     {
-        const char* frs = frame.get_frs() ; // nullptr when default -1 : meaning all geometry
-        LOG_IF(info, SIMTRACE )
-            << "[" << SEvt__SIMTRACE << "] "
-            << " frame.get_frs " << ( frs ? frs : "-" ) ;
-            ;
-
-        //if(frs) SEventConfig::SetEventReldir(frs); // dont do that, default is more standard
-        // doing this is hangover from separate simtracing of related volumes presumably
-
+#ifdef WITH_OLD_FRAME
         igs = SFrameGenstep::MakeCenterExtentGenstep_FromFrame(frame);
+#else
+        igs = SFrameGenstep::MakeCenterExtentGenstep_FromFrame(fr);
+#endif
+
         LOG_IF(info, SIMTRACE)
             << "[" << SEvt__SIMTRACE << "] "
             << " simtrace igs " << ( igs ? igs->sstr() : "-" )
@@ -943,7 +991,11 @@ NP* SEvt::createInputGenstep_simulate()
         }
         else if( hasInputPhoton())
         {
+#ifdef WITH_OLD_FRAME
             igs = SEvent::MakeInputPhotonGenstep(input_photon, OpticksGenstep_INPUT_PHOTON, &frame) ;
+#else
+            igs = SEvent::MakeInputPhotonGenstep(input_photon, OpticksGenstep_INPUT_PHOTON, &fr) ;
+#endif
         }
         else if( has_torch )
         {
@@ -1030,8 +1082,22 @@ void SEvt::assertZeroGenstep()
 
 
 
-const char* SEvt::getFrameId()    const { return frame.getFrameId() ; }
-const NP*   SEvt::getFrameArray() const { return frame.getFrameArray() ; }
+const char* SEvt::getFrameId() const
+{
+#ifdef WITH_OLD_FRAME
+    return frame.getFrameId() ;
+#else
+    return fr.get_id();
+#endif
+}
+const NP*   SEvt::getFrameArray() const
+{
+#ifdef WITH_OLD_FRAME
+    return frame.getFrameArray() ;
+#else
+    return fr.serialize();
+#endif
+}
 
 const char* SEvt::GetFrameId(int idx){    return Exists(idx) ? Get(idx)->getFrameId() : nullptr ; }
 const NP*   SEvt::GetFrameArray(int idx){ return Exists(idx) ? Get(idx)->getFrameArray() : nullptr ; }
@@ -1069,26 +1135,55 @@ void SEvt::setFrame_HostsideSimtrace()
 
 
 
+#ifdef WITH_OLD_FRAME
 /**
 SEvt::setGeo
 -------------
 
 SGeo is a protocol for geometry access fulfilled by CSGFoundry (and formerly by GGeo)
 
-Canonical invokation is from G4CXOpticks::setGeometry
 This connection between the SGeo geometry and SEvt is what allows
 the appropriate instance frame to be accessed. That is vital for
 looking up the sensor_identifier and sensor_index.
 
 TODO: replace this with stree.h based approach
 
+
+Invoked with stack::
+
+    SEvt::setGeo
+    CSGOptiX::InitEvt
+    CSGOptiX::Create
+    CSGOptiX::SimtraceMain () at /home/blyth/opticks/CSGOptiX/CSGOptiX.cc:156
+    main
+
+
 **/
 
 void SEvt::setGeo(const SGeo* cf_)
 {
+    assert(cf_);
     cf = cf_ ;
     tree = cf->getTree();
 }
+
+#else
+/**
+SEvt::setSim
+-------------
+
+This aims to remove SEvt::setGeo and CSGFoundry SGeo base
+**/
+
+void SEvt::setSim(const SSim* sim_)
+{
+    assert(sim_);
+    sim = sim_ ;
+    tree = sim->get_tree();
+}
+
+#endif
+
 
 /**
 SEvt::setFrame
@@ -1103,6 +1198,7 @@ TODO: replace this with stree.h based approach
 **/
 void SEvt::setFrame(unsigned ins_idx)
 {
+#ifdef WITH_OLD_FRAME
     LOG_IF(fatal, cf == nullptr) << "must SEvt::setGeo before being can access frames " ;
     assert(cf);
     sframe fr ;
@@ -1110,8 +1206,12 @@ void SEvt::setFrame(unsigned ins_idx)
     if(rc!=0) std::raise(SIGINT);
     assert( rc == 0 );
     fr.prepare();
-
     setFrame(fr);
+#else
+    assert(tree);
+    sfr f = tree->get_frame_inst( ins_idx );
+    setFr(f);
+#endif
 }
 
 
@@ -1141,8 +1241,14 @@ SEvt* SEvt::CreateSimtraceEvent()  // static
     assert(prior);
     if(prior == nullptr ) return nullptr ;
 
+#ifdef WITH_OLD_FRAME
     sframe& pfr = prior->frame ;
     pfr.set_hostside_simtrace();
+#else
+    sfr& pfr = prior->fr ;
+    pfr.set_hostside_simtrace();
+#endif
+
 
     if( pfr.ce.w == 0.f )
     {
@@ -1163,7 +1269,12 @@ SEvt* SEvt::CreateSimtraceEvent()  // static
 
     LOG_IF(info, SIMTRACE) << " SWITCH : SEventConfig::SetRGModeSimtrace " ;
     SEvt* ste = new SEvt ;
+
+#ifdef WITH_OLD_FRAME
     ste->setFrame(pfr);
+#else
+    ste->setFr(pfr);
+#endif
 
     LOG_IF(info, SIMTRACE) << "] ste.simtrace.size " << ste->simtrace.size() ;
 
@@ -1396,11 +1507,23 @@ void SEvt::CreateOrReuse()
 
 
 
+#ifdef WITH_OLD_FRAME
 void SEvt::SetFrame(const sframe& fr )
 {
+    assert(0 && "DONT USE THIS - USE SEvt::SetFr");
     if(Exists(0)) Get(0)->setFrame(fr);
     if(Exists(1)) Get(1)->setFrame(fr);
 }
+#else
+void SEvt::SetFr(const sfr& fr )
+{
+    if(Exists(0)) Get(0)->setFr(fr);
+    if(Exists(1)) Get(1)->setFr(fr);
+}
+#endif
+
+
+
 
 
 void SEvt::Check(int idx)
@@ -1876,7 +1999,9 @@ void SEvt::reset_counter()
 void SEvt::endMeta()
 {
     setMeta<std::string>("site", "SEvt::endMeta" );
-    setMeta<int>("hitmask", selector->hitmask );
+    assert( photon_selector->hitmask == photonlite_selector->hitmask );
+    setMeta<int>("hitmask", photon_selector->hitmask );
+
     setMeta<int>("index", index);
     setMeta<int>("instance", instance);
 
@@ -2279,7 +2404,12 @@ sgs SEvt::addGenstep(const NP* a)
 
     if(SEventConfig::IsRGModeSimtrace() && SFrameGenstep::HasConfigEnv()) // CEGS running
     {
+#ifdef WITH_OLD_FRAME
         if(frame.is_hostside_simtrace()) setFrame_HostsideSimtrace();
+#else
+        if(fr.is_hostside_simtrace()) setFrame_HostsideSimtrace();
+#endif
+
     }
 
     return s ;
@@ -2343,7 +2473,10 @@ sgs SEvt::addGenstep(const quad6& q_)
     if(matline_ >= G4_INDEX_OFFSET  )
     {
         unsigned mtindex = matline_ - G4_INDEX_OFFSET ;
-        int matline = cf ? cf->lookup_mtline(mtindex) : 0 ;    // cf(SGeo) used for lookup
+        int matline = cf ? cf->lookup_mtline(mtindex) : 0 ;
+        // cf(SGeo) used for lookup
+        // BUT: that just uses SSim::lookup_mtline
+        // so SEvt should hold sim(SSim) ?
 
         bool bad_ck = is_cerenkov_gs && matline == -1 ;
 
@@ -2390,7 +2523,7 @@ sgs SEvt::addGenstep(const quad6& q_)
     numphoton_collected += q_numphoton ;  // keep running total for all gensteps collected, since last clear
 
 
-    int64_t tot_photon = s.offset+s.photons ;
+    size_t tot_photon = s.offset+s.photons ;
 
     LOG_IF(debug, enabled) << " s.desc " << s.desc() << " gidx " << gidx << " enabled " << enabled << " tot_photon " << tot_photon ;
 
@@ -2445,7 +2578,7 @@ needed to accommodate the photons from the last genstep collected.
 
 **/
 
-void SEvt::setNumPhoton(int64_t num_photon)
+void SEvt::setNumPhoton(size_t num_photon)
 {
     //LOG_IF(info, LIFECYCLE) << id() << " num_photon " << num_photon ;
     bool num_photon_allowed = num_photon <= evt->max_photon ;  // NOW THIS IS ARBITRARY AND VERY HIGH LIMIT
@@ -2466,6 +2599,8 @@ void SEvt::setNumPhoton(int64_t num_photon)
     evt->index = index ;
 
     evt->num_photon = num_photon ;
+    evt->num_photonlite = num_photon ;
+
     evt->num_seq    = evt->max_seq  == 1 ? evt->num_photon : 0 ;
     evt->num_tag    = evt->max_tag  == 1 ? evt->num_photon : 0 ;
     evt->num_flat   = evt->max_flat == 1 ? evt->num_photon : 0 ;
@@ -2494,7 +2629,7 @@ SEvt::setNumSimtrace
 
 **/
 
-void SEvt::setNumSimtrace(int64_t num_simtrace)
+void SEvt::setNumSimtrace(size_t num_simtrace)
 {
     bool num_simtrace_allowed = num_simtrace <= evt->max_simtrace ;
     LOG_IF(fatal, !num_simtrace_allowed) << " num_simtrace " << num_simtrace << " evt.max_simtrace " << evt->max_simtrace ;
@@ -3426,6 +3561,8 @@ bool SEvt::haveGenstepVec() const { return genstep.size() > 0 ; }
 SEvt::gatherPhoton
 --------------------
 
+NB these gatherNAME methods are not used for GPU running
+
 1. allocates with NP::Make
 2. populates by reading from photon vector using the sevent.h pointer
    that makes things follow the on device approach
@@ -3525,9 +3662,32 @@ NP* SEvt::gatherHit() const
 {
     const NP* p = fold->get(SComp::PHOTON_) ;
     // cannot use getPhoton here as that gets the photons from topfold which is only populated after gather
-    NP* h = p ? p->copy_if<float, sphoton>(*selector) : nullptr ;
+    NP* h = p ? p->copy_if<float, sphoton>(*photon_selector) : nullptr ;
+
     return h ;
 }
+
+
+/**
+SEvt::gatherHitLite
+---------------------
+
+CPU side equivalent of QEvt::gatherHitLite
+
+**/
+
+
+NP* SEvt::gatherHitLite() const
+{
+    const NP* photonlite = fold->get(SComp::PHOTONLITE_) ;
+    NP* hitlite = sphotonlite::select( photonlite, photonlite_selector );
+    return hitlite ;
+}
+
+
+
+
+
 
 NP* SEvt::gatherSimtrace() const
 {
@@ -3548,9 +3708,17 @@ This is called by SEvt::gatherPhoton
 
 NP* SEvt::makePhoton() const
 {
-    NP* p = NP::Make<float>( evt->num_photon, 4, 4 );
+    NP* p = sphoton::zeros( evt->num_photon );
     return p ;
 }
+
+NP* SEvt::makePhotonLite() const
+{
+    NP* l = sphotonlite::zeros( evt->num_photon );
+    return l ;
+}
+
+
 
 NP* SEvt::makeRecord() const
 {
@@ -3682,6 +3850,7 @@ NP* SEvt::gatherComponent_(unsigned cmp) const
 
         case SCOMP_SEED:      a = gatherSeed()     ; break ;
         case SCOMP_HIT:       a = gatherHit()      ; break ;
+        case SCOMP_HITLITE:   a = gatherHitLite()  ; break ;
         case SCOMP_SIMTRACE:  a = gatherSimtrace() ; break ;
         case SCOMP_PHO:       a = gatherPho()      ; break ;
         case SCOMP_GS:        a = gatherGS()       ; break ;
@@ -4072,7 +4241,26 @@ ExecutableName of "python3.11" or whatever.
 
 const char* SEvt::DefaultBase(const char* base_) // static
 {
-    const char* base = base_ ? base_ : spath::DefaultOutputDir() ;
+    const char* base = nullptr ;
+    int64_t mode_save = SEventConfig::ModeSave();
+    if( mode_save == 0 )
+    {
+        // controlled dir approach : good for campaigns
+        base = base_ ? base_ : spath::DefaultOutputDir() ;
+    }
+    else if( mode_save == 1 )
+    {
+        // relative to invoking directory approach : good for quick tests
+        base = BLANK ;
+    }
+
+    LOG_IF(info, DIRECTORY)
+        << "\n"
+        << " base_ [" << ( base_ ? base_ : "-" ) << "]\n"
+        << " base  [" << ( base  ? base  : "-" ) << "]\n"
+        << " mode_save " << mode_save << "\n"
+        ;
+
     return base ;
 }
 
@@ -4108,15 +4296,20 @@ high level control here in one place.
 HMM: could expand on that approach exposing ALL$VERSION
 here too instead of hiding in Reldir
 
-Example with::
 
-    TMP               /data/blyth/opticks
-    GEOM              J_2024nov27
-    ExecutableName    CSGOptiXSMTest
-    VERSION           1
-    Reldir            ALL1
-    sidx:IndexString  A000
-    OutputDir         /data/blyth/opticks/GEOM/J_2024nov27/CSGOptiXSMTest/ALL1/A000/
++---------+----------------------------------------------------------------------------------------------+
+|  qwn    |  typical/default value                                                                       |
++=========+==============================================================================================+
+| base_   |  "$TMP/GEOM/$GEOM/$ExecutableName"                                                           |
++---------+----------------------------------------------------------------------------------------------+
+| base    |  "$TMP/GEOM/$GEOM/$ExecutableName"                                                           |
++---------+----------------------------------------------------------------------------------------------+
+| reldir  |  "ALL${VERSION:-0}_${OPTICKS_EVENT_NAME:-no_opticks_event_name}"                             |
++---------+----------------------------------------------------------------------------------------------+
+| sidx    |  "A000"                                                                                      |
++---------+----------------------------------------------------------------------------------------------+
+| path    |  "/tmp/blyth/opticks/GEOM/J25_4_0_opticks_Debug/python3.11/ALL0_no_opticks_event_name/A000"  |
++---------+----------------------------------------------------------------------------------------------+
 
 **/
 
@@ -4314,7 +4507,7 @@ Only when more control of the output is needed is it appropriate to use OPTICKS_
 
 void SEvt::save()
 {
-    const char* base = DefaultBase();
+    const char* base = DefaultBase(); // eg "$TMP/GEOM/$GEOM/$ExecutableName"
     LOG_IF(info, LIFECYCLE || SIMTRACE) << " base [" << ( base ? base : "-" ) << "]" ;
     save(base);
 }
@@ -4354,6 +4547,25 @@ at the tail.
 How to avoid the need for such care ? NPFold has a skipdelete flag,
 but that is at fold level./ Perhaps need each array to have skipdelete ?
 
+
+
+1. shallowcopy from topfold to save_fold components that are configured to save, export SEvt__SAVE=1 for log
+
+2. early exit if nothing configured to save
+
+3. when "seq" history array is configured for save and is present,
+   derive "seqnib" and "seqnib_table" from "seq" and add them to save_fold
+
+4. when "hit" array is configured for save and is present and "hitlocal" is also configured for save,
+   derive "hitlocal" from "hit" and add to save_fold
+
+5. when "photon" array is configured for save and is present and "photonlocal" is also configured for save,
+   derive "photonlocal" from "photon" and add to save_fold
+
+6. when "extrafold" is defined add all extra_items arrays from it into save_fold
+
+7. count *slic* items within save_fold, when more than zero proceed to save to standard dir
+
 **/
 
 void SEvt::save(const char* dir_)
@@ -4365,16 +4577,23 @@ void SEvt::save(const char* dir_)
     LOG(LEVEL) << descComponent() ;
     LOG(LEVEL) << descFold() ;
 
+
+    // 1. shallowcopy from topfold to save_fold components that are configured to save, export SEvt__SAVE=1 for log
     std::string save_comp = SEventConfig::DescSaveComp() ;
     NPFold* save_fold = topfold->shallowcopy(save_comp.c_str());
 
-    LOG_IF(info, SAVE) << " save_comp " << save_comp ;
+    LOG_IF(info, SAVE) << " save_comp[" << save_comp << "]" ;
     //LOG_IF(info, SAVE) << " topfold.desc   " << ( topfold ? topfold->desc() : "-" )  ;
     //LOG_IF(info, SAVE) << " save_fold.desc " << ( save_fold ? save_fold->desc() : "-" ) ;
 
 
+    // 2. early exit if nothing configured to save
+
     LOG_IF(LEVEL, save_fold == nullptr) << " NOTHING TO SAVE SEventConfig::SaveCompLabel/OPTICKS_SAVE_COMP  " << save_comp ;
     if(save_fold == nullptr) return ;
+
+    // 3. when "seq" history array is configured for save and is present,
+    //    derive "seqnib" and "seqnib_table" from "seq" and add them to save_fold
 
     const NP* seq = save_fold->get("seq");
     NP* seqnib = nullptr ;
@@ -4387,6 +4606,33 @@ void SEvt::save(const char* dir_)
         save_fold->add("seqnib_table", seqnib_table );
         // NPFold::add does nothing with nullptr array
     }
+
+
+    // 4. when "hit" array is configured for save and is present and "hitlocal" is also configured for save,
+    //    derive "hitlocal" from "hit" and add to save_fold
+
+    const NP* hit = save_fold->get(SComp::HIT_);
+    if(hit && SEventConfig::HasSaveComp(SComp::HITLOCAL_))
+    {
+        bool consistency_check = true ;
+        NP* hitlocal = localize_photon(hit, consistency_check);
+        assert(hitlocal);
+        save_fold->add(SComp::HITLOCAL_, hitlocal );
+    }
+
+    // 5. when "photon" array is configured for save and is present and "photonlocal" is also configured for save,
+    //    derive "photonlocal" from "photon" and add to save_fold
+
+    const NP* photon = save_fold->get(SComp::PHOTON_);
+    if(photon && SEventConfig::HasSaveComp(SComp::PHOTONLOCAL_))
+    {
+        bool consistency_check = true ;
+        NP* photonlocal = localize_photon(photon, consistency_check);
+        assert(photonlocal);
+        save_fold->add(SComp::PHOTONLOCAL_, photonlocal );
+    }
+
+    // 6. when "extrafold" is defined add all extra_items arrays from it into save_fold
 
     if(extrafold)
     {
@@ -4401,6 +4647,8 @@ void SEvt::save(const char* dir_)
         }
     }
 
+
+    // 7. count *slic* items within save_fold, when more than zero proceed to save to standard dir
 
     int slic = save_fold->_save_local_item_count();
     if( slic > 0 )
@@ -4423,9 +4671,13 @@ void SEvt::save(const char* dir_)
         LOG(LEVEL) << "SKIP SAVE AS NPFold::_save_local_item_count zero " ;
     }
 
-    // NB: NOT DELETING save_fold AS IT IS A SHALLOW COPY : IT DOES NOT OWN THE ARRAYS
+
+    // 8. delete adhoc derived arrays after any saves
+
+    // deletions must be after the save
     delete seqnib ;
     delete seqnib_table ;
+    // NB: NOT DELETING save_fold AS IT IS A SHALLOW COPY : IT DOES NOT OWN THE ARRAYS
 }
 
 
@@ -4509,11 +4761,14 @@ void SEvt::saveExtra(const char* base, const char* name, const NP* a ) const
     a->save(dir, name );
 }
 
-
 void SEvt::saveFrame(const char* dir) const
 {
     LOG(LEVEL) << "[ dir " << dir ;
+#ifdef WITH_OLD_FRAME
     frame.save(dir);
+#else
+    fr.save(dir);
+#endif
     LOG(LEVEL) << "] dir " << dir ;
 }
 
@@ -4663,19 +4918,17 @@ std::string SEvt::descVec() const
 
 
 const NP* SEvt::getGenstep() const { return topfold->get(SComp::GENSTEP_) ;}
-const NP* SEvt::getPhoton() const {  return topfold->get(SComp::PHOTON_) ; }
-const NP* SEvt::getHit() const {     return topfold->get(SComp::HIT_) ; }
+
+const NP* SEvt::getPhoton() const {    return topfold->get(    SEventConfig::PhotonCompOneName()) ; }
+size_t    SEvt::getNumPhoton() const { return topfold->get_num(SEventConfig::PhotonCompOneName()) ; }
+const NP* SEvt::getHit() const {       return topfold->get(    SEventConfig::HitCompOneName()) ; }
+size_t    SEvt::getNumHit() const {    return topfold->get_num(SEventConfig::HitCompOneName()) ; }
+
 const NP* SEvt::getAux() const {     return topfold->get(SComp::AUX_) ; }
 const NP* SEvt::getSup() const {     return topfold->get(SComp::SUP_) ; }
 const NP* SEvt::getPho() const {     return topfold->get(SComp::PHO_) ; }
 const NP* SEvt::getGS() const {      return topfold->get(SComp::GS_) ; }
 
-unsigned SEvt::getNumPhoton() const { return topfold->get_num(SComp::PHOTON_) ; }
-unsigned SEvt::getNumHit() const
-{
-    int num = topfold->get_num(SComp::HIT_) ;  // number of items in array
-    return num == NPFold::UNDEF ? 0 : num ;   // avoid returning -1 when no hits
-}
 
 std::string SEvt::descSimulate() const
 {
@@ -4754,10 +5007,35 @@ void SEvt::getLocalPhoton(sphoton& lp, unsigned idx) const
 {
     getPhoton(lp, idx);
 
+#ifdef WITH_OLD_FRAME
     sframe fr ;
     getPhotonFrame(fr, lp);   // HMM: this is just using lp.iindex
     fr.transform_w2m(lp);
+#else
+    sfr fr ;
+    getPhotonFrame(fr, lp);   // HMM: this is just using lp.iindex
+    fr.transform_w2m(lp);
+#endif
+
 }
+
+
+/**
+SEvt::localize_photon
+----------------------
+
+NB *hit* arrays are subsets of *photon* arrays
+so this works for both *photon* and *hit* arrays.
+
+**/
+
+
+NP* SEvt::localize_photon(const NP* photon, bool consistency_check) const
+{
+    return tree ? tree->localize_photon(photon, consistency_check) : nullptr ;
+}
+
+
 
 /**
 SEvt::getLocalHit_LEAKY
@@ -4798,14 +5076,22 @@ void SEvt::getLocalHit_LEAKY(sphit& ht, sphoton& lp, unsigned idx) const
 {
     getHit(lp, idx);   // copy *idx* hit from NP array into sphoton& lp struct
 
+#ifdef WITH_OLD_FRAME
     sframe fr = {} ;
-
     getPhotonFrame(fr, lp);
     fr.transform_w2m(lp);
-
     ht.iindex = fr.inst() ;
-    ht.sensor_identifier = fr.sensor_identifier() - 1 ;
+    ht.sensor_identifier = fr.sensor_identifier() - 1 ;  // THIS IS OLD, UNUSED AND NOW WRONG
     ht.sensor_index = fr.sensor_index();
+#else
+    sfr fr = {} ;
+    getPhotonFrame(fr, lp);
+    fr.transform_w2m(lp);
+    ht.iindex = fr.get_inst() ;
+    ht.sensor_identifier = fr.get_sensorid() ; // NO -1 BUT UNUSED ANYHOW
+    ht.sensor_index = fr.get_sensorix();
+#endif
+
 }
 
 /**
@@ -4856,7 +5142,10 @@ using the same geometry as the server anyhow.
 void SEvt::getLocalHit(sphit& ht, sphoton& lp, unsigned idx) const
 {
     getHit(lp, idx);   // copy *idx* hit from NP array (starts global frame) into sphoton& lp struct of caller
-    int iindex = lp.iindex() ;
+    unsigned iindex = lp.iindex() ;
+    unsigned identity = lp.get_identity();
+    assert( identity != 0 ); // identity:0 indicates not-a-sensor should never happen for hits
+    unsigned sensor_identifier = identity - 1 ;
 
     const glm::tmat4x4<double>* tr = tree ? tree->get_iinst(iindex) : nullptr ;
 
@@ -4871,13 +5160,30 @@ void SEvt::getLocalHit(sphit& ht, sphoton& lp, unsigned idx) const
     bool normalize = true ;
     lp.transform( *tr, normalize );   // inplace transforms lp (pos, mom, pol) into local frame
 
+
+    // below checking should be optional : likely hot code
+
     glm::tvec4<int64_t> col3 = {} ;
     strid::Decode( *tr, col3 );
 
-    ht.iindex = col3[0] ;
+    ht.iindex            = col3[0] ;
     ht.sensor_identifier = col3[2] ;  // NB : NO "-1" HERE : SEE ABOVE COMMENT
-    ht.sensor_index = col3[3] ;
+    ht.sensor_index      = col3[3] ;
+    // Q: Where is this encoded ?i Whats 1?
+
+    assert( ht.iindex == iindex );
+    assert( ht.sensor_identifier == sensor_identifier );
 }
+
+
+void SEvt::localize_photon_inplace( sphoton& p ) const
+{
+    assert(tree);
+    tree->localize_photon_inplace(p);
+}
+
+
+
 
 
 
@@ -4896,14 +5202,27 @@ struct is accomplished using the SGeo(cf) instance
 that is fullfilled from higher level CSGFoundry
 instance
 
+TODO: move to getting frame from stree
+
+
 **/
 
+#ifdef WITH_OLD_FRAME
 void SEvt::getPhotonFrame( sframe& fr, const sphoton& p ) const
 {
     assert(cf);
     cf->getFrame(fr, p.iindex() );
     fr.prepare();
 }
+#else
+void SEvt::getPhotonFrame( sfr& fr, const sphoton& p ) const
+{
+    assert(tree);
+    fr = tree->get_frame_inst( p.iindex() );
+}
+#endif
+
+
 
 std::string SEvt::descNum() const
 {
@@ -4989,7 +5308,12 @@ std::string SEvt::descFramePhoton(unsigned max_print) const
 {
     unsigned num_photon = getNumPhoton();
     unsigned num_print = std::min(max_print, num_photon) ;
+
+#ifdef WITH_OLD_FRAME
     bool zero_frame = frame.is_zero() ;
+#else
+    bool zero_frame = fr.is_zero() ;
+#endif
 
     std::stringstream ss ;
     ss << "SEvt::descFramePhoton"
@@ -5109,10 +5433,24 @@ void SEvt::getFrameHit(sphoton& lp, unsigned idx) const
 }
 void SEvt::applyFrameTransform(sphoton& lp) const
 {
+#ifdef WITH_OLD_FRAME
     bool zero_frame = frame.is_zero() ;
+#else
+    bool zero_frame = fr.is_zero() ;
+#endif
+
     LOG_IF(fatal, zero_frame) << " must setFrame before can applyFrameTransform " ;
     assert(!zero_frame);
+
+#ifdef WITH_OLD_FRAME
     frame.transform_w2m(lp);
+#else
+    bool normalize = true ;
+    bool inverse = true ; // w2m ? IS THAT CORRECT
+    fr.transform(lp, normalize, inverse);
+#endif
+
+
 }
 
 /**

@@ -570,19 +570,23 @@ not torch ones so needs some experimentation to see what approach to take.
 
 void U4Recorder::PreUserTrackingAction_Optical_GetLabel( spho& ulabel, const G4Track* track )
 {
-#ifdef WITH_CUSTOM4
+#ifdef WITH_CUSTOM4_OLD
     C4Pho* label = C4TrackInfo<C4Pho>::GetRef(track);
+#elif WITH_CUSTOM4
+    C4Pho* label = C4TrackInfo::GetRef(track);
 #else
-    spho* label = STrackInfo<spho>::GetRef(track);
+    spho* label = STrackInfo::GetRef(track);
 #endif
 
     if( label == nullptr ) // happens with torch gensteps and input photons
     {
         PreUserTrackingAction_Optical_FabricateLabel(track) ;
-#ifdef WITH_CUSTOM4
+#ifdef WITH_CUSTOM4_OLD
         label = C4TrackInfo<C4Pho>::GetRef(track);
+#elif WITH_CUSTOM4
+        label = C4TrackInfo::GetRef(track);
 #else
-        label = STrackInfo<spho>::GetRef(track);
+        label = STrackInfo::GetRef(track);
 #endif
     }
     assert( label && label->isDefined() );
@@ -610,15 +614,17 @@ void U4Recorder::PreUserTrackingAction_Optical_FabricateLabel( const G4Track* tr
     }
 
 #ifdef WITH_CUSTOM4
-    U4Track::SetFabricatedLabel<C4Pho>(track);
+    U4Track::SetFabricatedLabel(track);
 #else
-    U4Track::SetFabricatedLabel<spho>(track);
+    U4Track::SetFabricatedLabel(track);
 #endif
 
-#ifdef WITH_CUSTOM4
+#ifdef WITH_CUSTOM4_OLD
     C4Pho* label = C4TrackInfo<C4Pho>::GetRef(track);
+#elif WITH_CUSTOM4
+    C4Pho* label = C4TrackInfo::GetRef(track);
 #else
-    spho* label = STrackInfo<spho>::GetRef(track);
+    spho* label = STrackInfo::GetRef(track);
 #endif
     assert(label) ;
 
@@ -655,10 +661,12 @@ this does not handle the case of the track not being labelled.
 
 void U4Recorder::GetLabel( spho& ulabel, const G4Track* track )
 {
-#ifdef WITH_CUSTOM4
+#ifdef WITH_CUSTOM4_OLD
     C4Pho* label = C4TrackInfo<C4Pho>::GetRef(track);
+#elif WITH_CUSTOM4
+    C4Pho* label = C4TrackInfo::GetRef(track);
 #else
-    spho* label = STrackInfo<spho>::GetRef(track);
+    spho* label = STrackInfo::GetRef(track);
 #endif
     assert( label && label->isDefined() && "all photons are expected to be labelled" );
 
@@ -1051,6 +1059,7 @@ void U4Recorder::UserSteppingAction_Optical(const G4Step* step)
     bool is_boundary_flag = OpticksPhoton::IsBoundaryFlag(flag) ;  // SD SA DR SR BR BT
     bool is_surface_flag = OpticksPhoton::IsSurfaceDetectOrAbsorbFlag(flag) ;  // SD SA
     bool is_detect_flag = OpticksPhoton::IsDetectFlag(flag) ;  // SD
+    // TODO: GPU side now using EC for the flagmask
 
 #ifndef PRODUCTION
     if(is_boundary_flag) CollectBoundaryAux<T>(&current_aux) ;
@@ -1072,7 +1081,7 @@ void U4Recorder::UserSteppingAction_Optical(const G4Step* step)
               U4Touchable::AncestorReplicaNumber(touch)
               ;
 
-    current_photon.set_iindex( iindex );
+    current_photon.set_iindex__( iindex );  // WHAT ABOUT HITCOUNT ?
 
 
     LOG(LEVEL)

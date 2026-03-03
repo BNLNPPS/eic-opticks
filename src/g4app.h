@@ -296,7 +296,7 @@ struct EventAction : G4UserEventAction
 
 void get_label(spho &ulabel, const G4Track *track)
 {
-    spho *label = STrackInfo<spho>::GetRef(track);
+    spho *label = STrackInfo::GetRef(track);
     assert(label && label->isDefined() && "all photons are expected to be labelled");
 
     std::array<int, spho::N> a_label;
@@ -347,7 +347,7 @@ struct SteppingAction : G4UserSteppingAction
         unsigned flag = U4StepPoint::Flag<G4OpBoundaryProcess>(post, true, tir);
         bool is_detect_flag = OpticksPhoton::IsSurfaceDetectFlag(flag);
 
-        current_photon.orient_iindex =
+        current_photon.hitcount_iindex =
             is_detect_flag ? U4Touchable::ImmediateReplicaNumber(touch) : U4Touchable::AncestorReplicaNumber(touch);
 
         U4StepPoint::Update(current_photon, post);
@@ -369,19 +369,19 @@ struct TrackingAction : G4UserTrackingAction
 
     void PreUserTrackingAction_Optical_FabricateLabel(const G4Track *track)
     {
-        U4Track::SetFabricatedLabel<spho>(track);
-        spho *label = STrackInfo<spho>::GetRef(track);
+        U4Track::SetFabricatedLabel(track);
+        spho *label = STrackInfo::GetRef(track);
         assert(label);
     }
 
     void PreUserTrackingAction(const G4Track *track) override
     {
-        spho *label = STrackInfo<spho>::GetRef(track);
+        spho *label = STrackInfo::GetRef(track);
 
         if (label == nullptr)
         {
             PreUserTrackingAction_Optical_FabricateLabel(track);
-            label = STrackInfo<spho>::GetRef(track);
+            label = STrackInfo::GetRef(track);
         }
 
         assert(label && label->isDefined());

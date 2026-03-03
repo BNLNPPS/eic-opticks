@@ -165,7 +165,10 @@ J
 K
    save screen shot [--snap]
 L
+   toggle between world spin modes
+L(formerly)
    save Y inverted screen shot [--snap-inverted]
+
 M
    hop to the MOI envvar configured frame [not supported by all renderers]
 
@@ -274,6 +277,7 @@ TODO: automated view rotation around an axis, eg +Z
 
     int count ;
     int renderlooplimit ;
+    int renderloop_tail_LEVEL ;
     bool exitloop ;
 
     bool dump ;
@@ -300,6 +304,8 @@ TODO: automated view rotation around an axis, eg +Z
     bool renderloop_proceed();
     void renderloop_exit();
     void renderloop_head();
+
+    static constexpr const char* SGLFW__renderloop_tail_LEVEL = "SGLFW__renderloop_tail_LEVEL" ;
     void renderloop_tail();
 
     void handle_event(GLEQevent& event);
@@ -434,7 +440,16 @@ inline void SGLFW::renderloop_tail()
     exitloop = renderlooplimit > 0 && count++ > renderlooplimit ;
 
     gm.renderloop_tail();
-    setWindowTitle(gm.title.c_str());
+
+    const char* gm_title = gm.title.c_str();
+    setWindowTitle(gm_title);
+    if(renderloop_tail_LEVEL > 0 && count < 2) std::cout
+        << "SGLFW::renderloop_tail "
+        << " count " << count
+        << " gm.title [" << gm_title << "]"
+        << " " << gm.descModelMatrix()
+        << "\n"
+        ;
 }
 
 
@@ -473,7 +488,8 @@ inline void SGLFW::handle_event(GLEQevent& event)
 
 inline void SGLFW::post_handle_key()
 {
-    gm.enabled_time_bump = !gm.toggle.time ;   // prevent auto time increments when are doing that with manual time scrubbing
+    //gm.enabled_time_bump = !gm.toggle.time ;   // prevent auto time increments when are doing that with manual time scrubbing
+    gm.enabled_time_bump = gm.toggle.time.value == 0 ;
 }
 
 
@@ -554,26 +570,26 @@ inline void SGLFW::key_pressed(unsigned key)
     {
         switch(key)
         {
-            case GLFW_KEY_M:
-                                  set_wanted_frame_idx(-2)              ; break ;   // MOI target
-            case GLFW_KEY_Z:      gm.toggle.zoom = !gm.toggle.zoom            ; break ;   // HMM: also in SGLM_Modnav
-            case GLFW_KEY_N:      gm.toggle.tmin = !gm.toggle.tmin            ; break ;
-            case GLFW_KEY_F:      gm.toggle.tmax = !gm.toggle.tmax            ; break ;
-            case GLFW_KEY_R:      gm.toggle.lrot = !gm.toggle.lrot            ; break ;    // HMM: also in SGLM_Modnav
-            case GLFW_KEY_C:      gm.toggle.cuda = !gm.toggle.cuda            ; break ;
-            case GLFW_KEY_U:      gm.toggle.norm = !gm.toggle.norm            ; break ;
-            case GLFW_KEY_T:      gm.toggle.time = !gm.toggle.time            ; break ;
-            case GLFW_KEY_SPACE:  gm.toggle.stop = !gm.toggle.stop            ; break ;
-            case GLFW_KEY_P:      command("--desc")                           ; break ;
-            case GLFW_KEY_H:      command("--home")                           ; break ;
-            case GLFW_KEY_O:      command("--tcam")                           ; break ;
-            case GLFW_KEY_I:      command("--snap-local")                     ; break ;
-            case GLFW_KEY_J:      command("--snap-local-inverted")            ; break ;
-            case GLFW_KEY_K:      command("--snap")                           ; break ;
-            case GLFW_KEY_L:      command("--snap-inverted")                  ; break ;
-            case GLFW_KEY_V:      command("--traceyflip")                     ; break ;
-            case GLFW_KEY_X:      command("--rendertype")                     ; break ;   // HMM: also in SGLM_Modnav
-            case GLFW_KEY_ESCAPE: command("--exit")                           ; break ;
+            case GLFW_KEY_M:      set_wanted_frame_idx(-2)           ; break ;   // MOI target
+            case GLFW_KEY_Z:      gm.toggle.zoom.next()              ; break ;   // HMM: also in SGLM_Modnav
+            case GLFW_KEY_N:      gm.toggle.tmin.next()              ; break ;
+            case GLFW_KEY_F:      gm.toggle.tmax.next()              ; break ;
+            case GLFW_KEY_R:      gm.toggle.lrot.next()              ; break ;    // HMM: also in SGLM_Modnav
+            case GLFW_KEY_C:      gm.toggle.cuda.next()              ; break ;
+            case GLFW_KEY_U:      gm.toggle.norm.next()              ; break ;
+            case GLFW_KEY_T:      gm.toggle.time.next()              ; break ;
+            case GLFW_KEY_SPACE:  gm.toggle.stop.next()              ; break ;
+            case GLFW_KEY_P:      command("--desc")                  ; break ;
+            case GLFW_KEY_H:      command("--home")                  ; break ;
+            case GLFW_KEY_O:      command("--tcam")                  ; break ;
+            case GLFW_KEY_I:      command("--snap-local")            ; break ;
+            case GLFW_KEY_J:      command("--snap-local-inverted")   ; break ;
+            case GLFW_KEY_K:      command("--snap")                  ; break ;
+            //case GLFW_KEY_L:      command("--snap-inverted")         ; break ;
+            case GLFW_KEY_L:      gm.toggle.spin.next()              ; break ;
+            case GLFW_KEY_V:      command("--traceyflip")            ; break ;
+            case GLFW_KEY_X:      command("--rendertype")            ; break ;   // HMM: also in SGLM_Modnav
+            case GLFW_KEY_ESCAPE: command("--exit")                  ; break ;
 
 
             case GLFW_KEY_W:   // WASDQE keys control navigation via SGLM_Modnav
@@ -1067,7 +1083,7 @@ cursor movement causing SGLM::setEyeRotation to set a whacky unpredictable
 initial view orientation until press the H key which resets q_eyerot.
 Placing the cursor position in the center of the screen prior to launching
 the application leads to the initial position being close to the home position.
-So the problem can be restated as an unintended dependency of the the 
+So the problem can be restated as an unintended dependency of the the
 initial view on the position the cursor was left at prior to launching the app.
 
 Attempts to fix the cursor position to the center of the screen/window before
@@ -1083,10 +1099,10 @@ viewpoint.
 inline void SGLFW::cursor_moved(int ix, int iy)
 {
     cursor_moved_count += 1 ;
-    if(cursor_moved_count < 3) 
+    if(cursor_moved_count < 3)
     {
          // ad-hoc ignore first few cursor moves
-         return ; 
+         return ;
     }
 
     move_ndc.x  = 2.f*float(ix)/width - 1.f ;
@@ -1224,6 +1240,7 @@ inline SGLFW::SGLFW(SGLM& _gm )
     window(nullptr),
     count(0),
     renderlooplimit(ssys::getenvint("SGLFW__renderlooplimit",1000000)),
+    renderloop_tail_LEVEL(ssys::getenvint(SGLFW__renderloop_tail_LEVEL, 0)),
     exitloop(false),
     dump(false),
     _width(0),
@@ -1282,12 +1299,27 @@ inline void SGLFW::init()
 
     gleqInit();
 
+#if defined __APPLE__
+    glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 3);  // version specifies the minimum, not what will get on mac
+    glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+#elif defined _MSC_VER
+    glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 1);
+
+#elif __linux
+
+    if(level > 1) printf(".SGLFW::init.__linux\n");
     glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 6);  // 1/6 ?
     glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);  // remove stuff deprecated in requested release
     glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
     // https://learnopengl.com/In-Practice/Debugging Debug output is core since OpenGL version 4.3,
+#endif
+
 
     // HMM: using fullscreen mode with resolution less than display changes display resolution
     GLFWmonitor* monitor = gm.fullscreen ? glfwGetPrimaryMonitor() : nullptr ;   // nullptr for windowed mode

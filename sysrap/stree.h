@@ -205,6 +205,7 @@ When SSim not in use can also use::
 #include <csignal>
 #include <vector>
 #include <string>
+#include <sstream>
 #include <map>
 #include <functional>
 
@@ -218,7 +219,9 @@ When SSim not in use can also use::
 
 #include "ssys.h"
 #include "sstr.h"
-#include "scuda.h"
+
+#include "scuda.h"   // HMM: needs vector_functions from CUDA
+
 #include "snode.h"
 #include "sdigest.h"
 #include "sfreq.h"
@@ -243,6 +246,10 @@ When SSim not in use can also use::
 // transitional ?
 #include "sframe.h"
 
+#include "sphoton.h"
+#include "sphotonlite.h"
+#include "sphit.h"
+
 
 
 struct stree_standin
@@ -255,13 +262,29 @@ struct stree_standin
 
 struct stree
 {
+    typedef std::array<double,6> BB ;
+    typedef std::vector<BB> VBB ;
+    typedef glm::tmat4x4<double> TR ;
+    typedef std::vector<TR> VTR ;
+    typedef std::vector<snode> VND ;
+
 
 #ifdef STREE_CAREFUL
     static constexpr const char* stree__populate_prim_nidx = "stree__populate_prim_nidx" ;
     static constexpr const char* stree__populate_nidx_prim = "stree__populate_nidx_prim" ;
 #endif
 
-    static constexpr const char* _EXTENT_PFX = "EXTENT:" ;
+    static constexpr const char* EXTENT_PFX = "EXTENT:" ;
+    static constexpr const char* CE_PFX = "CE:" ;
+    static constexpr const char* TE_PFX = "TE:" ;
+    static constexpr const char* AXIS_PFX = "AXIS:" ;
+    static constexpr const char* NIDX_PFX = "NIDX:" ;
+    static constexpr const char* PRIM_PFX = "PRIM:" ;
+    static constexpr const char* INST_PFX = "INST:" ;
+    static constexpr const char* SID_PFX = "SID:" ;
+    static constexpr const char* SIDX_PFX = "SIDX:" ;
+    static constexpr const char* LVID_COPYNO_PFX = "LVID_COPYNO:" ;
+
     static constexpr const char* stree__force_triangulate_solid = "stree__force_triangulate_solid" ;
     static constexpr const char* stree__get_frame_dump = "stree__get_frame_dump" ;
 
@@ -397,6 +420,7 @@ struct stree
     std::vector<int>                  prim_nidx ; // experimental: see populate_prim_nidx
     std::vector<int>                  nidx_prim ; // experimental: see populate_nidx_prim
     std::vector<std::string>          prname ;    // prim names from faux_importPrim
+    const char*                       loaddir ;
 
     stree();
 
@@ -410,6 +434,7 @@ struct stree
 
 
     std::string desc() const ;
+    std::string desc_id() const ;
     std::string desc_meta() const ;
     std::string desc_soname() const ;
     std::string desc_lvid() const ;
@@ -441,6 +466,16 @@ struct stree
     void reorderSensors_r(int nidx);
     void get_sensor_id( std::vector<int>& arg_sensor_id ) const ;
 
+    void find_nodes_with_sensor_id( std::vector<snode>& nodes, int q_sensor_id ) const ;
+    int  get_ordinal_nidx_with_sensor_id( int q_sensor_id, int ordinal ) const ;
+
+    void find_nodes_with_sensor_index( std::vector<snode>& nodes, int q_sensor_index ) const ;
+    int  get_ordinal_nidx_with_sensor_index( int q_sensor_index, int ordinal ) const ;
+
+
+
+
+
     void postcreate() const ;
 
     std::string desc_sensor() const ;
@@ -469,11 +504,17 @@ struct stree
 
     void find_lvid_nodes_( std::vector<snode>& nodes, int lvid, char _src ) const ;
     void find_lvid_nodes(  std::vector<int>& nodes, int lvid, char _src ) const ;
+
+    void find_lvid_copyno_nodes( std::vector<int>& nodes, int q_lvid, int q_copyno, char _src ) const ;
+
     int count_lvid_nodes( int lvid, char _src='N' ) const ;
+
+
 
     void find_lvid_nodes( std::vector<int>& nodes, const char* soname_, bool starting ) const ;
     int  find_lvid_node( const char* q_soname, int ordinal ) const ;
     int  find_lvid_node( const char* q_spec ) const ; // eg HamamatsuR12860sMask_virtual:0:1000
+
 
 
 
@@ -490,21 +531,67 @@ struct stree
 
 
     sfr  get_frame_moi() const ;
-    sfr  get_frame(const char* q_spec) const ;
+    sfr  get_frame(const char* q_spec ) const ;
+
+    sfr  get_frame_top() const ;
+    sfr  get_frame_extent(const char* s_extent ) const ;
+    sfr  get_frame_ce(const char* s_ce ) const ;
+    sfr  get_frame_ce(const float*  ce ) const ;
+    sfr  get_frame_te(const char* s_te ) const ;
+    sfr  get_frame_te(const float*  te ) const ;
+
+
+    sfr  get_frame_axis(const char* s_axis ) const ;
+    sfr  get_frame_prim(const char* s_prim ) const ;
+    sfr  get_frame_nidx(const char* s_nidx ) const ;
+    sfr  get_frame_inst(const char* s_inst ) const ;
+    sfr  get_frame_sid( const char* s_sid ) const ;
+    sfr  get_frame_sidx( const char* s_sidx ) const ;
+    sfr  get_frame_lvid_copyno( const char* s_lvid_copyno ) const ;
+
+    sfr  get_frame_prim(int prim ) const ;
+    sfr  get_frame_nidx(int nidx ) const ;
+    sfr  get_frame_inst(int inst ) const ;
+    sfr  get_frame_sid( int sid  ) const ;
+    sfr  get_frame_sidx( int sidx  ) const ;
+    sfr  get_frame_lvid_copyno(int q_lvid, int q_copyno, char q_src ) const ;
+
+
+    int  get_frame_from_npyfile(sfr& f, const char* q_spec ) const ;
     int  get_frame_from_triplet(sfr& f, const char* q_spec ) const ;
     int  get_frame_from_coords( sfr& f, const char* q_spec ) const ;
+    int  get_frame_from_transform( sfr& f, const char* q_spec ) const ;
 
     bool has_frame(const char* q_spec) const ;
 
 
-    int get_frame_instanced(  sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const ;
+    int get_frame_instanced(  sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal, std::ostream* out = nullptr, VTR* t_stack = nullptr ) const ;
+    int get_frame_inst(sfr& f, int ii, std::ostream* out = nullptr, VTR* t_stack = nullptr ) const ;
+
+
     int get_frame_remainder(  sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const ;
     int get_frame_triangulate(sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const ;
     int get_frame_global(     sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const ;
     int _get_frame_global(     sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal, char ridx_type ) const ;
 
-    int get_node_ce_bb(  std::array<double,4>& ce , std::array<double,6>& bb, const snode& node ) const ;
-    int get_node_bb(     std::array<double,6>& bb , const snode& node ) const ;
+    static constexpr const char* stree__get_frame_global_LVID = "stree__get_frame_global_LVID" ;
+    static constexpr const char* stree__get_node_bb_LVID      = "stree__get_node_bb_LVID" ;
+    static constexpr const char* stree__get_node_bb_CONSTITUENT = "stree__get_node_bb_CONSTITUENT" ;
+
+    int get_node_ce_bb(  std::array<double,4>& ce , std::array<double,6>& bb, const snode& node, VBB* contrib_bb = nullptr, VTR* contrib_tr = nullptr ) const ;
+    int get_node_bb(     std::array<double,6>& bb ,                           const snode& node, VBB* contrib_bb = nullptr, VTR* contrib_tr = nullptr ) const ;
+
+    template<typename T>
+    void find_nodes_containing_point(std::vector<snode>& nodes, const T* xyz ) const ;
+
+    template<typename T>
+    void        find_nodes_with_center_within_bb(std::vector<snode>& nodes, const T* qbb ) const ;
+
+    template<typename T>
+    void        find_nodes_with_center_within_ce(std::vector<snode>& nodes, const T* qce ) const ;
+
+    template<typename T>
+    std::string desc_nodes_with_center_within_ce( const T* qce ) const ;
 
 
     void get_sub_sonames( std::vector<std::string>& sonames ) const ;
@@ -526,6 +613,7 @@ struct stree
     int         get_lvid(  int nidx) const ;
     int         get_copyno(int nidx) const ;
 
+    const snode* get_top() const ;
     const snode* get_node(int nidx) const ;
     const snode* get_parent_node(int nidx) const ;
     bool         is_outer_node(int nidx) const ;
@@ -537,7 +625,7 @@ struct stree
     void get_node_transform( glm::tmat4x4<double>& m2w_, glm::tmat4x4<double>& w2m_, int nidx ) const ;
     void get_node_product(
            glm::tmat4x4<double>& m2w_,
-           glm::tmat4x4<double>& w2m_, int nidx, bool local, bool reverse, std::ostream* out ) const ;
+           glm::tmat4x4<double>& w2m_, int nidx, bool local, bool reverse, std::ostream* out, VTR* t_stack ) const ;
 
     std::string desc_node_product(   glm::tmat4x4<double>& m2w_, glm::tmat4x4<double>& w2m_, int nidx, bool local, bool reverse ) const ;
 
@@ -549,7 +637,8 @@ struct stree
              glm::tmat4x4<double>& v,
              const snode& node,
              const sn* nd,
-             std::ostream* out
+             std::ostream* out,
+             VTR* t_stack
              ) const ;
 
     std::string desc_combined_transform(
@@ -563,17 +652,21 @@ struct stree
              double* aabb,
              const snode& node,
              const sn* nd,
-             std::ostream* out
+             std::ostream* out,
+             VTR* t_stack
              ) const ;
 
     void get_transformed_aabb(
              double* aabb,
              const snode& node,
              const sn* nd,
-             std::ostream* out
+             std::ostream* out,
+             VTR* t_stack
              ) const ;
 
-    void get_prim_aabb( double* aabb, const snode& node, std::ostream* out ) const ;
+    void get_prim_aabb( double* aabb, const snode& node, std::ostream* out, VTR* t_stack ) const ;
+    void get_prim_aabb( std::vector<std::array<double,6>>& vbb, const std::vector<snode>& nodes) const ;
+
 
     void get_nodes(std::vector<int>& nodes, const char* sub) const ;
     void get_depth_range(unsigned& mn, unsigned& mx, const char* sub) const ;
@@ -628,6 +721,8 @@ struct stree
     static void FindForceTriangulateLVID(std::vector<int>& lvid, const std::vector<std::string>& _sonames, const char* _force_triangulate_solid, char delim=','  );
     std::string descForceTriangulateLVID() const ;
     bool        is_force_triangulate( int lvid ) const ; // HMM: is_manual_triangulate would be better name
+
+    static constexpr const char* stree__is_auto_triangulate_NAMES = "stree__is_auto_triangulate_NAMES" ;
     bool        is_auto_triangulate( int lvid ) const ;  // WIP: automate decision, avoiding hassle with geometry updates that change/add solid names
     bool        is_triangulate(int lvid) const ;  // OR of the above
 
@@ -667,6 +762,7 @@ struct stree
     int      get_num_triangulated() const ;
     char     get_ridx_type(int ridx) const ;
 
+    void get_global_nodes(std::vector<snode>& nodes ) const ;
     void get_factor_nodes(std::vector<int>& nodes, unsigned idx) const ;
     std::string desc_factor_nodes(unsigned idx) const ;
     std::string desc_factor() const ;
@@ -691,6 +787,14 @@ struct stree
     std::string desc_tri() const ;
     std::string desc_NRT(char NRT) const ;
 
+    size_t get_repeat_index_zero_count() const ;
+    void count_repeat_index( std::map<size_t,size_t>& m, char NRT ) const ;
+    std::string desc_repeat_index() const ;
+    std::string desc_repeat_index(char NRT, size_t* _tot, size_t* _num0 ) const ;
+
+    NPFold* get_global_aabb() const;
+    NPFold* get_global_aabb_sibling_overlaps() const;
+
     std::string desc_node_ELVID() const ;
     std::string desc_node_ECOPYNO() const ;
     std::string desc_node_EBOUNDARY() const ;
@@ -712,10 +816,18 @@ struct stree
     void find_inst_gas_slowly_( std::vector<int>& v_inst_idx , int q_gas_idx ) const ;
 
 
+
+    int get_inst_identity( glm::tvec4<int64_t>& col3, int ii ) const ;
+    int get_inst_identity( int& inst_idx, int& gas_idx, int& sensor_identifier, int& sensor_index, int ii ) const ;
+
+    // these DO have identity info in forth column
     const glm::tmat4x4<double>* get_inst(int idx) const ;
     const glm::tmat4x4<double>* get_iinst(int idx) const ;
     const glm::tmat4x4<float>*  get_inst_f4(int idx) const ;
     const glm::tmat4x4<float>*  get_iinst_f4(int idx) const ;
+
+
+
 
 
     void get_mtindex_range(int& mn, int& mx ) const ;
@@ -767,6 +879,17 @@ struct stree
     void populate_nidx_prim();
     void check_nidx_prim() const ;
     int  get_prim_for_nidx(int nidx) const ;
+    int  get_nidx_for_prim(int prim) const ;
+    std::string desc_prim() const ;
+    std::string desc_prim(int prim) const ;
+
+
+    void localize_photon_inplace( sphoton& p ) const ;
+    NP* localize_photon(const NP* photon, bool consistency_check) const ;
+    void transform_consistency_check( const sphoton& l ) const;
+
+    NP* create_photonlite_from_photon( const NP* photon ) const ;
+    void create_photonlite_from_photon( sphotonlite& l, const sphoton& p ) const ;
 
 };
 
@@ -805,7 +928,8 @@ inline stree::stree()
     material(new NPFold),
     surface(new NPFold),
     mesh(new NPFold),
-    MOI(ssys::getenvvar("MOI", "0:0:-1"))
+    MOI(ssys::getenvvar("MOI", "0:0:-1")),
+    loaddir(nullptr)
 {
     init();
 }
@@ -919,6 +1043,7 @@ inline void stree::populate_descMap( std::map<std::string, std::function<std::st
     int EDGE = ssys::getenvint("EDGE", 10);
     int PROGENY_EDGE = ssys::getenvint("PROGENY_EDGE", 1000);
 
+    m["id"] = [this](){ return this->desc_id(); };
     m["meta"] = [this](){ return this->desc_meta(); };
     m["soname"] = [this](){ return this->desc_soname(); };
     m["lvid"] = [this](){ return this->desc_lvid(); };
@@ -934,6 +1059,7 @@ inline void stree::populate_descMap( std::map<std::string, std::function<std::st
     m["node_solids"] = [this](){ return this->desc_node_solids(); };
     m["nodes"] = [this](){ return this->descNodes(); };
     m["solids"] = [this](){ return this->desc_solids(); };
+    m["prim"] = [this](){ return this->desc_prim(); };
     m["triangulate"] = [this](){ return this->desc_triangulate(); };
     m["factor"] = [this](){ return this->desc_factor(); };
     m["repeat_nodes"] = [this](){ return this->desc_repeat_nodes(); };
@@ -942,6 +1068,7 @@ inline void stree::populate_descMap( std::map<std::string, std::function<std::st
     m["nds"] = [this](){ return this->desc_nds(); };
     m["rem"] = [this](){ return this->desc_rem(); };
     m["tri"] = [this](){ return this->desc_tri(); };
+
     m["node_ELVID"] = [this](){ return this->desc_node_ELVID(); };
     m["node_ECOPYNO"] = [this](){ return this->desc_node_ECOPYNO(); };
     m["node_EBOUNDARY"] = [this](){ return this->desc_node_EBOUNDARY(); };
@@ -956,6 +1083,7 @@ inline void stree::populate_descMap( std::map<std::string, std::function<std::st
     m["surface"] = [this](){ return this->surface ? this->surface->desc() : "-" ; };
     m["mesh"] = [this](){ return this->mesh ? this->mesh->desc() : "-" ; };
     m["_csg"] = [this](){ return this->_csg ? this->_csg->desc() : "-" ; };
+
 }
 
 inline std::string stree::desc() const
@@ -964,6 +1092,7 @@ inline std::string stree::desc() const
     ss
        << std::endl
        << "[stree::desc"
+       << desc_id()
        << desc_meta()
        << desc_size()
        << " stree.desc.subs_freq "
@@ -1003,6 +1132,15 @@ inline std::string stree::desc() const
     return str ;
 }
 
+inline std::string stree::desc_id() const
+{
+    std::stringstream ss ;
+    ss << "[stree::desc_id\n" ;
+    ss << " loaddir " << ( loaddir ? loaddir : "-" ) << "\n" ;
+    ss << "]stree::desc_id\n" ;
+    std::string str = ss.str();
+    return str ;
+}
 inline std::string stree::desc_meta() const
 {
     std::stringstream ss ;
@@ -1487,6 +1625,62 @@ inline void stree::get_sensor_id( std::vector<int>& arg_sensor_id ) const
     }
 }
 
+
+/**
+stree::find_nodes_with_sensor_id
+---------------------------------
+
+off-by-one suspicion::
+
+    MOI=SID:50055 cxr_min.sh  # staked PMT
+
+But the identity from cxt_min.sh is 50056
+
+**/
+
+
+inline void stree::find_nodes_with_sensor_id( std::vector<snode>& nodes, int q_sensor_id ) const
+{
+    unsigned num_nd = nds.size();
+    for(unsigned nidx=0 ; nidx < num_nd ; nidx++)
+    {
+        const snode& nd = nds[nidx] ;
+        if( nd.sensor_id == q_sensor_id ) nodes.push_back(nd);
+    }
+}
+inline int stree::get_ordinal_nidx_with_sensor_id( int q_sensor_id, int ordinal ) const
+{
+    std::vector<snode> nodes ;
+    find_nodes_with_sensor_id( nodes, q_sensor_id );
+    int num = nodes.size() ;
+    return ordinal > -1 && ordinal < num ? nodes[ordinal].index : -1 ;
+}
+
+
+
+inline void stree::find_nodes_with_sensor_index( std::vector<snode>& nodes, int q_sensor_index ) const
+{
+    unsigned num_nd = nds.size();
+    for(unsigned nidx=0 ; nidx < num_nd ; nidx++)
+    {
+        const snode& nd = nds[nidx] ;
+        if( nd.sensor_index == q_sensor_index ) nodes.push_back(nd);
+    }
+}
+inline int stree::get_ordinal_nidx_with_sensor_index( int q_sensor_index, int ordinal ) const
+{
+    std::vector<snode> nodes ;
+    find_nodes_with_sensor_index( nodes, q_sensor_index );
+    int num = nodes.size() ;
+    return ordinal > -1 && ordinal < num ? nodes[ordinal].index : -1 ;
+}
+
+
+
+
+
+
+
 /**
 stree::postcreate
 ------------------
@@ -1881,7 +2075,7 @@ src is nds which corresponds to all nodes)
 
 **/
 
-inline void stree::find_lvid_nodes( std::vector<int>& nodes, int lvid, char _src ) const
+inline void stree::find_lvid_nodes( std::vector<int>& nodes, int q_lvid, char _src ) const
 {
     const std::vector<snode>* src = get_node_vector(_src);
     for(unsigned i=0 ; i < src->size() ; i++)
@@ -1891,9 +2085,34 @@ inline void stree::find_lvid_nodes( std::vector<int>& nodes, int lvid, char _src
         {
             assert( int(i) == sn.index );
         }
-        if(sn.lvid == lvid) nodes.push_back(sn.index) ;
+        if(sn.lvid == q_lvid) nodes.push_back(sn.index) ;
     }
 }
+
+inline void stree::find_lvid_copyno_nodes( std::vector<int>& nodes, int q_lvid, int q_copyno, char _src ) const
+{
+    const std::vector<snode>* src = get_node_vector(_src);
+    for(unsigned i=0 ; i < src->size() ; i++)
+    {
+        const snode& sn = (*src)[i] ;
+        if( _src == 'N' )
+        {
+            assert( int(i) == sn.index );
+        }
+        if(sn.lvid == q_lvid && sn.copyno == q_copyno) nodes.push_back(sn.index) ;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
 
 /**
 stree::find_lvid_nodes
@@ -1970,6 +2189,16 @@ inline int stree::find_lvid_node( const char* q_spec ) const
     int nidx = find_lvid_node(q_soname, ordinal);
     return nidx ;
 }
+
+
+
+
+
+
+
+
+
+
 
 /**
 stree::pick_lvid_ordinal_node
@@ -2125,6 +2354,8 @@ inline int stree::pick_lvid_ordinal_repeat_ordinal_inst( const char* q_spec ) co
     return inst_idx ;
 }
 
+
+
 /**
 stree::get_frame_f4
 --------------------
@@ -2152,6 +2383,11 @@ inline void stree::get_frame_f4( sframe& fr, int idx ) const
 stree::get_frame_moi
 ---------------------
 
+This is invoked from high level initialization stacks such as::
+
+    CSGOptiXRenderInteractiveTest::init
+    SGLM::setTreeScene
+
 Special cased MOI envvar starting "EXTENT:" normally MOI is of the below form::
 
     sWaterTube:0:-1
@@ -2161,17 +2397,14 @@ Special cased MOI envvar starting "EXTENT:" normally MOI is of the below form::
 
 inline sfr stree::get_frame_moi() const
 {
-    float _extent = sstr::StartsWith(MOI, _EXTENT_PFX) ? sstr::To<float>( MOI + strlen(_EXTENT_PFX) ) : 0.f ;
-    sfr mf =  _extent > 0.f ? sfr::MakeFromExtent<float>(_extent) : get_frame(MOI) ;
-    return mf ;
+    return get_frame(MOI);
 }
 
 
 /**
 stree::get_frame
-------------------
+-----------------
 
-1. parse_spec from q_spec get (lvid, lvid_ordinal, repeat_ordinal)
 
 Q: An instance may encompasses multiple lv (and multiple snode)
    so which nidx is collected together with the inst
@@ -2185,21 +2418,95 @@ TODO: AVOID DUPLICATION BETWEEN THIS AND CSGFoundry::getFrame
 
 inline sfr stree::get_frame(const char* q_spec ) const
 {
-    sfr f ;
-    f.set_name(q_spec);
+    char delim = ',' ;
 
-    bool looks_like_triplet = sstr::StartsWithLetterAZaz(q_spec) || strstr(q_spec, ":") || strcmp(q_spec,"-1") == 0 ;
-    bool looks_like_coords  = !looks_like_triplet && strstr(q_spec,",") ;
+    bool is_TOP = q_spec == nullptr || strcmp(q_spec, "-1") == 0 || strcmp(q_spec, "") == 0 ;
+    bool is_EXTENT = sstr::StartsWith(q_spec, EXTENT_PFX) ;
+    bool is_CE = sstr::StartsWith(q_spec, CE_PFX) ;
+    bool is_TE = sstr::StartsWith(q_spec, TE_PFX) ;
+    bool is_AXIS = sstr::StartsWith(q_spec,  AXIS_PFX) ;
+    bool is_NIDX = sstr::StartsWith(q_spec,  NIDX_PFX) ;
+    bool is_PRIM = sstr::StartsWith(q_spec,  PRIM_PFX) ;
+    bool is_INST = sstr::StartsWith(q_spec,  INST_PFX) ;
+    bool is_SID = sstr::StartsWith(q_spec,  SID_PFX) ;
+    bool is_SIDX = sstr::StartsWith(q_spec,  SIDX_PFX) ;
+    bool is_LVID_COPYNO = sstr::StartsWith(q_spec,  LVID_COPYNO_PFX) ;
+    bool is_NPYFILE =  sstr::EndsWith(q_spec, ".npy");
+    bool is_TRIPLET = sstr::StartsWithLetterAZaz(q_spec) || strstr(q_spec, ":") || strcmp(q_spec,"-1") == 0 ;
+    bool is_COORDS = sstr::looks_like_list(q_spec, delim, 1, 4) ;
+    bool is_TRANSFORM = sstr::looks_like_list(q_spec, delim, 16, 16) ;
+
+    sfr f = {} ;
+    f.set_name(q_spec);
+    f.set_treedir(loaddir);
 
     int rc = 0 ;
-    if( looks_like_triplet )
+
+    if( is_TOP )
+    {
+        f = get_frame_top() ;
+    }
+    else if( is_EXTENT )
+    {
+        f = get_frame_extent( q_spec + strlen(EXTENT_PFX) );
+    }
+    else if( is_CE )
+    {
+        f = get_frame_ce( q_spec + strlen(CE_PFX) );
+    }
+    else if( is_TE )
+    {
+        f = get_frame_te( q_spec + strlen(TE_PFX) );
+    }
+    else if( is_AXIS )
+    {
+        f = get_frame_axis( q_spec + strlen(AXIS_PFX) );
+    }
+    else if( is_NIDX )
+    {
+        f = get_frame_nidx( q_spec + strlen(NIDX_PFX) );
+    }
+    else if( is_PRIM )
+    {
+        f = get_frame_prim( q_spec + strlen(PRIM_PFX) );
+    }
+    else if( is_INST )
+    {
+        f = get_frame_inst( q_spec + strlen(INST_PFX) );
+    }
+    else if( is_SID )
+    {
+        f = get_frame_sid( q_spec + strlen(SID_PFX) );
+    }
+    else if( is_SIDX )
+    {
+        f = get_frame_sidx( q_spec + strlen(SIDX_PFX) );
+    }
+    else if( is_LVID_COPYNO )
+    {
+        f = get_frame_lvid_copyno( q_spec + strlen(LVID_COPYNO_PFX) );
+    }
+    else if( is_NPYFILE )
+    {
+        rc = get_frame_from_npyfile(f, q_spec);
+    }
+    else if( is_TRIPLET )
     {
         rc = get_frame_from_triplet(f, q_spec);
     }
-    else if (looks_like_coords)
+    else if( is_COORDS )
     {
         rc = get_frame_from_coords(f, q_spec);
     }
+    else if( is_TRANSFORM )
+    {
+        rc = get_frame_from_transform(f, q_spec);
+    }
+    else
+    {
+        rc = 1 ;
+    }
+
     if(rc != 0) std::cerr
         << "stree::get_frame FAIL "
         << " q_spec[" << ( q_spec ? q_spec : "-" ) << "]"
@@ -2209,6 +2516,358 @@ inline sfr stree::get_frame(const char* q_spec ) const
 
     return f ;
 }
+
+/**
+stree::get_frame_top
+---------------------
+
+Contrast the simplicity of this with the contortions done in CSGFoundry::iasBB
+**/
+
+inline sfr stree::get_frame_top() const
+{
+    return get_frame_nidx(0);
+}
+
+
+inline sfr stree::get_frame_extent(const char* s_extent ) const
+{
+    return sfr::MakeFromExtent<float>( s_extent );
+}
+
+inline sfr stree::get_frame_ce(const char* s_ce ) const
+{
+    return sfr::MakeFromCE<float>( s_ce, ',' );
+}
+inline sfr stree::get_frame_ce(const float* _ce ) const
+{
+    return sfr::MakeFromCE<float>( _ce );
+}
+
+inline sfr stree::get_frame_te(const char* s_te ) const
+{
+    return sfr::MakeFromTranslateExtent<float>( s_te, ',' );
+}
+inline sfr stree::get_frame_te(const float* _te ) const
+{
+    return sfr::MakeFromTranslateExtent<float>( _te );
+}
+
+
+
+inline sfr stree::get_frame_axis(const char* s_axis ) const
+{
+    return sfr::MakeFromAxis<float>(s_axis, ',');
+}
+
+/**
+stree::get_frame_prim
+-----------------------
+
+::
+
+     MOI=PRIM:691 cxr_min.sh
+
+**/
+
+inline sfr stree::get_frame_prim(const char* s_prim ) const
+{
+    std::string name = PRIM_PFX ;
+    name += s_prim ;
+    int prim = sstr::AsInt(s_prim, -1);
+    sfr fr = get_frame_prim( prim );
+    fr.set_name(name.c_str());
+    return fr ;
+}
+inline sfr stree::get_frame_nidx(const char* s_nidx ) const
+{
+    std::string name = NIDX_PFX ;
+    name += s_nidx ;
+    int nidx = sstr::AsInt(s_nidx, -1);
+    sfr fr = get_frame_nidx( nidx );
+    fr.set_name(name.c_str());
+    return fr ;
+}
+
+inline sfr stree::get_frame_inst(const char* s_inst ) const
+{
+    std::string name = INST_PFX ;
+    name += s_inst ;
+    int ii = sstr::AsInt(s_inst, -1);
+    sfr fr = get_frame_inst( ii );
+    fr.set_name(name.c_str());
+    return fr ;
+}
+
+inline sfr stree::get_frame_sid(const char* s_sid ) const
+{
+    std::string name = SID_PFX ;
+    name += s_sid ;
+    int sid = sstr::AsInt(s_sid, -1);
+    sfr fr = get_frame_sid( sid );
+    fr.set_name(name.c_str());
+    return fr ;
+}
+
+inline sfr stree::get_frame_sidx(const char* s_sidx ) const
+{
+    std::string name = SIDX_PFX ;
+    name += s_sidx ;
+    int sidx = sstr::AsInt(s_sidx, -1);
+    sfr fr = get_frame_sidx( sidx );
+    fr.set_name(name.c_str());
+    return fr ;
+}
+
+/**
+stree::get_frame_lvid_copyno
+-----------------------------
+
+::
+
+    MOI=LVID_COPYNO:66/3305 cxr_min.sh
+    MOI=LVID_COPYNO:s_EMF_bar_box_810mm/3305 cxr_min.sh
+
+**/
+
+
+inline sfr stree::get_frame_lvid_copyno(const char* s_lvid_copyno ) const
+{
+    std::string name = LVID_COPYNO_PFX ;
+    name += s_lvid_copyno ;
+
+    std::vector<std::string> elem ;
+    sstr::Split(s_lvid_copyno, '/', elem );
+
+    const char* s_lvid  = elem.size() > 0 ? elem[0].c_str() : nullptr ;
+    const char* s_copyno  = elem.size() > 1 ? elem[1].c_str() : nullptr ;
+    const char* s_src = elem.size() > 2 ? elem[2].c_str() : nullptr ;
+
+    int lvid = -1 ;
+    if(s_lvid && sstr::StartsWithLetterAZaz(s_lvid))
+    {
+        const char* soname = s_lvid ;
+        bool starting = false ; // require exact match
+        lvid = find_lvid(soname, starting);
+        if( lvid < 0 ) std::cerr
+            << "stree::get_frame_lvid_copyno"
+            << " find_lvid FAILED "
+            << " soname[" << ( soname ? soname : "-" ) << "]"
+            << " lvid " << lvid
+            << "\n"
+            ;
+    }
+    else
+    {
+        lvid = s_lvid ? std::atoi(s_lvid) : 0 ;
+    }
+
+
+    int copyno = s_copyno ? std::atoi(s_copyno) : 0 ;
+    char src = s_src ? s_src[0] : 'N' ;
+    assert( src == 'N' || src == 'R' || src == 'T' );
+
+    sfr fr = get_frame_lvid_copyno( lvid, copyno, src );
+    fr.set_name(name.c_str());
+    return fr ;
+}
+
+
+
+
+
+/**
+stree::get_frame_prim
+----------------------
+
+For instanced prim this will give the frame of the
+first nidx node. To access the frame of a specific node of
+the tree rather than just an example first node
+use stree::get_frame_nidx
+
+**/
+
+
+inline sfr stree::get_frame_prim(int prim) const
+{
+    int nidx = get_nidx_for_prim(prim); // many nidx will havse same prim
+    sfr fr = get_frame_nidx(nidx);
+    fr.set_prim(prim);
+    return fr ;
+}
+inline sfr stree::get_frame_nidx(int nidx) const
+{
+    assert( nidx > -1 );
+    const snode& node = nds[nidx];
+    BB bb ;
+    get_prim_aabb( bb.data(), node, nullptr, nullptr );
+
+    sfr f = {} ;
+    f.m2w = m2w[nidx] ;
+    f.w2m = w2m[nidx] ;
+    s_bb::CenterExtent<double>( f.ce_data(), bb.data() );
+    f.set_bb(bb.data());
+    f.set_nidx(nidx);
+
+    int prim = get_prim_for_nidx(nidx);
+    f.set_prim(prim);
+
+    return f ;
+}
+
+
+/**
+stree::get_frame_inst
+----------------------
+
+THIS NEEDS TO MATCH : CSGTarget::getFrame(sframe& fr, int inst_idx )
+CSGImport::importInst uses inst_f4 so can do it with better precision here
+
+**/
+
+inline sfr stree::get_frame_inst(int ii) const
+{
+    sfr f = {} ;
+
+    std::ostream* out = nullptr ;
+    VTR* t_stack = nullptr ;
+
+    get_frame_inst(f, ii, out, t_stack );
+
+    return f ;
+}
+
+
+inline sfr stree::get_frame_sid(int sid) const
+{
+    std::vector<snode> nodes ;
+    find_nodes_with_sensor_id( nodes, sid );
+    int num = nodes.size();
+    int nidx = num > 0 ? nodes[0].index : -1 ;
+    if( nidx == -1 )
+    {
+        std::cerr
+           << "stree::get_frame_sid"
+           << " sid " << sid
+           << " num " << num
+           << " nidx " << nidx
+           << " FAILED TO FIND NODES FOR SID - FALLBACK TO nidx 0 "
+           << "\n"
+           ;
+        nidx = 0 ;
+    }
+    sfr f = get_frame_nidx( nidx );
+    return f ;
+}
+
+
+inline sfr stree::get_frame_sidx(int sidx) const
+{
+    std::vector<snode> nodes ;
+    find_nodes_with_sensor_index( nodes, sidx );
+    int num = nodes.size();
+    int nidx = num > 0 ? nodes[0].index : -1 ;
+    if( nidx == -1 )
+    {
+        std::cerr
+           << "stree::get_frame_sidx"
+           << " sidx " << sidx
+           << " num " << num
+           << " nidx " << nidx
+           << " failed to find nodes for sidx - fallback to nidx 0 "
+           << "\n"
+           ;
+        nidx = 0 ;
+    }
+    sfr f = get_frame_nidx( nidx );
+    return f ;
+}
+
+inline sfr stree::get_frame_lvid_copyno(int q_lvid, int q_copyno, char q_src) const
+{
+    std::vector<int> nodes ;
+    find_lvid_copyno_nodes( nodes, q_lvid, q_copyno, q_src );
+
+    int num = nodes.size();
+    int nidx = num > 0 ? nodes[0] : -1 ;
+
+    if( nidx == -1 )
+    {
+        std::cerr
+           << "stree::get_frame_lvid_copyno"
+           << " q_lvid " << q_lvid
+           << " q_copyno " << q_copyno
+           << " q_src " << q_src
+           << " num " << num
+           << " nidx " << nidx
+           << " failed to find nodes for lvid_copyno - fallback to nidx 0 "
+           << "\n"
+           ;
+        nidx = 0 ;
+    }
+    sfr f = get_frame_nidx( nidx );
+    return f ;
+}
+
+
+
+
+
+
+
+inline int stree::get_frame_from_npyfile(sfr& f, const char* q_spec ) const
+{
+    NP* a = NP::Load(q_spec);
+    if(!a) return 1 ;
+    if(a->uifc != 'f') return 2 ;
+    if(!a->has_shape(4,4)) return 3 ;
+
+
+    if(a->ebyte == 8)
+    {
+        const double* aa = a->values<double>();
+        f.set_m2w(aa);
+
+        double extent = a->get_meta<double>("extent", 1000.);
+        f.set_extent(extent);
+    }
+    else if(a->ebyte == 4)
+    {
+        const float* aa = a->values<float>();
+        f.set_m2w(aa);
+
+        float extent = a->get_meta<float>("extent", 1000.f);
+        f.set_extent(extent);
+    }
+    else
+    {
+        return 4;
+    }
+
+
+    std::cout << "stree::get_frame_from_npyfile\n" << f.desc() << "\n" ;
+
+    return 0 ;
+}
+
+
+
+
+/**
+stree::get_frame_from_triplet
+-----------------------------
+
+1. parse_spec from q_spec get (lvid, lvid_ordinal, repeat_ordinal)
+
+
+repeat_ordinal:-1/-2/-3
+   get_frame_global
+
+repeat_ordinal:0,...
+   get_frame_instanced
+
+
+**/
 
 
 inline int stree::get_frame_from_triplet(sfr& f, const char* q_spec ) const
@@ -2248,6 +2907,9 @@ inline int stree::get_frame_from_triplet(sfr& f, const char* q_spec ) const
     return get_rc ;
 }
 
+
+
+
 /**
 stree::get_frame_from_coords
 ------------------------------
@@ -2285,11 +2947,44 @@ inline int stree::get_frame_from_coords(sfr& f, const char* q_spec ) const
 
     f.set_ce(ce.data() );
 
+    std::array<double,6> bb = {};
+    bb[0] = ce[0] - ce[3] ;
+    bb[1] = ce[1] - ce[3] ;
+    bb[2] = ce[2] - ce[3] ;
+    bb[3] = ce[0] + ce[3] ;
+    bb[4] = ce[1] + ce[3] ;
+    bb[5] = ce[2] + ce[3] ;
+    f.set_bb( bb.data() );
+    f.set_prim(-1);
+
+
     bool rtp_tangential = false ;
     bool extent_scale = false ;
     SCenterExtentFrame<double> cef(ce[0], ce[1], ce[2], ce[3], rtp_tangential, extent_scale ) ;
     f.m2w = cef.model2world ;
     f.w2m = cef.world2model ;
+
+    return 0;
+}
+
+
+inline int stree::get_frame_from_transform(sfr& f, const char* q_spec ) const
+{
+    char delim = ',' ;
+    std::vector<double> elem ;
+    sstr::split<double>( elem, q_spec, delim );
+    int num_elem = elem.size();
+    bool expect_elem = num_elem == 16  ;
+    std::cout
+        << "stree::get_frame_from_transform"
+        << " num_elem " << num_elem
+        << " expect_elem " << ( expect_elem ? "YES" : "NO " )
+        << " elem " << sstr::desc<double>(elem)
+        << "\n"
+        ;
+    if(!expect_elem) return 1 ;
+
+    f.set_m2w(elem.data() );
 
     return 0;
 }
@@ -2384,35 +3079,20 @@ stree::get_frame_instanced
 
 **/
 
-inline int stree::get_frame_instanced(sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal ) const
+inline int stree::get_frame_instanced(sfr& f, int lvid, int lvid_ordinal, int repeat_ordinal, std::ostream* out, VTR* t_stack ) const
 {
     int ii = pick_lvid_ordinal_repeat_ordinal_inst_( lvid, lvid_ordinal, repeat_ordinal );
-
-    const glm::tmat4x4<double>* m2w = get_inst(ii);
-    const glm::tmat4x4<double>* w2m = get_iinst(ii);
-
-    bool missing_transform = !m2w || !w2m ;
-
-    if(missing_transform) std::cerr
-        << "stree::get_frame_instanced FAIL missing_transform "
-        << " lvid " << lvid
-        << " lvid_ordinal " << lvid_ordinal
-        << " repeat_ordinal " << repeat_ordinal
-        << " w2m " << ( w2m ? "YES" : "NO " )
-        << " m2w " << ( m2w ? "YES" : "NO " )
-        << " ii " << ii
-        << "\n"
-        ;
-
-    if(missing_transform) return 1 ;
-    assert( m2w );
-    assert( w2m );
-
     int nidx = inst_nidx[ii] ;
     const snode& nd = nds[nidx] ;
 
-    std::array<double,6> bb ;
-    get_prim_aabb( bb.data(), nd, nullptr );
+    //assert( nd.lvid == lvid );
+    //    lvid will not in general match nd.lvid
+    //    because there are multiple lv within the instance
+    //    (would only work for the outer CSGPrim of the CSGSolid presumably)
+
+    //assert( nd.repeat_ordinal == repeat_ordinal );
+    //    not so for globals
+
 
     if(get_frame_dump) std::cout
         << "stree::get_frame_instanced"
@@ -2428,28 +3108,58 @@ inline int stree::get_frame_instanced(sfr& f, int lvid, int lvid_ordinal, int re
         << "\n"
         << " nd.desc " << nd.desc()
         << "\n"
-        << " bb \n"
-        << s_bb::Desc( bb.data() )
+        ;
+    return get_frame_inst(f, ii, out, t_stack );
+}
+
+
+inline int stree::get_frame_inst(sfr& f, int ii, std::ostream* out, VTR* t_stack) const
+{
+    const glm::tmat4x4<double>* m2w = get_inst(ii);
+    const glm::tmat4x4<double>* w2m = get_iinst(ii);
+    bool missing_transform = !m2w || !w2m ;
+
+    if(missing_transform) std::cerr
+        << "stree::get_frame_inst FAIL missing_transform "
+        << " w2m " << ( w2m ? "YES" : "NO " )
+        << " m2w " << ( m2w ? "YES" : "NO " )
+        << " ii " << ii
         << "\n"
         ;
 
-    //assert( nd.lvid == lvid );
-    // lvid will not in general match
-    // because there are multiple lv within the instance
-    // and the access technique goes via the gas_idx ?
+    assert( m2w );
+    assert( w2m );
 
-    //assert( nd.repeat_ordinal == repeat_ordinal );
-    // not so for globals
+    int nidx = inst_nidx[ii] ;
+    const snode& nd = nds[nidx] ;
 
-    // TODO: aux0/1/2 arrange layout of integers
+    std::array<double,6> bb ;
+    get_prim_aabb( bb.data(), nd, out, t_stack );
 
     s_bb::CenterExtent( f.ce_data(), bb.data() );
 
     f.m2w = *m2w ;
     f.w2m = *w2m ;
 
+    f.set_bb(bb.data());
+    f.set_inst(ii);
+    f.set_nidx(nidx);
+
+
+    int inst_idx = -1 ;
+    int gas_idx = -1 ;
+    int sensor_identifier = -1 ;
+    int sensor_index = -1 ;
+
+    int rc = get_inst_identity( inst_idx, gas_idx, sensor_identifier, sensor_index, ii );
+    assert( rc == 0 );
+    assert( inst_idx == ii );
+    f.set_identity( inst_idx, gas_idx, sensor_identifier, sensor_index );
+    // cf CSGTarget::getFrame
+
     return 0 ;
 }
+
 
 
 
@@ -2493,7 +3203,7 @@ stree::_get_frame_global
 This is called for special cased -ve repeat_ordinal, which
 is only appropriate for global non-instanced volumes.
 
-1. find the snode using (lvid, lvid_ordinal, ridx_type)
+1. find the snode using (lvid, lvid_ordinal, ridx_type['R','T','?'])
 2. compute bounding box and hence center_extent for the snode
 3. form frame transforms m2w/w2m using SCenterExtentFrame or not
    depending on repeat_ordinal -1/-2/-3
@@ -2538,8 +3248,65 @@ inline int stree::_get_frame_global(sfr& f, int lvid, int lvid_ordinal, int repe
 
     std::array<double,4> ce = {} ;
     std::array<double,6> bb = {} ;
-    int rc = get_node_ce_bb( ce, bb, node );
+
+
+    int LVID = ssys::getenvint(stree__get_frame_global_LVID,-1);
+
+    VBB* contrib_bb = nullptr ;
+    VTR* contrib_tr = nullptr ;
+    if( node.lvid == LVID )
+    {
+        contrib_bb = new VBB ;
+        contrib_tr = new VTR ;
+    }
+
+    int rc = get_node_ce_bb( ce, bb, node, contrib_bb, contrib_tr );
     f.set_ce(ce.data() );
+    f.set_bb(bb.data() );
+
+    f.set_nidx( node.index );
+
+    int prim = get_prim_for_nidx( node.index );
+    f.set_prim( prim );
+
+    f.set_lvid(lvid);
+    f.set_lvid_ordinal(lvid_ordinal);
+
+
+    if(contrib_bb)
+    {
+        NP* a = NP::Make<double>( contrib_bb->size(), 6 );
+        double* aa = a->values<double>();
+        for(size_t i=0 ; i < contrib_bb->size() ; i++)
+        {
+            const BB& cbb = (*contrib_bb)[i] ;
+            for(size_t j=0 ; j < 6 ; j++) aa[i*6+j] = cbb[j] ;
+        }
+        std::stringstream ss ;
+        ss << stree__get_frame_global_LVID << "_" << LVID << "_contrib_bb.npy" ;
+        std::string name = ss.str();
+        std::cout << "stree::_get_frame_global saving [" << name << "]\n" ;
+        a->save( name.c_str() );
+    }
+
+    if(contrib_tr)
+    {
+        NP* a = NP::Make<double>( contrib_tr->size(), 4, 4 );
+        double* aa = a->values<double>();
+        for(size_t i=0 ; i < contrib_tr->size() ; i++)
+        {
+            const TR& ctr = (*contrib_tr)[i] ;
+            for(size_t j=0 ; j < 16 ; j++) aa[i*16+j] = glm::value_ptr(ctr)[j] ; ;
+        }
+        std::stringstream ss ;
+        ss << stree__get_frame_global_LVID << "_" << LVID << "_contrib_tr.npy" ;
+        std::string name = ss.str();
+        std::cout << "stree::_get_frame_global saving [" << name << "]\n" ;
+        a->save( name.c_str() );
+    }
+
+
+
 
     if( repeat_ordinal == -2 || repeat_ordinal == -3 )
     {
@@ -2570,20 +3337,55 @@ inline int stree::_get_frame_global(sfr& f, int lvid, int lvid_ordinal, int repe
     return rc ;
 }
 
-inline int stree::get_node_ce_bb(    std::array<double,4>& ce , std::array<double,6>& bb,  const snode& node ) const
+
+/**
+stree::get_node_ce_bb
+------------------------
+
+1. get bbox for the snode with stree::get_node_bb
+2. derive CenterExtent ce from the bbox bb
+
+**/
+
+
+inline int stree::get_node_ce_bb(    std::array<double,4>& ce , std::array<double,6>& bb,  const snode& node, VBB* contrib_bb, VTR* contrib_tr ) const
 {
-    int rc = get_node_bb(bb, node);
+    int rc = get_node_bb(bb, node, contrib_bb, contrib_tr );
     s_bb::CenterExtent( ce.data(), bb.data() );
     return rc ;
 }
 
-inline int stree::get_node_bb(  std::array<double,6>& bb , const snode& node ) const
+/**
+stree::get_node_bb
+-------------------
+
+1. get bds binary tree nodes
+2. get lns list nodes
+3. iterate over binary tree nodes
+
+4. A: when a listnode is encountered collect the immediate child nodes into subs
+4. B: when a non-listnode leaf is encountered obtain n_bb bounding box and include that into bb
+
+5. iterate over the subs, which are required to all be leaf nodes, getting their n_bb and including it into bb
+
+
+**/
+
+inline int stree::get_node_bb(  std::array<double,6>& bb , const snode& node, VBB* contrib_bb, VTR* contrib_tr ) const
 {
     int lvid = node.lvid ;
+    int LVID = ssys::getenvint(stree__get_node_bb_LVID,-1);
+    int CONSTITUENT = ssys::getenvint(stree__get_node_bb_CONSTITUENT,-1);
+
+
+    // 1. get bds binary tree nodes
 
     std::vector<const sn*> bds ;         // binary tree nodes
     sn::GetLVNodesComplete(bds, lvid);   // many nullptr in unbalanced deep complete binary trees
     int bn = bds.size();                 // number of binary tree nodes
+
+
+   // 2. get lns list nodes
 
     std::vector<const sn*> lns ;
     sn::GetLVListnodes( lns, lvid );
@@ -2592,18 +3394,22 @@ inline int stree::get_node_bb(  std::array<double,6>& bb , const snode& node ) c
     int ln = lns.size();
     assert( ln == 0 || ln == 1 ); // simplify initial impl  : see CSGImport::importPrim
 
-    std::ostream* out = nullptr ;
+    std::ostream* out = contrib_bb ? new std::stringstream : nullptr ;
+    if(out) *out << "stree::get_node_bb bn " << bn << "\n" ;
 
+
+    // 3. iterate over binary tree nodes
     std::vector<const sn*> subs ;
 
     for(int i=0 ; i < bn ; i++)
     {
+        if(out) *out << "stree::get_node_bb.bn_loop.HEAD i[" << i << "/" << bn << "]\n" ;
         const sn* n = bds[i];
         int  typecode = n ? n->typecode : CSG_ZERO ;
 
         if(n && n->is_listnode())
         {
-            // hmm subtracted holes will no contribute to bbox
+            // 4. A: when a listnode is encountered collect the immediate child nodes into subs
             int num_sub = n->child.size() ;
             for(int j=0 ; j < num_sub ; j++)
             {
@@ -2613,47 +3419,225 @@ inline int stree::get_node_bb(  std::array<double,6>& bb , const snode& node ) c
         }
         else
         {
+            // 4. B: when a non-listnode leaf  is encountered obtain n_bb bounding box and include that into bb
             bool leaf = CSG::IsLeaf(typecode) ;
 
             if(0) std::cout
-                << "stree::get_frame_remainder"
+                << "stree::get_node_bb"
                 << " i " << std::setw(2) << i
                 << " typecode " << typecode
                 << " leaf " << ( leaf ? "Y" : "N" )
                 << "\n"
                 ;
 
-            std::array<double,6> n_bb ;
-            double* n_aabb = leaf ? n_bb.data() : nullptr ;
-            const Tran<double>* tv = leaf ? get_combined_tran_and_aabb( n_aabb, node, n, nullptr ) : nullptr ;
+            if(!leaf) continue ;
 
-            if(tv && leaf && n_aabb && !n->is_complement_primitive()) s_bb::IncludeAABB( bb.data(), n_aabb, out );
+            std::array<double,6> n_bb0 = {} ;
+            n->copyBB_data(n_bb0.data()) ; // without transform
+
+            std::array<double,6> n_bb = {} ;
+            double* n_aabb = leaf ? n_bb.data() : nullptr ;
+
+            if(out) *out << "stree::get_node_bb.bn_loop.GET_COMBINED_TRAN_AND_AABB i[" << i << "]\n" ;
+
+            const Tran<double>* tv = leaf ? get_combined_tran_and_aabb( n_aabb, node, n, out, nullptr ) : nullptr ;
+            bool is_degenerate = s_bb::Degenerate<double>( n_aabb );
+
+            if(is_degenerate) std::cerr
+                << "stree::get_node_bb.tree"
+                << " i " << std::setw(2) << i
+                << " SKIP DEGENERATE bb "
+                << " typecode " << typecode
+                << " "
+                << s_bb::Desc(n_aabb)
+                << "\n"
+                ;
+
+            if(tv && leaf && n_aabb && !is_degenerate && !n->is_complement_primitive())
+            {
+                if(contrib_bb) contrib_bb->push_back(n_bb0);
+                if(contrib_bb) contrib_bb->push_back(n_bb);
+                if(contrib_tr) contrib_tr->push_back(tv->t);
+                if(out) *out << "stree::get_node_bb.bn_loop.IncludeAABB i[" << i << "]\n" ;
+                s_bb::IncludeAABB( bb.data(), n_aabb, out );
+            }
+
         }
+        if(out) *out << "stree::get_node_bb.bn_loop.TAIL i[" << i << "/" << bn << "]\n" ;
     }
 
 
     // NOT FULLY TESTED : but it succeeds to do nothing with subtracted multiunion of holes (that becomes listnode)
+
+    // 5. iterate over the subs, which are required to all be leaf nodes, getting their n_bb and including it into bb
+
     int num_sub_total = subs.size();
     for( int i=0 ; i < num_sub_total ; i++ )
     {
+        if(out) *out << "stree::get_node_bb.sub_loop.HEAD i[" << i << "/" << num_sub_total <<  "]\n" ;
         const sn* n = subs[i];
         bool leaf = CSG::IsLeaf(n->typecode) ;
         assert(leaf);
+        if(!leaf) continue ;
+
+        std::array<double,6> n_bb0 = {} ;
+        n->copyBB_data(n_bb0.data()) ; // without transform
 
         std::array<double,6> n_bb ;
-        double* n_aabb = leaf ? n_bb.data() : nullptr ;
-        const Tran<double>* tv = leaf ? get_combined_tran_and_aabb( n_aabb, node, n, nullptr ) : nullptr ;
+        double* n_aabb = n_bb.data() ;
 
-        if(tv && leaf && n_aabb && !n->is_complement_primitive()) s_bb::IncludeAABB( bb.data(), n_aabb, out );
+
+        if(out) *out << "stree::get_node_bb.sub_loop.GET_COMBINED_TRAN_AND_AABB i[" << i << "]\n" ;
+
+        VTR* isub_t_stack = lvid == LVID && ( CONSTITUENT == -1 || CONSTITUENT == i ) ? new VTR : nullptr ;
+
+        const Tran<double>* tv = get_combined_tran_and_aabb( n_aabb, node, n, out, isub_t_stack  ) ;
+        bool is_degenerate = s_bb::Degenerate<double>( n_aabb );
+
+        if(is_degenerate) std::cerr
+            << "stree::get_node_bb.subs"
+            << " i " << std::setw(2) << i
+            << " SKIP DEGENERATE bb "
+            << " typecode " << n->typecode
+            << " "
+            << s_bb::Desc(n_aabb)
+            << "\n"
+            ;
+
+        if(tv && leaf && n_aabb && !is_degenerate && !n->is_complement_primitive())
+        {
+            if(contrib_bb) contrib_bb->push_back(n_bb0);
+            if(contrib_bb) contrib_bb->push_back(n_bb);
+            if(contrib_tr) contrib_tr->push_back(tv->t);
+
+            if(out) *out << "stree::get_node_bb.sub_loop.i[" << i << "].n_bb0 " << s_bb::Desc(n_bb0.data()) << "\n" ;
+            if(out) *out << "stree::get_node_bb.sub_loop.i[" << i << "].n_bb  " << s_bb::Desc(n_bb.data())  << "\n" ;
+            s_bb::IncludeAABB( bb.data(), n_aabb, out );
+        }
         // HMM does the complement message get thru to listnode subs ?
+        if(out) *out << "stree::get_node_bb.sub_loop.TAIL i[" << i << "/" << num_sub_total <<  "]\n" ;
+
+        if(isub_t_stack)
+        {
+            NP* a = NP::Make<double>( isub_t_stack->size(), 4, 4 );
+            double* aa = a->values<double>();
+            for(size_t i=0 ; i < isub_t_stack->size() ; i++)
+            {
+                const TR& ctr = (*isub_t_stack)[i] ;
+                for(size_t j=0 ; j < 16 ; j++) aa[i*16+j] = glm::value_ptr(ctr)[j] ; ;
+            }
+            std::stringstream ss ;
+            ss << stree__get_node_bb_LVID << "_" << lvid << "_" << i << "_isub_t_stack.npy" ;
+            std::string name = ss.str();
+            std::cout << "stree::_get_frame_global saving [" << name << "]\n" ;
+            a->save( name.c_str() );
+            delete isub_t_stack ;
+        }
+
     }
+
+    if(out)
+    {
+        std::stringstream* ss = dynamic_cast<std::stringstream*>(out) ;
+        std::string msg = ss ? ss->str() : "-" ;
+        std::cout
+            << "stree::get_node_bb out\n[\n"
+            << msg
+            << "\n]\n"
+            ;
+    }
+
+
     return 0 ;
 }
 
 
 
+template<typename T>
+inline void stree::find_nodes_containing_point(std::vector<snode>& nodes, const T* xyz ) const
+{
+    T x = xyz[0] ;
+    T y = xyz[1] ;
+    T z = xyz[2] ;
+
+    int num_nd = nds.size();
+    BB bb ;
+    for(int i=0 ; i < num_nd ; i++)
+    {
+        int nidx = i ;
+        const snode& node = nds[nidx];
+        get_prim_aabb( bb.data(), node, nullptr, nullptr );
+        bool in_bb = x >= bb[0] && x <= bb[3]  && y >= bb[1] && y <= bb[4] && z >= bb[2] && z <= bb[5] ;
+        if( in_bb ) nodes.push_back(node);
+    }
+}
 
 
+template<typename T>
+inline void stree::find_nodes_with_center_within_bb(std::vector<snode>& nodes, const T* qbb ) const
+{
+    int num_nd = nds.size();
+    std::array<double,4> ce = {} ;
+    std::array<double,6> bb = {} ;
+
+    for(int i=0 ; i < num_nd ; i++)
+    {
+        int nidx = i ;
+        const snode& node = nds[nidx];
+        get_node_ce_bb( ce , bb, node, nullptr, nullptr );
+
+        bool in_bb = ce[0] >= qbb[0] && ce[0] <= qbb[3] &&
+                     ce[1] >= qbb[1] && ce[1] <= qbb[4] &&
+                     ce[2] >= qbb[2] && ce[2] <= qbb[5] ;
+
+        if(in_bb) nodes.push_back(node);
+    }
+}
+
+
+
+template<typename T>
+inline void stree::find_nodes_with_center_within_ce(std::vector<snode>& nodes, const T* ce ) const
+{
+     std::array<T,6> bb ;
+     bb[0] = ce[0] - ce[3] ;
+     bb[1] = ce[1] - ce[3] ;
+     bb[2] = ce[2] - ce[3] ;
+     bb[3] = ce[0] + ce[3] ;
+     bb[4] = ce[1] + ce[3] ;
+     bb[5] = ce[2] + ce[3] ;
+
+     find_nodes_with_center_within_bb<T>( nodes, bb.data() );
+}
+
+template<typename T>
+inline std::string stree::desc_nodes_with_center_within_ce( const T* qce ) const
+{
+    std::vector<snode> nodes ;
+    find_nodes_with_center_within_ce<T>( nodes, qce );
+    int num_nodes = nodes.size();
+
+    std::stringstream ss ;
+    ss << "[stree::desc_nodes_with_center_within_ce\n"
+       << " qce ["
+       << std::setw(10) << std::fixed << std::setprecision(3) << qce[0]
+       << std::setw(10) << std::fixed << std::setprecision(3) << qce[1]
+       << std::setw(10) << std::fixed << std::setprecision(3) << qce[2]
+       << std::setw(10) << std::fixed << std::setprecision(3) << qce[3]
+       << "]\n"
+       << " num_nodes " << num_nodes
+       << "\n"
+       ;
+
+    for(int i=0 ; i < num_nodes ; i++)
+    {
+        const snode& nd = nodes[i];
+        ss << nd.desc() << "\n" ;
+    }
+
+    std::string str = ss.str() ;
+    return str ;
+}
 
 
 
@@ -2794,9 +3778,22 @@ inline int stree::get_copyno(int nidx) const
     return nidx > -1 ? nds[nidx].copyno : -1 ;
 }
 
+/**
+stree::get_top
+---------------
+
+Returns root node, the first "World" node which has no parent node.
+
+**/
+
+inline const snode* stree::get_top() const
+{
+    return get_node(0);
+}
 inline const snode* stree::get_node(int nidx) const
 {
-    return &nds[nidx] ;
+    int num_nd = nds.size();
+    return nidx > -1 && nidx < num_nd ? &nds[nidx] : nullptr ;
 }
 inline const snode* stree::get_parent_node(int nidx) const
 {
@@ -2973,8 +3970,12 @@ inline void stree::get_node_product(
                       int nidx,
                       bool local,
                       bool reverse,
-                      std::ostream* out ) const
+                      std::ostream* out,
+                      VTR* t_stack ) const
 {
+
+    if(out) *out << "stree::get_node_product.HEAD nidx " << nidx << " local " << local << " reverse " << reverse << "\n" ;
+
     std::vector<int> nodes ;
     get_ancestors(nodes, nidx, local, out);  // root-first-order (from collecting parent links then reversing the vector)
 
@@ -3028,12 +4029,13 @@ inline void stree::get_node_product(
 
         glm::tmat4x4<double> it(1.);
         glm::tmat4x4<double> iv(1.);
-        get_node_transform( it, iv, ii );
+        get_node_transform( it, iv, ii );   // m2w and w2m for nidx:ii
         if(out) *out << stra<double>::Desc(it, iv, "it", "iv" );
+        if(t_stack) t_stack->push_back(it);
 
         glm::tmat4x4<double> jt(1.);
         glm::tmat4x4<double> jv(1.);
-        get_node_transform( jt, jv, jj );
+        get_node_transform( jt, jv, jj );  // m2w and w2m for nidx:jj
         if(out) *out << stra<double>::Desc(jt, jv, "jt", "jv" );
 
         tp *= it ;
@@ -3042,18 +4044,24 @@ inline void stree::get_node_product(
         //if(out) *out << stra<double>::Desc(tp, vp, "tp", "vp" );   // product not always identity
     }
 
-    if(out) *out << stra<double>::Desc(tp, vp, "tp", "vp" );
+    if(out) *out
+         << "stree::get_node_product tp:product.it, vp:product.jv in opposite order\n"
+         << stra<double>::Desc(tp, vp, "tp", "vp" )
+         ;
 
     memcpy( glm::value_ptr(m2w_), glm::value_ptr(tp), sizeof(glm::tmat4x4<double>) );
     memcpy( glm::value_ptr(w2m_), glm::value_ptr(vp), sizeof(glm::tmat4x4<double>) );
+
+    if(out) *out << "stree::get_node_product.TAIL nidx " << nidx << " local " << local << " reverse " << reverse << "\n" ;
 }
 
 
 inline std::string stree::desc_node_product( glm::tmat4x4<double>& m2w_, glm::tmat4x4<double>& w2m_, int nidx, bool local, bool reverse ) const
 {
+    VTR* t_stack = nullptr ;
     std::stringstream ss ;
     ss << "stree::desc_node_product" ;
-    get_node_product( m2w_, w2m_, nidx, local, reverse, &ss );
+    get_node_product( m2w_, w2m_, nidx, local, reverse, &ss, t_stack );
     std::string s = ss.str();
     return s ;
 }
@@ -3126,12 +4134,17 @@ inline void stree::get_combined_transform(
     glm::tmat4x4<double>& v,
     const snode& node,
     const sn* nd,
-    std::ostream* out ) const
+    std::ostream* out,
+    VTR* t_stack ) const
 {
     bool local = node.repeat_index > 0 ;   // for instanced nodes restrict to same repeat_index excluding outer
+    if(out) *out << "stree::get_combined_transform.HEAD local " << local << "\n" ;
+
     glm::tmat4x4<double> tt(1.) ;
     glm::tmat4x4<double> vv(1.) ;
-    get_node_product( tt, vv, node.index, local, false, out ); // reverse:false
+    get_node_product( tt, vv, node.index, local, false, out, t_stack ); // reverse:false
+    if(out) *out << "stree::get_combined_transform.nd (tt,vv)\n" << stra<double>::Desc( tt, vv, "(tt)", "(vv)" ) << "\n\n" ;
+
 
     glm::tmat4x4<double> tc(1.) ;
     glm::tmat4x4<double> vc(1.) ;
@@ -3139,14 +4152,16 @@ inline void stree::get_combined_transform(
     if(nd)
     {
         assert( node.lvid == nd->lvid );
-        sn::NodeTransformProduct(nd->idx(), tc, vc, false, out );  // reverse:false
+        sn::NodeTransformProduct(nd->idx(), tc, vc, false, out, t_stack );  // reverse:false
+        if(out) *out << "stree::get_combined_transform.nd (tc,vc)\n" << stra<double>::Desc( tc, vc, "(tc)", "(vc)" ) << "\n\n" ;
     }
 
     // combine structural (volume level) and CSG (solid level) transforms
     t = tt * tc ;
     v = vc * vv ;
 
-    if(out) *out << stra<double>::Desc( t, v, "(tt*tc)", "(vc*vv)" ) << std::endl << std::endl ;
+    if(out) *out << "stree::get_combined_transform.product (t,v)\n" << stra<double>::Desc( t, v, "(tt*tc)", "(vc*vv)" ) << "\n\n" ;
+    if(out) *out << "stree::get_combined_transform.TAIL local " << local << "\n" ;
 }
 
 inline std::string stree::desc_combined_transform(
@@ -3155,9 +4170,10 @@ inline std::string stree::desc_combined_transform(
     const snode& node,
     const sn* nd ) const
 {
+    VTR* t_stack = nullptr ;
     std::stringstream ss ;
     ss << "stree::desc_combined_transform" << std::endl;
-    get_combined_transform(t, v, node, nd, &ss );
+    get_combined_transform(t, v, node, nd, &ss, t_stack );
     std::string str = ss.str();
     return str ;
 }
@@ -3186,15 +4202,17 @@ inline const Tran<double>* stree::get_combined_tran_and_aabb(
     double* aabb,
     const snode& node,
     const sn* nd,
-    std::ostream* out
+    std::ostream* out,
+    VTR* t_stack
     ) const
 {
     assert( nd );
     if(!CSG::IsLeaf(nd->typecode)) return nullptr ;
 
+
     glm::tmat4x4<double> t(1.) ;
     glm::tmat4x4<double> v(1.) ;
-    get_combined_transform(t, v, node, nd, out );
+    get_combined_transform(t, v, node, nd, out, t_stack );
 
     // NB ridx:0 full stack of transforms from root down to CSG constituent nodes
     //    ridx>0 only within the instance and within constituent CSG tree
@@ -3223,7 +4241,8 @@ inline void stree::get_transformed_aabb(
     double* aabb,
     const snode& node,
     const sn* nd,
-    std::ostream* out
+    std::ostream* out,
+    VTR* t_stack
     ) const
 {
     assert( nd );
@@ -3231,7 +4250,7 @@ inline void stree::get_transformed_aabb(
 
     glm::tmat4x4<double> t(1.) ;
     glm::tmat4x4<double> v(1.) ;
-    get_combined_transform(t, v, node, nd, out );
+    get_combined_transform(t, v, node, nd, out, t_stack );
 
     nd->copyBB_data( aabb );
     stra<double>::Transform_AABB_Inplace(aabb, t);
@@ -3253,7 +4272,7 @@ Follow pattern of::
 HMM: THIS DOES NOT CONSIDER LISTNODE
 
 **/
-inline void stree::get_prim_aabb( double* aabb, const snode& node, std::ostream* out ) const
+inline void stree::get_prim_aabb( double* aabb, const snode& node, std::ostream* out, VTR* t_stack ) const
 {
     std::vector<const sn*> nds ;
     sn::GetLVNodesComplete(nds, node.lvid); // many nullptr in unbalanced deep complete binary trees
@@ -3280,13 +4299,23 @@ inline void stree::get_prim_aabb( double* aabb, const snode& node, std::ostream*
         if(!expect) std::raise(SIGINT);
 
         std::array<double,6> nbb ;
-        get_transformed_aabb( nbb.data(), node, nd, out );
+        get_transformed_aabb( nbb.data(), node, nd, out, t_stack );
         s_bb::IncludeAABB( pbb.data(), nbb.data(), out );
     }
     for(int i=0 ; i < 6 ; i++) aabb[i] = pbb[i] ;
 }
 
 
+inline void stree::get_prim_aabb( std::vector<std::array<double,6>>& vbb, const std::vector<snode>& nodes) const
+{
+    for( size_t i = 0 ; i < nodes.size() ; i++ )
+    {
+        const snode& node = nodes[i];
+        BB bb ;
+        get_prim_aabb( bb.data(), node, nullptr, nullptr );
+        vbb.push_back(bb);
+    }
+}
 
 
 
@@ -3920,14 +4949,29 @@ inline int stree::load( const char* base, const char* reldir )
 
 inline int stree::load_( const char* dir )
 {
+    loaddir = dir ? strdup(dir) : nullptr ;
     if(level > 0) std::cerr << "stree::load_ " << ( dir ? dir : "-" ) << std::endl ;
     NPFold* top = NPFold::Load(dir) ;
     import_(top);
     return 0 ;
 }
 
+/**
+stree::import_
+----------------
 
+The stree is imported by SSim::load_ before CSGFoundry instanciation, example call stack::
 
+    stree::import_
+    SSim::load_
+    SSim::load
+    SSim::Load
+    CSGFoundry::Load_   ## static loader invoked before CSGFoundry::CSGFoundry ctor which uses SSim::Get
+    CSGFoundry::Load
+    CSGOptiX::SimtraceMain
+    main
+
+**/
 
 inline void stree::import_(const NPFold* fold)
 {
@@ -4138,7 +5182,10 @@ inline bool stree::is_auto_triangulate( int lvid ) const
     const sn* root = sn::GetLVRoot(lvid);
     assert( root );
 
-    std::vector<int> tcq = {CSG_TORUS, CSG_NOTSUPPORTED, CSG_CUTCYLINDER } ;
+    const char* names = "torus,notsupported,cutcylinder,phicut,halfspace" ;
+    const char* NAMES = ssys::getenvvar(stree__is_auto_triangulate_NAMES, names);
+    std::vector<int> tcq ;
+    CSG::TypeCodeVec(tcq, NAMES, ',');
     int minsubdepth = 0;
     int count = root->typecodes_count(tcq, minsubdepth );
     return count > 0 ;
@@ -4610,6 +5657,19 @@ inline void stree::collectGlobalNodes()
         const snode& nd = nds[nidx] ;
         assert( nd.index == nidx );
         bool do_triangulate = is_triangulate(nd.lvid) ;
+        bool do_triangulate_non_global = nd.repeat_index > 0 && do_triangulate ;
+
+        if( do_triangulate_non_global ) std::cerr
+            << "stree::collectGlobalNodes"
+            << " nidx " << nidx
+            << " nd.lvid " << nd.lvid
+            << " soname[nd.lvid] " << soname[nd.lvid]
+            << " do_triangulate " << ( do_triangulate ? "YES" : "NO " )
+            << " do_triangulate_non_global " << ( do_triangulate_non_global ? "YES" : "NO " )
+            << "\n"
+            ;
+
+
         if( nd.repeat_index == 0 )
         {
             std::vector<snode>& dst = do_triangulate ? tri : rem  ;
@@ -4617,6 +5677,7 @@ inline void stree::collectGlobalNodes()
         }
         else
         {
+
             assert( do_triangulate == false && "triangulate solid is currently only supported for remainder nodes" );
             // HMM: FOR TRI FACTOR NODES NEED TO OPERATE WITH THE SUBTREES : AS ALL OF THE FUTURE CSGSolid
             // HAS TO BE TRI TOGETHER : SO CAN DO NOTHING HERE
@@ -4908,6 +5969,19 @@ inline char stree::get_ridx_type(int ridx) const
     else if( ridx >= T[0] && ridx <= T[1] ) type = 'T' ;
     return type ;
 }
+
+
+inline void stree::get_global_nodes(std::vector<snode>& gn) const
+{
+    size_t num_nd = nds.size();
+    for(size_t i=0 ; i < num_nd ; i++)
+    {
+        const snode& node = nds[i];
+        if(node.repeat_index == 0) gn.push_back(node);
+    }
+}
+
+
 
 
 /**
@@ -5289,6 +6363,205 @@ inline std::string stree::desc_NRT(char NRT) const
     return str ;
 }
 
+
+
+
+
+inline void stree::count_repeat_index( std::map<size_t,size_t>& m, char NRT ) const
+{
+    const std::vector<snode>* vec = get_node_vector(NRT);
+    for(size_t i=0 ; i < vec->size() ; i++)
+    {
+        const snode& node = (*vec)[i];
+        m[node.repeat_index] += 1 ;
+    }
+}
+
+inline std::string stree::desc_repeat_index() const
+{
+    size_t N0_0 = get_repeat_index_zero_count();
+
+    size_t N_tot(0);
+    size_t R_tot(0);
+    size_t T_tot(0);
+
+    size_t N0(0);
+    size_t R0(0);
+    size_t T0(0);
+
+    std::stringstream ss ;
+    ss << "[stree::desc_repeat_index (NB total snode counts, often more than instance counts for each ridx)\n" ;
+    ss << desc_repeat_index('N', &N_tot, &N0) ;
+    ss << desc_repeat_index('R', &R_tot, &R0) ;
+    ss << desc_repeat_index('T', &T_tot, &T0) ;
+
+    bool R0_expect = R_tot == R0 ;
+    bool T0_expect = T_tot == T0 ;
+    bool N0_expect = R_tot + T_tot == N0 ;
+    bool N0_0_expect = N0 == N0_0 ;
+
+    ss
+       << " N_tot " << std::setw(10) << N_tot
+       << " N0 " << std::setw(10) << N0
+       << " N0_0 " << std::setw(10) << N0_0
+       << " (R_tot + T_tot) " << std::setw(10) << (R_tot + T_tot)
+       << " N0_expect " << ( N0_expect ? "YES" : "NO " )
+       << " N0_0_expect " << ( N0_0_expect ? "YES" : "NO " )
+       << "\n"
+       << " R_tot " << std::setw(10) << R_tot
+       << " R0 " << std::setw(10) << R0
+       << " R0_expect " << ( R0_expect ? "YES" : "NO " )
+       << "\n"
+       << " T_tot " << std::setw(10) << T_tot
+       << " T0 " << std::setw(10) << T0
+       << " T0_expect " << ( T0_expect ? "YES" : "NO " )
+       << "\n"
+       ;
+
+    ss << "]stree::desc_repeat_index\n" ;
+    std::string str = ss.str();
+    return str ;
+}
+inline std::string stree::desc_repeat_index(char NRT, size_t* _tot, size_t* _num0 ) const
+{
+    std::map<size_t,size_t> m = {} ;
+    count_repeat_index(m, NRT);
+    const char* nam  = get_node_vector_name(NRT);
+
+    std::stringstream ss ;
+    ss << "[stree::desc_repeat_index " << NRT << "[" << nam << "]\n" ;
+    size_t tot = 0 ;
+    for (auto const& [key, val] : m)
+    {
+        ss << std::setw(4) << key << " : "  << std::setw(10) << val << "\n" ;
+        tot += val ;
+        if(key == 0 && _num0 ) *_num0 = val ;
+    }
+    ss << std::setw(4) << "TOT:" << " : " << std::setw(10) <<  tot << "\n" ;
+    ss << "]stree::desc_repeat_index " << NRT << "[" << nam << "]\n" ;
+    std::string str = ss.str();
+
+    if(_tot) *_tot = tot ;
+    return str ;
+}
+
+
+inline size_t stree::get_repeat_index_zero_count() const
+{
+    size_t count = 0 ;
+    for(size_t i=0 ; i < nds.size() ; i++) if(nds[i].repeat_index == 0) count += 1 ;
+    return count ;
+}
+
+inline NPFold* stree::get_global_aabb() const
+{
+    std::vector<snode> gn ;
+    get_global_nodes(gn);
+
+    size_t num_gn = gn.size();
+
+    enum { bb_nj = 6 };
+    NP* bb = NP::Make<double>(num_gn,bb_nj) ;
+    NP* ii = NP::Make<int>(   num_gn,snode::NV ) ;
+
+    double* bb0 = bb->values<double>();
+    int*    ii0 = ii->values<int>();
+
+    for(size_t i=0 ; i < num_gn ; i++)
+    {
+        const snode& node = gn[i];
+        const int* nn = node.cdata();
+        get_prim_aabb( &bb0[bb_nj*i] , node, nullptr, nullptr );
+        for(int k=0 ; k < snode::NV ; k++ ) ii0[snode::NV*i + k ] = nn[k] ;
+    }
+
+    NPFold* f = new NPFold ;
+    f->add("bb", bb);
+    f->add("ii", ii);
+    return f ;
+}
+
+/**
+stree::get_global_aabb_sibling_overlaps
+-----------------------------------------
+
+TEST=get_global_aabb_sibling_overlaps ~/o/sysrap/tests/stree_load_test.sh
+TEST=get_global_aabb_sibling_overlaps ~/o/sysrap/tests/stree_load_test.sh pdb
+
+**/
+
+
+inline NPFold* stree::get_global_aabb_sibling_overlaps() const
+{
+    VND gnd ;
+    get_global_nodes(gnd);
+    size_t num_gnd = gnd.size();
+
+    VBB gbb ;
+    get_prim_aabb(gbb, gnd);
+    size_t num_gbb = gbb.size();
+    assert( num_gbb == num_gnd );
+
+    std::cout << "[stree::get_global_aabb_sibling_overlaps num_gnd " << num_gnd << "\n" ;
+
+    VBB vbb ;
+    VND vnd ;
+
+    size_t check = 0 ;
+
+    for( size_t i = 0 ; i < num_gnd ; i++ )
+    {
+        const snode& a = gnd[i];
+        BB& _a = gbb[i] ;
+
+        for( size_t j = 0 ; j < num_gnd ; j++ )
+        {
+            if( j >= i ) continue ;
+
+            const snode& b = gnd[j];
+
+            bool same_parent = a.parent == b.parent ;
+            if(!same_parent) continue ;
+
+            bool same_depth = a.depth == b.depth ;
+            assert(same_depth);
+
+            check += 1 ;
+
+            BB& _b = gbb[j] ;
+
+            bool has_overlap = s_bb::HasOverlap<double>( _a.data(), _b.data() );
+
+            if(has_overlap)
+            {
+                vnd.push_back(a);
+                vnd.push_back(b);
+
+                vbb.push_back(_a);
+                vbb.push_back(_b);
+            }
+        }
+    }
+
+    std::cout << " check " << check << "\n" ;
+    std::cout << " vnd " << vnd.size() << "\n" ;
+    std::cout << " vbb " << vbb.size() << "\n" ;
+
+    NPFold* f = new NPFold ;
+
+    f->add("bb", NPX::ArrayFromVec<double,BB>(vbb, 6 ) );
+    f->add("nn", NPX::ArrayFromVec<int,snode>(vnd, snode::NV) );
+
+    f->add("gbb", NPX::ArrayFromVec<double,BB>(gbb, 6 ) );
+    f->add("gnd", NPX::ArrayFromVec<int,snode>(gnd, snode::NV) );
+
+    std::cout << "]stree::get_global_aabb_sibling_overlaps num_gnd " << num_gnd << "\n" ;
+
+    return f ;
+}
+
+
+
 /**
 stree::desc_node_ELVID
 ------------------------
@@ -5503,7 +6776,10 @@ inline void stree::add_inst()
 
             bool local = false ;
             bool reverse = false ;
-            get_node_product( tr_m2w, tr_w2m, nidx, local, reverse, nullptr  );
+            std::ostream* out = nullptr ;
+            VTR* t_stack = nullptr ;
+
+            get_node_product( tr_m2w, tr_w2m, nidx, local, reverse, out, t_stack  );
 
             add_inst(tr_m2w, tr_w2m, ridx, nidx );
         }
@@ -5698,6 +6974,26 @@ inline void stree::find_inst_gas_slowly_( std::vector<int>& v_inst_idx , int q_g
     }
 }
 
+
+
+
+inline int stree::get_inst_identity( glm::tvec4<int64_t>& col3, int ii ) const
+{
+    const glm::tmat4x4<double>* tr = get_inst(ii) ;
+    if(!tr) return 1 ;
+    strid::Decode( *tr, col3 );
+    return 0 ;
+}
+inline int stree::get_inst_identity( int& inst_idx, int& gas_idx, int& sensor_identifier, int& sensor_index, int ii ) const
+{
+    glm::tvec4<int64_t> col3 = {} ;
+    int rc = get_inst_identity( col3, ii );
+    inst_idx = col3.x ;
+    gas_idx = col3.y ;
+    sensor_identifier = col3.z ;
+    sensor_index = col3.w ;
+    return rc ;
+}
 
 
 inline const glm::tmat4x4<double>* stree::get_inst(int idx) const
@@ -6160,11 +7456,28 @@ inline int stree::lookup_mtline( int mtindex ) const
 stree::populate_prim_nidx
 ----------------------------
 
-mapping stree.h/nidx to CSGFoundry/globalPrimIdx
+nidx
+   index into the full flattened tree of volumes, for JUNO 0->~400k
 
-Need to "faux_import" ie a stripped down form of CSGImport::importSolid
-within stree to establish the correspondence between nidx and globalPrimIdx
-Every nidx will have a single globalPrimIdx but its not 1:1
+prim
+   index into CSGPrim array (aka globalPrimIdx), for JUNO 0->~4k
+   which is greatly reduced compared to the full tree due to the factorization
+   that avoids repetition of same shape volumes
+
+prim_nidx
+   array of *nidx* indices for each implicit *prim* index of that array.
+   This *prim* indices to be converted into *nidx*.
+   For instanced volumes the first *nidx* is returned, for global volumes
+   the relationship is 1:1 making prim_nidx more useful
+
+
+How are stree.h/nidx related to CSGFoundry/globalPrimIdx
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This method used a "faux_import" technique to arrive at the "globalPrimIdx" using
+a stripped down form of CSGImport::importSolid within stree that establish
+the correspondence between nidx and globalPrimIdx
+Every nidx will have a single globalPrimIdx but the relationship is not 1:1
 multiple nidx will have the same globalPrimIdx due to instancing.
 
 HMM this approach provides way to go from globalPrimIdx to nidx,
@@ -6172,6 +7485,50 @@ but not the general case of the reverse for instanced nodes.
 That might not matter as the main usefulness of globalPrimIdx
 is for the global geometry. Instanced geometry is best
 identified with the instance index.
+
+
+globalPrimIdx
+~~~~~~~~~~~~~~~
+
+cx/cxt_min.py simtrace intersect point clouds are labelled with globalPrimIdx::
+
+    277     _ii = ust[:,3,3].view(np.int32)   ## instanceIndex
+    278     _gp_bn = ust[:,2,3].view(np.int32)    ## simtrace intersect boundary indices
+    279     _gp = _gp_bn >> 16      ## globalPrimIdx
+    280     _bn = _gp_bn & 0xffff   ## boundary
+
+that ust[:,2,3] is written GPU side by sevent::add_simtrace pulling from (quad2)prd::
+
+     a.q2.u.w = prd->globalPrimIdx_boundary() ;
+
+The globalPrimIdx is pulled from the geometry on intersection CSGOptiX7.cu::
+
+    882     HitGroupData* hg  = (HitGroupData*)optixGetSbtDataPointer();
+    883     int nodeOffset = hg->prim.nodeOffset ;
+    884     int globalPrimIdx = hg->prim.globalPrimIdx ;
+
+Geometry is labelled with the globalPrimIdx by SBT from the CSGPrim::
+
+    1198 void SBT::setPrimData( CustomPrim& cp, const CSGPrim* prim )
+    1199 {
+    1200     cp.numNode = prim->numNode();
+    1201     cp.nodeOffset = prim->nodeOffset();
+    1202     cp.globalPrimIdx = prim->globalPrimIdx();
+    1203 }
+
+The globalPrimIdx is minted by the addition of CSGPrim to the geometry with the below making it a
+0-based idx of CSGPrim creation done compound-solid by compound solid::
+
+    2220 CSGPrim* CSGFoundry::addPrim(int num_node, int nodeOffset_ )
+    2221 {
+    2222     LOG_IF(fatal, !last_added_solid) << "must addSolid prior to addPrim" ;
+    2223     assert( last_added_solid );
+    2224
+    2225     unsigned primOffset = last_added_solid->primOffset ;
+    2226     unsigned numPrim    = last_added_solid->numPrim ;
+    2227
+    2228     unsigned globalPrimIdx = prim.size();
+
 
 **/
 
@@ -6306,6 +7663,47 @@ stree::populate_nidx_prim  WIP : needs shakedown on full geometry
 
 Needs to be called after populate_prim_nidx
 
+* For every tree node *nidx* find the prim idx
+* implicit assumption that the same prim type does not
+  occur across multiple ridx : that allows simple modulo approach
+
+
+For each ridx:
+
+1. get first nodes with q_repeat_index
+2. get all nodes with q_repeat_index
+
+
+::
+
+    In [4]: np.where( f.nidx_prim == -1 )
+    Out[4]: (array([], dtype=int64), array([], dtype=int64))
+
+    In [5]: f.nidx_prim
+    Out[5]:
+    array([[   0],
+           [   1],
+           [   2],
+           [   3],
+           [   4],
+           ...,
+           [3103],
+           [3100],
+           [3101],
+           [3102],
+           [3103]], shape=(386577, 1), dtype=int32)
+
+    In [7]: tab = np.c_[np.unique(f.nidx_prim, return_counts=True)]
+
+    In [9]: tab[tab[:,1]>500]
+    Out[9]:
+    array([[ 3070, 25600],
+           [ 3071, 25600],
+           [ 3072, 25600],
+           [ 3073, 25600],
+           [ 3074, 25600],
+           [ 3075, 12657],
+
 **/
 
 
@@ -6418,5 +7816,235 @@ inline int stree::get_prim_for_nidx(int nidx) const
 {
     return nidx < int(nidx_prim.size()) ? nidx_prim[nidx] : -1 ;
 }
+
+/**
+stree::get_nidx_for_prim
+-------------------------
+
+Expected to give nidx for all prim (aka globalPrimIdx)
+never giving -1 for valid prim.
+
+BUT: for nodes that are instanced many nidx share the same prim
+so this will provide the first nidx with the query prim.
+
+For global volumes the relationship between nidx and prim is 1:1
+for some prim and not for others.
+
+
+**/
+
+inline int stree::get_nidx_for_prim(int prim) const
+{
+    return prim < int(prim_nidx.size()) ? prim_nidx[prim] : -1 ;
+}
+
+
+
+
+
+
+inline std::string stree::desc_prim() const
+{
+    int num_pr = prim_nidx.size();
+    std::stringstream ss ;
+    ss << "[stree::desc_prim num_pr " << num_pr << "\n" ;
+    for(int prim=0 ; prim < num_pr ; prim++) ss << desc_prim(prim) << "\n" ;
+    ss << "]stree::desc_prim num_pr " << num_pr << "\n" ;
+    std::string str = ss.str() ;
+    return str ;
+}
+
+inline std::string stree::desc_prim(int prim) const
+{
+    int nidx = get_nidx_for_prim(prim);
+    const snode* nd = get_node( nidx );
+    assert( nd );
+
+    std::stringstream ss ;
+    ss
+         << " pr " << std::setw(5) << prim
+         << " nx " << std::setw(7) << nidx
+         << " nd [" << nd->desc() << "]"
+         ;
+
+    std::string str = ss.str() ;
+    return str ;
+}
+
+
+
+
+/**
+stree::localize_photon_inplace
+--------------------------------
+
+Argument photon is assumed to be a copy of a global frame photon.
+This method transforms pos, mom, pol according to the transform
+looked up from the iindex.
+
+similar to SEvt::getLocalHit
+
+**/
+
+
+inline void stree::localize_photon_inplace( sphoton& p ) const
+{
+    unsigned iindex   = p.iindex() ;
+    assert( iindex != 0xffffffffu );
+    const glm::tmat4x4<double>* tr = get_iinst(iindex) ;
+    assert( tr );
+
+    bool normalize = true ;
+    p.transform( *tr, normalize );   // inplace transforms l (pos, mom, pol) into local frame
+
+#ifdef NDEBUG
+#else
+    unsigned sensor_identifier = p.pmtid() ;
+
+    glm::tvec4<int64_t> col3 = {} ;
+    strid::Decode( *tr, col3 );
+
+    sphit ht = {};
+    ht.iindex            = col3[0] ;
+    ht.sensor_identifier = col3[2] ;
+    ht.sensor_index      = col3[3] ;
+
+    assert( ht.iindex == iindex );
+    assert( ht.sensor_identifier == sensor_identifier );
+#endif
+
+}
+
+
+
+
+
+
+/**
+stree::localize_photon  (formerly localize_hit, but its more general than that)
+---------------------------------------------------------------------------------
+
+Canonically invoked from SEvt::save only when "hitlocal" save component is
+configured via see SEventConfig::HitComp
+
+Using the sphoton::iindex which should always be present for any real
+simulation (missed intersects have no iindex, but that should not happen
+with real geometry) lookup the transform allowing global coordinate pos, mom, pol
+to be inplace transformed into the local frame of the geometry
+of the part of the gometry that the photon last intersected.
+
+Note that the corresponding strid::Encode into the transform
+is done by the above stree::add_inst
+
+
+TODO : multiple-photon localization optimization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+GPU hit merging increases the usefulness of grouped localization
+as the hits will arrive sorted by (pmtid, timebucket) so in big events
+there will be many contiguous hits that all need the same transform
+
+sphoton::transform uses  Tran<double>::ApplyToFloat with count = 1, stride = 4*4
+arguments suggesting it may be quite straightforward to implement more efficient
+transformation just by finding the indices of transitions between pmtid
+
+**/
+
+inline NP* stree::localize_photon(const NP* photon, bool consistency_check ) const
+{
+    if(!photon) return nullptr ;
+    assert( photon->has_shape( -1, 4, 4 ) );
+    size_t num = photon->shape[0] ;
+
+    NP* local_photon = photon->copy();
+    sphoton* ll = (sphoton*)local_photon->bytes() ;
+
+    for(size_t i=0 ; i < num ; i++)
+    {
+        sphoton& l = ll[i] ; // start with global frame fields
+        localize_photon_inplace(l);
+#ifdef NDEBUG
+#else
+        if(consistency_check) transform_consistency_check(l);
+#endif
+    }
+    return local_photon ;
+}
+
+inline void stree::transform_consistency_check( const sphoton& l ) const
+{
+    unsigned iindex   = l.iindex() ;
+    const glm::tmat4x4<double>* tr = get_iinst(iindex) ;
+    unsigned identity = l.get_identity();
+    bool not_a_sensor = identity == 0 ;
+    unsigned sensor_identifier = identity - 1 ;
+
+    glm::tvec4<int64_t> col3 = {} ;
+    strid::Decode( *tr, col3 );
+
+    sphit ht = {} ;
+    ht.iindex            = col3[0] ;
+    ht.sensor_identifier = col3[2] ;
+    ht.sensor_index      = col3[3] ;
+
+    bool match_iindex = ht.iindex == iindex ;
+    bool match_ident = ht.sensor_identifier == sensor_identifier ;
+
+    if(!match_iindex) std::cerr
+        << "stree::transform_consistency_check"
+        << " ht.iindex " << ht.iindex
+        << " iindex " << iindex
+        << " match_iindex " << ( match_iindex ? "YES" : "NO " )
+        << "\n"
+        ;
+
+    if(!match_ident) std::cerr
+        << "stree::transform_consistency_check"
+        << " ht.sensor_identifier " << ht.sensor_identifier
+        << " sensor_identifier " << sensor_identifier
+        << " match_ident " << ( match_ident ? "YES" : "NO " )
+        << " identity " << identity
+        << " not_a_sensor " << ( not_a_sensor ? "YES" : "NO " )
+        << "\n"
+        ;
+
+    assert( match_iindex );
+    assert( match_ident  );
+}
+
+
+
+inline void stree::create_photonlite_from_photon( sphotonlite& lite, const sphoton& p ) const
+{
+    sphoton locp = p ;             // copy global frame input photon
+    localize_photon_inplace(locp); // transform it to local frame using iindex
+
+    lite.set_lpos( locp.get_cost(), locp.get_fphi() );
+    lite.time = p.time ;
+    lite.flagmask = p.flagmask ;
+    lite.set_hitcount_identity( p.hitcount(), p.get_identity() );
+}
+
+inline NP* stree::create_photonlite_from_photon( const NP* photon ) const
+{
+    if(photon == nullptr) return nullptr ;
+
+    size_t ni = photon->num_items();
+    assert( photon->has_shape( ni, 4, 4));
+    sphoton* pp = (sphoton*)photon->bytes();
+
+    NP* photonlite = sphotonlite::zeros(ni);
+    assert( photonlite->has_shape(ni, 4) );
+    sphotonlite* ll = (sphotonlite*)photonlite->bytes();
+
+    for(size_t i=0 ; i < ni ; i++)
+    {
+       const sphoton& p = pp[i];
+       sphotonlite& l = ll[i];
+       create_photonlite_from_photon( l, p );
+    }
+    return photonlite ;
+}
+
 
 

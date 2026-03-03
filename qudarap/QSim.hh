@@ -42,6 +42,7 @@ struct QCerenkov ;
 struct QBnd ;
 struct QMultiFilm;
 struct QOptical ;
+struct QEvt ;
 struct QDebug ;
 
 struct qdebug ;
@@ -52,7 +53,7 @@ struct quad2 ;
 struct sphoton ;
 union  quad ;
 
-struct SCSGOptiX ;
+struct SSimulator ;
 
 struct QUDARAP_API QSim
 {
@@ -88,7 +89,7 @@ struct QUDARAP_API QSim
     qdebug*           dbg ;
     qdebug*           d_dbg ;
 
-    SCSGOptiX*        cx ;
+    SSimulator*        cx ;
 
 
     dim3 numBlocks ;
@@ -115,12 +116,16 @@ private:
 
 
 public:
-    void setLauncher(SCSGOptiX* cx_ );
+    void setLauncher(SSimulator* cx_ );
 
     static constexpr const char* QSim__simulate_KEEP_SUBFOLD = "QSim__simulate_KEEP_SUBFOLD" ;
     static bool KEEP_SUBFOLD ;
 
     double simulate(int eventID, bool reset_ );      // via cx launch
+    void   simulate_final_merge(int64_t tot_ph, cudaStream_t stream);
+
+
+
     NP*    simulate(const NP* gs, int eventID );     // higher level API for use from CSGOptiXService.h
 
     static void MaybeSaveIGS(int eventID, NP* igs);

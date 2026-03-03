@@ -72,13 +72,24 @@ index and photon offset in addition to  gentype/trackid/matline/numphotons
 #include "sprof.h"
 
 #include "squad.h"
+
+
+
+//#define WITH_OLD_FRAME 1
+
+#ifdef WITH_OLD_FRAME
 #include "sframe.h"
+#else
+#include "sfr.h"
+#endif
 
 #include "sgs.h"
 #include "SComp.h"
 #include "SRandom.h"
 
 struct sphoton_selector ;
+struct sphotonlite_selector ;
+
 struct sdebug ;
 struct NP ;
 struct NPFold ;
@@ -86,6 +97,7 @@ struct SGeo ;
 struct S4RandomArray ;
 struct stimer ;
 struct stree ;
+struct SSim ;
 
 #include "SYSRAP_API_EXPORT.hh"
 
@@ -94,6 +106,7 @@ struct SYSRAP_API SEvt : public SCompProvider
     friend struct SEvtTest ;
     static constexpr const int64_t M = 1000000 ;
     static constexpr const int64_t G = 1000000000 ;
+    static constexpr const char* BLANK = "" ;
 
     static constexpr const char* SEvt__NPFOLD_VERBOSE = "SEvt__NPFOLD_VERBOSE" ;
     static bool NPFOLD_VERBOSE ;
@@ -169,6 +182,8 @@ struct SYSRAP_API SEvt : public SCompProvider
     int  getStage() const ;
 
 
+    void* async_handle = nullptr;
+
     int cfgrc ;
 
     int index ;
@@ -202,7 +217,9 @@ struct SYSRAP_API SEvt : public SCompProvider
 
     double   t_Launch ;
 
-    sphoton_selector* selector ;
+    sphoton_selector*     photon_selector ;
+    sphotonlite_selector* photonlite_selector ;
+
     sevent* evt ;
     sdebug* dbg ;
     std::string meta ;
@@ -224,6 +241,7 @@ struct SYSRAP_API SEvt : public SCompProvider
     NPFold*               extrafold ;
 
     const SGeo*           cf ;
+    const SSim*           sim ;
     const stree*          tree ;
 
     bool              hostside_running_resize_done ; // only ever becomes true for non-GPU running
@@ -231,7 +249,12 @@ struct SYSRAP_API SEvt : public SCompProvider
     bool              is_loaded ;
     bool              is_loadfail ;
 
-    sframe            frame ;
+#ifdef WITH_OLD_FRAME
+    sframe            frame = {};
+#else
+    sfr               fr = {} ;
+#endif
+
 
     // comp vectors are populated from SEventConfig in SEvt::init
     std::vector<unsigned> gather_comp ;
@@ -374,7 +397,12 @@ public:
     const NP* getG4State() const ;
 
 
+
+#ifdef WITH_OLD_FRAME
     void setFrame(const sframe& fr );
+#else
+    void setFr(const sfr& _fr );
+#endif
     void setFramePlaceholder();
 
     static const bool transformInputPhoton_VERBOSE ;
@@ -396,8 +424,13 @@ public:
     static const NP*   GetFrameArray(int idx) ;
 
     void setFrame_HostsideSimtrace() ;
+
+#ifdef WITH_OLD_FRAME
     void setGeo(const SGeo* cf);
-    void setFrame(unsigned ins_idx);  // requires setGeo to access the frame from SGeo
+#else
+    void setSim(const SSim* sim);
+#endif
+    void setFrame(unsigned ins_idx);
 
     //// below decl order matches impl order : KEEP IT THAT WAY
 
@@ -426,7 +459,12 @@ public:
     static SEvt* CreateOrReuse_EGPU();
     static SEvt* CreateOrReuse_ECPU();
     static void CreateOrReuse();
+#ifdef WITH_OLD_FRAME
     static void SetFrame(const sframe& fr );
+#else
+    static void SetFr(   const sfr& fr );
+#endif
+
 
     bool isEGPU() const ;
     bool isECPU() const ;
@@ -562,8 +600,8 @@ public:
     sgs addGenstep(const NP* a) ;
     sgs addGenstep(const quad6& q) ;
 
-    void setNumPhoton(int64_t num_photon);
-    void setNumSimtrace(int64_t num_simtrace);
+    void setNumPhoton(size_t num_photon);
+    void setNumSimtrace(size_t num_simtrace);
     void hostside_running_resize();
     void hostside_running_resize_();
 
@@ -630,10 +668,13 @@ public:
     NP* gatherFlat() const ;
     NP* gatherSeed() const ;
     NP* gatherHit() const ;
+    NP* gatherHitLite() const ;
     NP* gatherSimtrace() const ;
 
 
     NP* makePhoton() const ;
+    NP* makePhotonLite() const ;
+
     NP* makeRecord() const ;
     NP* makeRec() const ;
     NP* makeAux() const ;
@@ -722,15 +763,18 @@ public:
     std::string descVec() const ;
 
     const NP* getGenstep() const ;
-    const NP* getPhoton() const ;
-    const NP* getHit() const ;
+
+    const NP* getPhoton() const ; // uses SEventConfig::PhotonCompOneName depending on ModeLite ModeMerge
+    size_t    getNumPhoton() const ;
+    const NP* getHit() const ;    // uses SEventConfig::HitCompOneName    depending on ModeLite ModeMerge
+    size_t    getNumHit() const ;
+
+
     const NP* getAux() const ;
     const NP* getSup() const ;
     const NP* getPho() const ;
     const NP* getGS() const ;
 
-    unsigned getNumPhoton() const ;
-    unsigned getNumHit() const ;
     std::string descSimulate() const ;
     std::string getCounts() const ;
 
@@ -742,7 +786,16 @@ public:
     void getLocalPhoton(  sphoton& p, unsigned idx) const ;
     void getLocalHit_LEAKY( sphit& ht, sphoton& p, unsigned idx) const ;
     void getLocalHit(       sphit& ht, sphoton& p, unsigned idx) const ;
+    void localize_photon_inplace( sphoton& p ) const ;
+
+
+    NP*  localize_photon(const NP* hit, bool consistency_check) const ;
+
+#ifdef WITH_OLD_FRAME
     void getPhotonFrame( sframe& fr, const sphoton& p ) const ;
+#else
+    void getPhotonFrame( sfr& fr, const sphoton& p ) const ;
+#endif
 
     std::string descNum() const ;
     std::string descPhoton(unsigned max_print=10) const ;

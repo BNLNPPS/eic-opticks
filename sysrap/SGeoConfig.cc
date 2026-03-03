@@ -90,6 +90,7 @@ Examples using "t:" prefix to exclude volumes::
    DISPLAY=:1 ELV=t:HamamatsuR12860sMask_virtual,NNVTMCPPMTsMask_virtual MOI=NNVTMCPPMTsMask:0:-2  ~/o/cx.sh
 
 
+
 **/
 
 const char* SGeoConfig::ELVSelection(const SName* id )
@@ -98,50 +99,92 @@ const char* SGeoConfig::ELVSelection(const SName* id )
     const char* elv = nullptr ;
     char delim = ',' ;
     bool VERBOSE = ssys::getenvbool(ELVSelection_VERBOSE);
-    bool starting = false ;  // NOW REQUIRE EXACT NAMES FOR ELV SELECTION
 
     if(VERBOSE) std::cerr
-        << "SGeoConfig::ELVSelection"
+        << "SGeoConfig::ELVSelection.0."
         << " [" << ELVSelection_VERBOSE << "] "
         << " elv_selection_ " << ( elv_selection_ ? elv_selection_ : "-" )
         << std::endl
         ;
+
+
+
+    bool allow_missing_names = true ;
 
     if( elv_selection_ )
     {
         const char* prefix = ELVPrefix(elv_selection_);
 
         if(VERBOSE) std::cerr
-            << "SGeoConfig::ELVSelection"
+            << "SGeoConfig::ELVSelection.1."
             << " prefix " << ( prefix ? prefix : "-" )
             << " strlen(prefix) " << ( prefix ? strlen(prefix) : 0 )
-            << std::endl
+            << "\n"
             ;
 
 
-
-        std::stringstream ss ;
-        bool has_names = id->hasNames(elv_selection_, delim, prefix, starting, &ss );
-
-        if(!has_names) std::cout
-            << "SGeoConfig::ELVSelection"
-            << " has_names " << ( has_names ? "YES" : "NO " ) << "\n"
-            << "[haslog[\n"
-            << ss.str()
-            << "]haslog[\n"
-            << "[id.detail\n"
-            << id->detail()
-            << "]id.detail\n"
-            ;
-
-        if(has_names)
+        if( SName::Has_STARTING( elv_selection_))  // skip the hasNames check when using STARTING_
         {
-            elv = id->getIDXListFromNames(elv_selection_, delim, prefix, starting );
+            std::vector<std::string>* qq_missing = nullptr ;
+            elv = id->getIDXListFromNames(elv_selection_, delim, prefix, qq_missing );
         }
         else
         {
-            elv = elv_selection_ ;  // eg when just numbers
-        }
+            if( allow_missing_names )
+            {
+                std::vector<std::string>* qq_missing = new std::vector<std::string> ;
+                elv = id->getIDXListFromNames(elv_selection_, delim, prefix, qq_missing );
+
+                int num_missing_names = qq_missing ? qq_missing->size() : -1 ;
+
+                if(VERBOSE) std::cerr
+                    << "SGeoConfig::ELVSelection.5."
+                    << " elv_selection_[" << elv_selection_ << "]"
+                    << " allow_missing_names " << ( allow_missing_names ? "YES" : "NO " )
+                    << " num_missing_names " << num_missing_names
+                    << "\n"
+                    ;
+
+                 if(num_missing_names > 0) for(int i=0 ; i < num_missing_names ; i++ ) std::cerr
+                    << "SGeoConfig::ELVSelection.6. missing_name[" << (*qq_missing)[i] << "]\n" ;
+            }
+            else
+            {
+                std::vector<std::string>* qq_missing = nullptr ;
+                std::stringstream ss ;
+                bool has_names = id->hasNames(elv_selection_, delim, prefix, qq_missing, &ss );
+
+                if(VERBOSE) std::cerr
+                    << "SGeoConfig::ELVSelection.2."
+                    << " elv_selection_[" << elv_selection_ << "]"
+                    << " has_names " << ( has_names ? "YES" : "NO " )
+                    << " allow_missing_names " << ( allow_missing_names ? "YES" : "NO " )
+                    << " qq_missing.size " << ( qq_missing ? qq_missing->size() : -1 )
+                    << "\n"
+                    ;
+
+                if(!has_names) std::cout
+                    << "SGeoConfig::ELVSelection.3."
+                    << " has_names " << ( has_names ? "YES" : "NO " ) << "\n"
+                    << " qq_missing.size " << ( qq_missing ? qq_missing->size() : -1 )
+                    << "[haslog[\n"
+                    << ss.str()
+                    << "]haslog[\n"
+                    << "[id.detail\n"
+                    << id->detail()
+                    << "]id.detail\n"
+                    ;
+
+                if(has_names)
+                {
+                    elv = id->getIDXListFromNames(elv_selection_, delim, prefix, qq_missing );
+                }
+                else
+                {
+                    elv = elv_selection_ ;  // eg when just numbers
+                }
+            }
+       }
     }
     return elv ;
 }

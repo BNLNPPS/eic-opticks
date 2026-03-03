@@ -142,6 +142,11 @@ inline bool _sn::is_root() const
 #include "SYSRAP_API_EXPORT.hh"
 struct SYSRAP_API sn
 {
+    typedef std::array<double,6> BB ;
+    typedef std::vector<BB> VBB ;
+    typedef glm::tmat4x4<double> TR ;
+    typedef std::vector<TR> VTR ;
+
     static int Check_LEAK(const char* msg, int i=-1);
 
     // persisted
@@ -180,11 +185,18 @@ struct SYSRAP_API sn
     static void SetPOOL( POOL* pool_ );
     static int level();
     static std::string Desc();
+    static void PrepareToSerialize();
+    void prepare_to_serialize();
 
     // templating allows to work with both "sn*" and "const sn*"
     template<typename N> static std::string Desc(N* n);
+    template<typename N> static std::string DescXform(N* n);
+    template<typename N> static std::string DescXformFull(N* n);
     template<typename N> static std::string DescPrim(N* n);
+
     template<typename N> static std::string Desc(const std::vector<N*>& nds, bool reverse=false);
+    template<typename N> static std::string DescXform(const std::vector<N*>& nds, bool reverse=false);
+    template<typename N> static std::string DescXformFull(const std::vector<N*>& nds, bool reverse=false);
     template<typename N> static std::string DescPrim(const std::vector<N*>& nds, bool reverse=false);
 
     template<typename N> static std::string Brief(const std::vector<N*>& nds, bool reverse=false);
@@ -311,6 +323,8 @@ struct SYSRAP_API sn
 
     std::string desc_order(const std::vector<const sn*>& order ) const ;
     std::string desc() const ;
+    std::string desc_xform() const ;
+    std::string desc_xform_full() const ;
     std::string desc_prim() const ;
     std::string desc_prim_all(bool reverse) const ;
 
@@ -418,7 +432,8 @@ struct SYSRAP_API sn
 
 
 
-
+    bool hasXF() const ;
+    void setXF();  // set identity transform
     void setXF(     const glm::tmat4x4<double>& t );
     void setXF(     const glm::tmat4x4<double>& t, const glm::tmat4x4<double>& v ) ;
     void combineXF( const glm::tmat4x4<double>& t );
@@ -456,6 +471,10 @@ struct SYSRAP_API sn
     static sn* Box3(double fullside);
     static sn* Box3(double fx, double fy, double fz );
     static sn* Torus(double rmin, double rmax, double rtor, double startPhi_deg, double deltaPhi_deg );
+
+    static constexpr const char* sn__PhiCut_PACMAN_ALLOWED = "sn__PhiCut_PACMAN_ALLOWED" ;
+    static sn* PhiCut(double phi0, double phi1);
+    static sn* HalfSpace(double x, double y, double z, double w);
     static sn* Notsupported();
 
     static sn* Zero(double  x,  double y,  double z,  double w,  double z1, double z2);
@@ -608,7 +627,8 @@ struct SYSRAP_API sn
         glm::tmat4x4<double>& t,
         glm::tmat4x4<double>& v,
         bool reverse,
-        std::ostream* out);
+        std::ostream* out,
+        VTR* t_stack );
 
     static std::string DescNodeTransformProduct(
         int idx,
@@ -620,7 +640,8 @@ struct SYSRAP_API sn
         glm::tmat4x4<double>& t,
         glm::tmat4x4<double>& v,
         bool reverse,
-        std::ostream* out) const ;
+        std::ostream* out,
+        VTR* t_stack ) const ;
 
     std::string desc_getNodeTransformProduct(
         glm::tmat4x4<double>& t,
@@ -697,12 +718,41 @@ inline int sn::Check_LEAK(const char* msg, int i)  // static
 
 inline void        sn::SetPOOL( POOL* pool_ ){ pool = pool_ ; }
 inline int         sn::level() {  return ssys::getenvint("sn__level",-1) ; } // static
+
+
+inline void sn::PrepareToSerialize()  // static
+{
+    pool->prepare_to_serialize();
+}
+
+inline void sn::prepare_to_serialize()
+{
+    if(!hasXF()) setXF();  // ensure all node have a transform before serialization
+}
+
+
 inline std::string sn::Desc(){    return pool ? pool->desc() : "-" ; } // static
+
+
+
+
 
 template<typename N>
 inline std::string sn::Desc(N* n) // static
 {
     return n ? n->desc() : "(null)" ;
+}
+
+template<typename N>
+inline std::string sn::DescXform(N* n) // static
+{
+    return n ? n->desc_xform() : "(null)" ;
+}
+
+template<typename N>
+inline std::string sn::DescXformFull(N* n) // static
+{
+    return n ? n->desc_xform_full() : "(null)" ;
 }
 
 template<typename N>
@@ -722,6 +772,29 @@ inline std::string sn::Desc(const std::vector<N*>& nds, bool reverse) // static
     std::string str = ss.str();
     return str ;
 }
+
+template<typename N>
+inline std::string sn::DescXform(const std::vector<N*>& nds, bool reverse) // static
+{
+    int num_nd = nds.size() ;
+    std::stringstream ss ;
+    ss << "sn::DescXform num_nd " << num_nd << ( reverse ? " DESC ORDER REVERSED " : "-" ) << std::endl ;
+    for(int i=0 ; i < num_nd ; i++) ss << DescXform(nds[reverse ? num_nd - 1 - i : i]) << std::endl ;
+    std::string str = ss.str();
+    return str ;
+}
+
+template<typename N>
+inline std::string sn::DescXformFull(const std::vector<N*>& nds, bool reverse) // static
+{
+    int num_nd = nds.size() ;
+    std::stringstream ss ;
+    ss << "sn::DescXformFull num_nd " << num_nd << ( reverse ? " DESC ORDER REVERSED " : "-" ) << std::endl ;
+    for(int i=0 ; i < num_nd ; i++) ss << DescXformFull(nds[reverse ? num_nd - 1 - i : i]) << std::endl ;
+    std::string str = ss.str();
+    return str ;
+}
+
 
 template<typename N>
 inline std::string sn::DescPrim(const std::vector<N*>& nds, bool reverse) // static
@@ -1900,11 +1973,45 @@ inline std::string sn::desc() const
        << " maxdepth " << std::setw(2) << maxdepth()
        << " is_positive_form " << ( is_positive_form() ? "Y" : "N" )
        << " lvid " << std::setw(3) << lvid
+       << " xform " << ( xform ? "Y" : "N" )
        << " tag " << tag()
        ;
     std::string str = ss.str();
     return str ;
 }
+
+inline std::string sn::desc_xform() const
+{
+    std::stringstream ss ;
+    ss << "sn::desc_xform"
+       << " pid " << std::setw(4) << pid
+       << " idx " << std::setw(4) << index()
+       << " lvid " << std::setw(3) << lvid
+       << " tag " << tag()
+       << " xform " << ( xform ? "Y" : "N" )
+       << " " << ( xform ? xform->desc() : "-" )
+       ;
+    std::string str = ss.str();
+    return str ;
+}
+
+
+inline std::string sn::desc_xform_full() const
+{
+    std::stringstream ss ;
+    ss << "sn::desc_xform_full"
+       << " pid " << std::setw(4) << pid
+       << " idx " << std::setw(4) << index()
+       << " lvid " << std::setw(3) << lvid
+       << " tag " << tag()
+       << " xform " << ( xform ? "Y" : "N" )
+       << " " << ( xform ? xform->desc_full() : "-" )
+       ;
+    std::string str = ss.str();
+    return str ;
+}
+
+
 
 inline std::string sn::desc_prim() const
 {
@@ -2895,6 +3002,15 @@ inline double sn::AABB_YAvg( const sn* n ){ return n ? n->getBB_yavg() : 0. ; }
 inline double sn::AABB_ZAvg( const sn* n ){ return n ? n->getBB_zavg() : 0. ; }
 
 
+inline bool sn::hasXF() const
+{
+    return xform != nullptr ;
+}
+inline void sn::setXF()
+{
+    glm::tmat4x4<double> id(1.);
+    setXF(id,id);
+}
 inline void sn::setXF( const glm::tmat4x4<double>& t )
 {
     glm::tmat4x4<double> v = glm::inverse(t) ;
@@ -3143,6 +3259,9 @@ inline sn* sn::Box3(double fx, double fy, double fz )  // static
 }
 
 
+
+
+
 /**
 sn::Torus
 ----------
@@ -3199,6 +3318,113 @@ inline sn* sn::Torus(double rmin, double rmax, double rtor, double startPhi_deg,
 
     return nd ;
 }
+
+/**
+sn::PhiCut
+-----------
+
+      [cosPhi1, sinPhi1]
+         phi1
+          |
+          |
+          |
+          +--------- phi0  [cosPhi0, sinPhi0]
+
+
+::
+
+   cross_product = cosPhi0 * sinPhi1 - cosPhi1 * sinPhi0
+
+   cross_product > 0.
+        sweep from phi0 to phi1 is in the positive direction
+        and the interior angle is less than 180 deg making
+        a wedge shape
+
+   cross_product < 0.
+        sweep covers more than half the circle. The interior angle is greater than 180 deg.
+        This creates a "concave" or "reflex" wedge (like a Pac-Man with his mouth open).
+
+
+**/
+
+inline sn* sn::PhiCut(double phi0, double phi1)  // static
+{
+    sn* nd = Create(CSG_PHICUT) ;
+    bool expect_phi = phi1 > phi0 ;
+
+    double cos_phi0 = cos(phi0);
+    double sin_phi0 = sin(phi0);
+    double cos_phi1 = cos(phi1);
+    double sin_phi1 = sin(phi1);
+
+    double cross_product = cos_phi0*sin_phi1 - cos_phi1*sin_phi0 ;
+    bool is_wedge = cross_product > 0. ;
+    bool is_pacman = cross_product < 0. ;
+
+    int PACMAN_ALLOWED = ssys::getenvint(sn__PhiCut_PACMAN_ALLOWED, 0) ;
+    bool expect_cross_product = PACMAN_ALLOWED ? true  : is_wedge ;
+    bool expect = expect_phi && expect_cross_product ;
+
+    if(!expect) std::cerr
+       << "sn::PhiCut"
+       << " phi0 " << phi0
+       << " phi1 " << phi1
+       << " expect " << ( expect ?  "YES" : "NO " )
+       << " expect_phi " << ( expect_phi ?  "YES" : "NO " )
+       << " expect_cross_product " << ( expect_cross_product ? "YES" : "NO " )
+       << " cross_product " << cross_product
+       << " is_wedge " << ( is_wedge ? "YES" : "NO " )
+       << " is_pacman " << ( is_pacman ? "YES" : "NO " )
+       << " PACMAN_ALLOWED [" <<  sn__PhiCut_PACMAN_ALLOWED << "] " << PACMAN_ALLOWED
+       << "\n"
+       ;
+
+    assert( expect_phi );
+    assert( expect_cross_product );
+    assert( expect );
+
+    nd->setPA( cos_phi0, sin_phi0, cos_phi1, sin_phi1, zero, zero );
+    return nd ;
+}
+
+
+/**
+sn::HalfSpace
+--------------
+
+Define CSG_HALFSPACE with a unit normal *n* and a distance *w* from the origin
+in the normal direction. Hence points *p* that are within the plane fulfil::
+
+      p.n = w
+
+                            n
+                         .
+           \  *       .
+            \  *   .
+             \  .
+              O  *
+               \  *
+                \  *
+                 \
+
+
+
+See CSG/csg_intersect_leaf_halfspace.h
+
+**/
+
+
+inline sn* sn::HalfSpace(double x, double y, double z, double w)  // static
+{
+    glm::tvec3<double> _normal(x,y,z);
+    glm::tvec3<double> normal = glm::normalize(_normal);
+    double plane_distance = w ;
+
+    sn* nd = Create(CSG_HALFSPACE) ;
+    nd->setPA( normal.x, normal.y, normal.z,  plane_distance, zero, zero );
+    return nd ;
+}
+
 
 inline sn* sn::Notsupported() // static
 {
@@ -5033,11 +5259,12 @@ inline void sn::NodeTransformProduct(
     glm::tmat4x4<double>& t,
     glm::tmat4x4<double>& v,
     bool reverse,
-    std::ostream* out)  // static
+    std::ostream* out,
+    VTR* t_stack)  // static
 {
     sn* nd = Get(idx);
     assert(nd);
-    nd->getNodeTransformProduct(t,v,reverse,out) ;
+    nd->getNodeTransformProduct(t,v,reverse,out,t_stack) ;
 }
 
 inline std::string sn::DescNodeTransformProduct(
@@ -5048,16 +5275,40 @@ inline std::string sn::DescNodeTransformProduct(
 {
     std::stringstream ss ;
     ss << "sn::DescNodeTransformProduct" << std::endl ;
-    NodeTransformProduct( idx, t, v, reverse, &ss );
+    NodeTransformProduct( idx, t, v, reverse, &ss, nullptr );
     std::string str = ss.str();
     return str ;
 }
 
+/**
+sn::getNodeTransformProduct
+-----------------------------
+
+HMM: does ancestors work with subs of a listnode ?
+
+Former sn__getNodeTransformProduct_KLUDGE_SKIP_CONTIGUOUS
+    prevented inclusion of transforms from CSG_CONTIGUOUS (aka listnode)
+    as observed some issue with extraneous transforms being set on those.
+
+    The cause was found to be a bug in s_pool whereby sn csg nodes
+    without transforms magically acquired them on being imported.
+    The erroreous transform being the last one in the s_tv pool.
+    Cause of this was a -1 meaning not-set being misinterpreted
+    to mean the one before the last.
+
+**/
+
+
+
 inline void sn::getNodeTransformProduct(
     glm::tmat4x4<double>& t,
     glm::tmat4x4<double>& v,
-    bool reverse, std::ostream* out) const
+    bool reverse,
+    std::ostream* out,
+    VTR* t_stack ) const
 {
+    if(out) *out << "\nsn::getNodeTransformProduct.HEAD\n" ;
+
     std::vector<const sn*> nds ;
     ancestors(nds);
     nds.push_back(this);
@@ -5066,6 +5317,7 @@ inline void sn::getNodeTransformProduct(
 
     if(out)
     {
+        for(int i=0 ; i < num_nds ; i++) *out << "sn::getNodeTransformProduct.nd[" << i << "] " << nds[i]->desc() << "\n" ;
         *out
              << std::endl
              << "sn::getNodeTransformProduct"
@@ -5085,6 +5337,9 @@ inline void sn::getNodeTransformProduct(
         const sn* ii = nds[reverse ? j : i] ;
         const sn* jj = nds[reverse ? i : j] ;
 
+        int   itc = ii->typecode ;
+        int   jtc = jj->typecode ;
+
         const s_tv* ixf = ii->xform ;
         const s_tv* jxf = jj->xform ;
 
@@ -5097,6 +5352,8 @@ inline void sn::getNodeTransformProduct(
                 << " jj.idx " << jj->idx()
                 << " ixf " << ( ixf ? "Y" : "N" )
                 << " jxf " << ( jxf ? "Y" : "N" )
+                << " itc " << itc
+                << " jtc " << jtc
                 << std::endl
                 ;
 
@@ -5104,14 +5361,16 @@ inline void sn::getNodeTransformProduct(
            if(jxf) *out << stra<double>::Desc( jxf->t, jxf->v, "(jxf.t)", "(jxf.v)" ) << std::endl ;
         }
 
-
+        if(t_stack && ixf) t_stack->push_back(ixf->t);
         if(ixf) tp *= ixf->t ;
         if(jxf) vp *= jxf->v ;  // // inverse-transform product in opposite order
+
     }
     memcpy( glm::value_ptr(t), glm::value_ptr(tp), sizeof(glm::tmat4x4<double>) );
     memcpy( glm::value_ptr(v), glm::value_ptr(vp), sizeof(glm::tmat4x4<double>) );
 
     if(out) *out << stra<double>::Desc( tp, vp , "tp", "vp" ) << std::endl ;
+    if(out) *out << "\nsn::getNodeTransformProduct.TAIL\n" ;
 }
 
 inline std::string sn::desc_getNodeTransformProduct(
@@ -5121,7 +5380,7 @@ inline std::string sn::desc_getNodeTransformProduct(
 {
     std::stringstream ss ;
     ss << "sn::desc_getNodeTransformProduct" << std::endl ;
-    getNodeTransformProduct( t, v, reverse, &ss );
+    getNodeTransformProduct( t, v, reverse, &ss, nullptr );
     std::string str = ss.str();
     return str ;
 }
@@ -5264,13 +5523,20 @@ inline void sn::setAABB_LeafFrame()
     {
         setBB( UNBOUNDED_DEFAULT_EXTENT );
     }
-    else if( typecode == CSG_PHICUT )
+    else if( typecode == CSG_PHICUT || typecode == CSG_HALFSPACE )
     {
-        setBB( UNBOUNDED_DEFAULT_EXTENT );
+        //setBB( UNBOUNDED_DEFAULT_EXTENT );
+        setBB( 0. );
     }
     else if( typecode == CSG_THETACUT )
     {
         setBB( UNBOUNDED_DEFAULT_EXTENT );
+    }
+    else if( typecode == CSG_SEGMENT )
+    {
+        setBB( 0. );
+        // segment is a special type of "leaf" where the bbox
+        // can only be defined in combination with other nodes
     }
     else
     {
@@ -5340,7 +5606,8 @@ inline void sn::setAABB_TreeFrame_All()
 
         bool reverse = false ;
         std::ostream* out = nullptr ;
-        p->getNodeTransformProduct(t, v, reverse, out );
+        VTR* t_stack = nullptr ;
+        p->getNodeTransformProduct(t, v, reverse, out, t_stack );
 
         const double* pbb = _p->getBB_data() ;
         stra<double>::Transform_AABB_Inplace( const_cast<double*>(pbb),  t );
@@ -5427,7 +5694,8 @@ inline void sn::Transform_Leaf2Tree( glm::tvec3<double>& xyz,  const sn* leaf, s
     glm::tmat4x4<double> t(1.) ;
     glm::tmat4x4<double> v(1.) ;
     bool reverse = false ;
-    leaf->getNodeTransformProduct(t, v, reverse, nullptr );
+    VTR* t_stack = nullptr ;
+    leaf->getNodeTransformProduct(t, v, reverse, nullptr, t_stack );
 
     glm::tvec4<double> pos = t * pos0 ;
 

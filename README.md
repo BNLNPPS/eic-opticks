@@ -51,7 +51,7 @@ Example commands for interactive and non-interactive tests:
 ```shell
 docker run --rm -it -v $HOME/.Xauthority:/root/.Xauthority -e DISPLAY=$DISPLAY --net=host ghcr.io/bnlnpps/eic-opticks:develop
 
-docker run --rm -it -v $HOME:/esi -v $HOME/eic-opticks:/src/eic-opticks -e DISPLAY=$DISPLAY -e HOME=/esi --net=host ghcr.io/bnlnpps/eic-opticks:develop
+docker run --rm -it -v $HOME:/esi -v $HOME/eic-opticks:/workspaces/eic-opticks -e DISPLAY=$DISPLAY -e HOME=/esi --net=host ghcr.io/bnlnpps/eic-opticks:develop
 
 docker run ghcr.io/bnlnpps/eic-opticks bash -c 'simg4ox -g tests/geom/sphere_leak.gdml -m tests/run.mac -c sphere_leak'
 ```
@@ -60,7 +60,7 @@ docker run ghcr.io/bnlnpps/eic-opticks bash -c 'simg4ox -g tests/geom/sphere_lea
 ## Singularity
 
 ```shell
-singularity run --nv -B eic-opticks-prefix/:/opt/eic-opticks -B eic-opticks:/src/eic-opticks docker://ghcr.io/bnlnpps/eic-opticks:develop
+singularity run --nv -B eic-opticks-prefix/:/opt/eic-opticks -B eic-opticks:/workspaces/eic-opticks docker://ghcr.io/bnlnpps/eic-opticks:develop
 ```
 
 

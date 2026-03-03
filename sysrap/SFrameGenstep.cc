@@ -1,8 +1,15 @@
+#include <limits>
+
 #include "scuda.h"
 #include "squad.h"
 #include "sqat4.h"
 #include "stran.h"
+
+#ifdef WITH_OLD_FRAME
 #include "sframe.h"
+#else
+#include "sfr.h"
+#endif
 
 #include "sc4u.h"
 #include "ssincos.h"
@@ -118,7 +125,7 @@ std::string SFrameGenstep::Desc(const std::vector<int>& cegs )
 
 
 
-void SFrameGenstep::GetGridConfig(std::vector<int>& cegs,  const char* ekey, char delim, const char* fallback )
+void SFrameGenstep::GetGridConfig_(std::vector<int>& cegs,  const char* ekey, char delim, const char* fallback )
 {
     ssys::getenvintvec(ekey, cegs, delim, fallback );
     LOG(LEVEL)
@@ -133,6 +140,20 @@ void SFrameGenstep::GetGridConfig(std::vector<int>& cegs,  const char* ekey, cha
     assert( cegs.size() == 0 || cegs.size() == 8 );
     LOG(LEVEL) << " ekey " << ekey << " Desc " << Desc(cegs)  ;
 }
+
+std::string SFrameGenstep::GetGridConfig(std::vector<int>& cegs)
+{
+    const char* CEGS_fallback = CEGS_XZ ;
+    GetGridConfig_(cegs, CEGS, CEGS_delim, CEGS_fallback );
+
+    std::stringstream ss ;
+    assert( cegs.size() == 8 );
+    for(int i=0 ; i < 8 ; i++ ) ss << cegs[i] << ( i < 8 - 1 ? "," : "" ) ;
+    std::string str = ss.str();
+    return str ;
+}
+
+
 
 
 
@@ -165,27 +186,103 @@ bool SFrameGenstep::HasConfigEnv()
 }
 
 
-NP* SFrameGenstep::MakeCenterExtentGenstep_FromFrame(sframe& fr)
+
+/**
+SFrameGenstep::MakeCenterExtentGenstep_FromFrame
+--------------------------------------------------
+
+This uses config obtained from envvars such as CEGS to
+create an array of gensteps. sframe::set_grid is
+invoked to pass config details into the frame for
+persisting and use from python such as simtrace
+plotter cxt_min.py. Those details are also
+written into metadata of the gensteps.
+
+HMM: could avoid changing the frame by instead
+relying on the genstep metadata which might
+simplify FRAME_TRANSITION
+
+Q: What does simtrace cxt_min.py actually need from the frame ?
+
+
+simtrace stack::
+
+    SFrameGenstep::MakeCenterExtentGenstep_FromFrame
+    SEvt::createInputGenstep_simtrace
+    SEvt::createInputGenstep_configured
+    SEvt::addInputGenstep
+    SEvt::beginOfEvent
+    QSim::simtrace
+    CSGOptiX::simtrace
+    CSGOptiX::SimtraceMain
+    main
+
+
+**/
+#ifdef WITH_OLD_FRAME
+NP* SFrameGenstep::MakeCenterExtentGenstep_FromFrame(sframe& fr)  // static
 {
     const float4& ce = fr.ce ;
-
+    Tran<double>* geotran = fr.getTransform();
     char* _GRIDSCALE = getenv("GRIDSCALE") ;
-
     float gridscale = ssys::getenvfloat("GRIDSCALE", 0.1f ) ;
-
-    // CSGGenstep::init
-    std::vector<int> cegs ;
-    char CEGS_delim = ':' ;
-    const char* CEGS_fallback = CEGS_XZ ;
-    GetGridConfig(cegs, "CEGS", CEGS_delim, CEGS_fallback );
+    int prim = -1 ;
 
     LOG(LEVEL)
-       << " cegs.size " << cegs.size()
        << " _GRIDSCALE [" << ( _GRIDSCALE ? _GRIDSCALE : "-" ) << "]"
        << " GRIDSCALE " << gridscale
        ;
 
+    std::vector<int> cegs ;
+    std::string str_cegs = GetGridConfig(cegs);
     fr.set_grid(cegs, gridscale);
+
+    NP* gs = MakeCenterExtentGenstep_From_CE_geotran( ce, cegs, gridscale, geotran, prim );
+
+    gs->set_meta<int>("midx", fr.midx() );
+    gs->set_meta<int>("mord", fr.mord() );
+    gs->set_meta<int>("gord", fr.gord() );
+    gs->set_meta<float>("gridscale", fr.gridscale() );
+    gs->set_meta<std::string>("cegs", str_cegs );
+
+    return gs ;
+}
+#else
+NP* SFrameGenstep::MakeCenterExtentGenstep_FromFrame(sfr& fr)  // static
+{
+    float4 ce = make_float4( fr.ce.x, fr.ce.y, fr.ce.z, fr.ce.w );
+    Tran<double>* geotran = fr.getTransform();
+    char* _GRIDSCALE = getenv("GRIDSCALE") ;
+    float gridscale = ssys::getenvfloat("GRIDSCALE", 0.1f ) ;
+    int prim = fr.get_prim() ;
+
+    LOG(LEVEL)
+       << " _GRIDSCALE [" << ( _GRIDSCALE ? _GRIDSCALE : "-" ) << "]"
+       << " GRIDSCALE " << gridscale
+       ;
+
+
+    std::vector<int> cegs ;
+    std::string str_cegs = GetGridConfig(cegs);
+    fr.set_gridscale(gridscale);
+
+    LOG(LEVEL)
+       << " cegs.size " << cegs.size()
+       ;
+
+
+    NP* gs = MakeCenterExtentGenstep_From_CE_geotran( ce, cegs, gridscale, geotran, prim );
+
+    gs->set_meta<float>("gridscale", fr.get_gridscale() );
+    gs->set_meta<std::string>("cegs", str_cegs );
+
+    return gs ;
+}
+#endif
+
+NP* SFrameGenstep::MakeCenterExtentGenstep_From_CE_geotran(const float4& ce, const std::vector<int>& cegs, float gridscale, const Tran<double>* geotran, int prim)  // static
+{
+    std::vector<float>* cegs_radial_range = ssys::getenv_vec<float>(CEGS_RADIAL_RANGE, nullptr, CEGS_delim );
 
     std::vector<float3> ce_offset ;
     CE_OFFSET(ce_offset, ce);
@@ -203,12 +300,10 @@ NP* SFrameGenstep::MakeCenterExtentGenstep_FromFrame(sframe& fr)
 
     bool ce_scale_off = ssys::getenvbool("CE_SCALE_OFF") ;
 
-    //Tran<double>* geotran = Tran<double>::FromPair( &fr.m2w, &fr.w2m, 1e-6 );
-    Tran<double>* geotran = fr.getTransform();
 
 
     std::vector<NP*> gsl ;
-    NP* gs_base = MakeCenterExtentGenstep(ce, cegs, gridscale, geotran, ce_offset, !ce_scale_off );
+    NP* gs_base = MakeCenterExtentGenstep(ce, cegs, gridscale, geotran, ce_offset, !ce_scale_off, cegs_radial_range );
     gsl.push_back(gs_base) ;
 
     std::vector<std::string> keys = {{
@@ -231,11 +326,11 @@ NP* SFrameGenstep::MakeCenterExtentGenstep_FromFrame(sframe& fr)
     {
         const char* key = keys[i].c_str() ;
         std::vector<int> cehigh ;
-        GetGridConfig(cehigh, key, CEGS_delim, CEHIGH_fallback );
+        GetGridConfig_(cehigh, key, CEGS_delim, CEHIGH_fallback );
         LOG(LEVEL) << " key " << key << " cehigh.size " << cehigh.size() ;
         if(cehigh.size() == 8)
         {
-            NP* gs_cehigh = MakeCenterExtentGenstep(ce, cehigh, gridscale, geotran, ce_offset, !ce_scale_off );
+            NP* gs_cehigh = MakeCenterExtentGenstep(ce, cehigh, gridscale, geotran, ce_offset, !ce_scale_off, cegs_radial_range );
             gsl.push_back(gs_cehigh) ;
         }
     }
@@ -246,6 +341,7 @@ NP* SFrameGenstep::MakeCenterExtentGenstep_FromFrame(sframe& fr)
     if(gs_CEGS_NPY) gsl.push_back(gs_CEGS_NPY);
 
 
+    Maybe_Add_PRIOR_SIMTRACE_Genstep( gsl, prim );
 
     LOG(LEVEL) << " gsl.size " << gsl.size() ;
 
@@ -253,14 +349,143 @@ NP* SFrameGenstep::MakeCenterExtentGenstep_FromFrame(sframe& fr)
     NP* gs = NP::Concatenate(gsl) ;
     LOG(LEVEL) << "] NP::Concatenate " ;
 
-    gs->set_meta<int>("midx", fr.midx() );
-    gs->set_meta<int>("mord", fr.mord() );
-    gs->set_meta<int>("gord", fr.gord() );
-    gs->set_meta<float>("gridscale", fr.gridscale() );
     gs->set_meta<int>("ce_scale", int(!ce_scale_off) );
 
     return gs ;
 }
+
+
+/**
+SFrameGenstep::Maybe_Add_PRIOR_SIMTRACE_Genstep
+------------------------------------------------
+
+PRIOR_SIMTRACE
+    envvar which when defined causes loading of the array
+    the intersect positions from which are used to define
+    genstep positions
+
+
+PRIOR_SIMTRACE_PRIM:-2
+    default, use target prim from frame to select the
+    intersects with which to base the new gensteps
+
+PRIOR_SIMTRACE_PRIM:-1
+    do not select from the prior simtrace, use them all
+    without checking the prim. This is appropriate when
+    PRIOR_SIMTRACE is $MFOLD/simtrace_overlap.npy
+
+PRIOR_SIMTRACE_PRIM:0,1,2,3,
+    use the provided prim index (not typically used)
+
+
+Examples::
+
+    export PRIOR_SIMTRACE=$MFOLD/simtrace.npy
+    export PRIOR_SIMTRACE_PRIM=-2  # default
+
+    export PRIOR_SIMTRACE=$MFOLD/simtrace_overlap.npy
+    export PRIOR_SIMTRACE_PRIM=-1  # use all without selection
+
+**/
+
+
+void SFrameGenstep::Maybe_Add_PRIOR_SIMTRACE_Genstep( std::vector<NP*>& gsl, int prim )
+{
+    bool with_PRIOR_SIMTRACE = ssys::hasenv_("PRIOR_SIMTRACE") ;
+    NP* PRIOR_SIMTRACE = with_PRIOR_SIMTRACE ? NP::Load("$PRIOR_SIMTRACE") : nullptr ;
+
+    int PRIOR_SIMTRACE_PRIM = ssys::getenvint("PRIOR_SIMTRACE_PRIM", -2 );
+    int uprim = prim ;
+    if( PRIOR_SIMTRACE_PRIM == -2 )
+    {
+        uprim = prim ;  // select prior intersects onto target prim
+    }
+    else if( PRIOR_SIMTRACE_PRIM == -1 )
+    {
+        uprim = -1 ;    // use all prior intersects without prim selection
+    }
+    else if( PRIOR_SIMTRACE_PRIM > -1 )
+    {
+        uprim = PRIOR_SIMTRACE_PRIM ;
+    }
+
+    NP* gs_PRIOR_SIMTRACE = PRIOR_SIMTRACE  ?  Make_PRIOR_SIMTRACE_Genstep( PRIOR_SIMTRACE, uprim ) : nullptr ;
+    if(gs_PRIOR_SIMTRACE) gsl.push_back(gs_PRIOR_SIMTRACE);
+    LOG(info)
+         << "with_PRIOR_SIMTRACE " << ( with_PRIOR_SIMTRACE ? "YES" : "NO " )
+         << " prim " << prim
+         << " uprim " << uprim
+         << " PRIOR_SIMTRACE_PRIM " << PRIOR_SIMTRACE_PRIM
+         << " PRIOR_SIMTRACE " << ( PRIOR_SIMTRACE ? PRIOR_SIMTRACE->sstr() : "-" )
+         << " gs_PRIOR_SIMTRACE " << ( gs_PRIOR_SIMTRACE ? gs_PRIOR_SIMTRACE->sstr() : "-" )
+         ;
+}
+
+/**
+SFrameGenstep::Make_PRIOR_SIMTRACE_Genstep
+-------------------------------------------
+
+**/
+
+
+NP* SFrameGenstep::Make_PRIOR_SIMTRACE_Genstep( const NP* _simtrace, int prim ) // static
+{
+    const NP* _ontoprim = prim > -1 ? quad4::select_prim( _simtrace, prim ) : _simtrace ;
+    int ni = _ontoprim->shape[0] ;
+    const quad4* ontoprim = (const quad4*)(_ontoprim->bytes());
+
+    quad6 gs ;
+    gs.zero();
+
+    glm::tmat4x4<double> identity(1.);
+    qat4* qc = Tran<double>::ConvertFrom( identity ) ;
+
+    std::vector<quad6> gensteps ;
+
+    float dx = 0.f;
+    float dy = 0.f;
+    float dz = 0.f;
+
+    float s = 1.f ;
+
+    for(int i=0 ; i < ni ; i++)
+    {
+        const quad4& q = ontoprim[i];
+        float x = q.q1.f.x ;
+        float y = q.q1.f.y ;
+        float z = q.q1.f.z ;
+
+        for(int j=0 ; j < 6 ; j++)
+        {
+            switch(j)
+            {
+               case 0: dx = -s  ; dy = 0.f ; dz = 0.f ; break ;
+               case 1: dx = +s  ; dy = 0.f ; dz = 0.f ; break ;
+               case 2: dx = 0.f ; dy = -s  ; dz = 0.f ; break ;
+               case 3: dx = 0.f ; dy = +s  ; dz = 0.f ; break ;
+               case 4: dx = 0.f ; dy = 0.f ; dz = -s  ; break ;
+               case 5: dx = 0.f ; dy = 0.f ; dz =  s  ; break ;
+            }
+
+            gs.q1.f.x = x + dx ;
+            gs.q1.f.y = y + dy ;
+            gs.q1.f.z = z + dz ;
+            gs.q1.f.w = 1.f ;
+
+            qc->write(gs);  // copy qc transform into gs.q2,q3,q4,q5
+
+            int gridaxes = 0 ;
+            int gsid = 0 ;
+            int photons_per_genstep = 100 ;
+            SGenstep::ConfigureGenstep(gs, OpticksGenstep_FRAME, gridaxes, gsid, photons_per_genstep );
+
+            gensteps.push_back(gs);
+        }
+    }
+
+    return SGenstep::MakeArray(gensteps);
+}
+
 
 /**
 SFrameGenstep::Make_CEGS_NPY_Genstep
@@ -305,6 +530,9 @@ NP* SFrameGenstep::Make_CEGS_NPY_Genstep( const NP* t, const Tran<double>* geotr
     }
     return SGenstep::MakeArray(gensteps);
 }
+
+
+
 
 
 /**
@@ -379,7 +607,8 @@ NP* SFrameGenstep::MakeCenterExtentGenstep(
     float gridscale,
     const Tran<double>* geotran,
     const std::vector<float3>& ce_offset,
-    bool ce_scale ) // static
+    bool ce_scale,
+    std::vector<float>* cegs_radial_range) // static
 {
 
     quad6 gs ;
@@ -388,7 +617,7 @@ NP* SFrameGenstep::MakeCenterExtentGenstep(
     assert( cegs.size() == 8 );
 
     int high = cegs[7] ;  // > 1 scales grid resolution
-    assert( high == 1 || high == 2 || high == 3 || high == 4 || high == 5);
+    assert( high >= 1 && high <= 8);
     double scale = double(gridscale)/double(high) ;
 
     int ix0 = cegs[0]*high ;
@@ -426,8 +655,30 @@ NP* SFrameGenstep::MakeCenterExtentGenstep(
     // extent is already handled within the transform so must not apply extent scaling
     // THIS IS CONFUSING : TODO FIND WAY TO AVOID THE CONFUSION BY MAKING THE DIFFERENT TYPES OF TRANSFORM MORE CONSISTENT
 
-    unsigned photon_offset = 0 ;
+    [[maybe_unused]] unsigned photon_offset = 0 ;
     std::vector<quad6> gensteps ;
+
+    float rmin = 0. ;
+    float rmax = std::numeric_limits<float>::max();
+    if(cegs_radial_range)
+    {
+        size_t crr = cegs_radial_range->size();
+        if(crr > 0) rmin = (*cegs_radial_range)[0] ;
+        if(crr > 1) rmax = (*cegs_radial_range)[1] ;
+
+        LOG(info)
+            << " [" << CEGS_RADIAL_RANGE << "] "
+            << " crr " << crr
+            << " rmin " << std::fixed << std::setw(10) << std::setprecision(2) << rmin
+            << " rmax " << std::fixed << std::setw(10) << std::setprecision(2) << rmax
+            << " ce.w " << std::fixed << std::setw(10) << std::setprecision(2) << ce.w
+            << " scale " << std::fixed << std::setw(10) << std::setprecision(2) << scale
+            << " local_scale " << std::fixed << std::setw(10) << std::setprecision(2) << local_scale
+            << "\n"
+            ;
+    }
+
+
 
     for(int ip=0 ; ip < num_offset ; ip++)   // planes
     {
@@ -445,6 +696,12 @@ NP* SFrameGenstep::MakeCenterExtentGenstep(
             double tx = double(ix)*local_scale ;
             double ty = double(iy)*local_scale ;
             double tz = double(iz)*local_scale ;
+
+            double radius = std::sqrt(tx*tx + ty*ty + tz*tz);
+            bool in_radial_range = cegs_radial_range ?  ( radius >= rmin && radius <= rmax ) : true ;
+            if(!in_radial_range) continue ;
+
+
 
             const Tran<double>* grid_shift = Tran<double>::make_translate( tx, ty, tz );
 
@@ -512,12 +769,58 @@ Examples of CEHIGH envvars using the third standardized form::
     export CEHIGH_2=-1:1:0:0:-2:0:1000:4
 
 
+
+For example a portrait base CEGS of 9:0:16:1000 means,
+becomes -9:9:0:0:-16:16:1000:1
+
+
+                               16
+                               15
+                               14
+                               13
+                               12
+                               11
+                               10
+                                9
+                                8
+                                7
+                                6
+                                5
+                                4
+                                3
+                                2
+                                1
+     9  8  7  6  5  4  3  2  1  0  1  2  3  4  5  6  7  8  9
+                                1
+                                2
+                                3
+                    +           4           +
+                                5
+                                6
+                                7
+                                8
+                                9
+                               10
+                               11
+                    +          12           +
+                               13
+                               14
+                               15
+                               16
+
+
+
+To quadruple grid resolution in the above square::
+
+      -4:4:0:0:-12:-4:1000:4
+
+
 **/
 
 void SFrameGenstep::StandardizeCEGS( std::vector<int>& cegs ) // static
 {
     if( cegs.size() == 0 ) return ;
-    if( cegs.size() == 8 ) return ;  // when start with 8, just exit
+    if( cegs.size() == 8 ) return ;  // when start with 8, just exit assuming already standardized
 
     bool expect = cegs.size() == 4 || cegs.size() == 7 ;
     LOG_IF(error, !expect) << " unexpected cegs.size " << cegs.size() ;
