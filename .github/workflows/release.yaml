@@ -28,7 +28,9 @@ jobs:
       - name: Define environment variables
         run: |
           echo IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+          echo REF_SANITIZED=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g') >> $GITHUB_ENV
           echo IMAGE_TAG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g')-${{ matrix.cuda_version }}-${{ matrix.target }}-${{ matrix.os }} >> $GITHUB_ENV
+          echo IMAGE_TAG_SHORT=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9._-]/-/g') >> $GITHUB_ENV
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -55,7 +57,9 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ghcr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG_SHORT }}
             docker.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            docker.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG_SHORT }}
           target: ${{ matrix.target }}
           build-args: |
             OS=${{ matrix.os }}
