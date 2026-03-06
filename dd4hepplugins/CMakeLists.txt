@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
-project(ddeicopticks VERSION 0.2.0 LANGUAGES CXX)
+project(ddeicopticks VERSION 0.1.0 LANGUAGES CXX)
 
 #------------------------------- -*- cmake -*- -------------------------------#
 # eic-opticks DD4hep integration plugins
@@ -8,12 +8,8 @@ project(ddeicopticks VERSION 0.2.0 LANGUAGES CXX)
 # optical photon simulation into DD4hep/Geant4.
 #
 # Usage from a DD4hep steering file:
-#   OpticsSteppingAction -- collects gensteps from standard G4Cerenkov/G4Scintillation
-#   OpticsRun            -- initializes/finalizes G4CXOpticks per run
-#   OpticsEvent          -- triggers GPU simulation per event
-#
-# Cerenkov/Scintillation physics should be registered via DD4hep's built-in
-# Geant4CerenkovPhysics and Geant4OpticalPhotonPhysics plugins.
+#   OpticsRun      -- initializes/finalizes G4CXOpticks per run
+#   OpticsEvent    -- triggers GPU simulation per event
 #----------------------------------------------------------------------------#
 
 find_package(DD4hep REQUIRED COMPONENTS DDG4 DDCore)
@@ -27,7 +23,7 @@ set(LIBRARY_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}")
 
 dd4hep_add_plugin(ddeicopticks
   SOURCES
-    OpticsSteppingAction.cc
+    OpticsPhysics.cc
     OpticsRun.cc
     OpticsEvent.cc
   USES
@@ -37,6 +33,7 @@ dd4hep_add_plugin(ddeicopticks
     eic-opticks::U4
     eic-opticks::SysRap
 )
+target_compile_definitions(ddeicopticks PRIVATE STANDALONE)
 
 install(TARGETS ddeicopticks
   LIBRARY DESTINATION lib
