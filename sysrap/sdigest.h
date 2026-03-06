@@ -324,7 +324,8 @@ inline std::string sdigest::Finalize(MD5_CTX& c) // static
     // 16 binary bytes, into 32 char hex string
 
     char buf[32+1] ;
-    for (int n = 0; n < 16; ++n) std::snprintf( &buf[2*n], 3, "%02x", (unsigned int)digest[n]) ;
+    for (int n = 0; n < 16; ++n)
+        std::snprintf(&buf[2 * n], 3, "%02x", (unsigned int)digest[n]);
     buf[32] = '\0' ;
 
     return std::string(buf, buf + 32);
