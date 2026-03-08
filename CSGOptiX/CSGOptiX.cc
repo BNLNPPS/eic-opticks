@@ -438,7 +438,7 @@ CSGOptiX::CSGOptiX(const CSGFoundry* foundry_)
     foundry(foundry_),
     outdir(SEventConfig::OutFold()),
 #ifdef CONFIG_Debug
-    _optixpath("${CSGOptiX__optixpath:-$OPTICKS_PREFIX/ptx/CSGOptiX_generated_CSGOptiX7.cu.ptx}"),
+      _optixpath("${CSGOptiX__optixpath:-$OPTICKS_PREFIX/ptx/CSGOptiX_generated_CSGOptiX7.cu.ptx}"),
 #elif CONFIG_Release
     _optixpath("${CSGOptiX__optixpath:-$OPTICKS_PREFIX/ptx/CSGOptiX_generated_CSGOptiX7.cu.ptx}"),
 #else
