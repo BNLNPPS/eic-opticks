@@ -3,6 +3,10 @@
 #include <string>
 #include <DDG4/Geant4Action.h>
 #include <DDG4/Geant4EventAction.h>
+#include <DDG4/Geant4Data.h>
+
+class SEvt;
+struct sphoton;
 
 namespace ddeicopticks
 {
@@ -12,14 +16,14 @@ namespace ddeicopticks
  *
  * At begin-of-event: prepares GPU event buffer (SEvt).
  * At end-of-event: triggers GPU optical photon simulation via
- * G4CXOpticks::simulate(), retrieves hits, and resets for next event.
+ * G4CXOpticks::simulate(), retrieves hits, injects them into DD4hep
+ * hit collections, and resets for next event.
  *
- * Gensteps are collected automatically during the event by the
- * OpticsSteppingAction plugin, which intercepts standard G4Cerenkov
- * and G4Scintillation processes.
+ * Requires setupTracker() to be called in the steering script so that
+ * DD4hep creates hit collections for the sensitive detectors.
  *
  * Properties:
- *   - Verbose (default: 0) -- verbosity level for hit reporting
+ *   - Verbose (default: 0) -- verbosity level
  */
 class OpticsEvent final : public dd4hep::sim::Geant4EventAction
 {
@@ -34,6 +38,9 @@ class OpticsEvent final : public dd4hep::sim::Geant4EventAction
     ~OpticsEvent() final;
 
   private:
+    void injectHits(G4Event const* event, SEvt* sev, unsigned num_hit);
+    static dd4hep::sim::Geant4Tracker::Hit* createTrackerHit(sphoton const& ph);
+
     int verbose_{0};
 };
 
