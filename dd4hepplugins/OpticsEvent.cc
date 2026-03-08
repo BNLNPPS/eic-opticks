@@ -2,6 +2,10 @@
 
 #include <DD4hep/InstanceCount.h>
 #include <DDG4/Factories.h>
+#include <DDG4/Geant4Data.h>
+#include <DDG4/Geant4HitCollection.h>
+#include <DDG4/Geant4SensDetAction.h>
+#include <DDG4/Geant4Context.h>
 
 #include <G4Event.hh>
 
@@ -11,7 +15,6 @@
 #include <sphoton.h>
 #include <NP.hh>
 #include <NPFold.h>
-#include <map>
 
 namespace ddeicopticks
 {
@@ -80,70 +83,94 @@ void OpticsEvent::end(G4Event const* event)
 
     if (num_genstep > 0)
     {
-        info("Event #%d: sev=%p sev->topfold=%p", eventID, (void*)sev, (void*)sev->topfold);
-        info("Event #%d: calling gx->simulate, gx=%p", eventID, (void*)gx);
         gx->simulate(eventID, /*reset=*/false);
-        SEvt* sev2 = SEvt::Get_EGPU();
-        info("Event #%d: simulate returned, sev2=%p sev2->topfold=%p (same=%d)",
-             eventID, (void*)sev2, (void*)(sev2?sev2->topfold:nullptr),
-             (sev == sev2));
 
         unsigned num_hit = sev->getNumHit();
         info("Event #%d: %u hits from GPU", eventID, num_hit);
 
-        // Debug: dump topfold contents
+        // Inject GPU hits into DD4hep sensitive detector hit collections
+        if (num_hit > 0)
         {
-            NPFold* tf = sev->topfold ;
-            int nsub = tf ? tf->get_num_subfold() : 0;
-            int naa = tf ? (int)tf->aa.size() : 0;
-            int nkk = tf ? (int)tf->kk.size() : 0;
-            info("Event #%d: topfold nsub=%d naa=%d nkk=%d",
-                 eventID, nsub, naa, nkk);
-            for (int ai = 0; ai < nkk; ai++)
-            {
-                const char* k = tf->kk[ai].c_str();
-                const NP* a = tf->aa[ai];
-                info("  [%d] key='%s' shape[0]=%d", ai,
-                     k ? k : "?", a ? a->shape[0] : -1);
-            }
-
-            // Look for photon array
-            const NP* photon = tf->get("photon");
-            if (photon)
-            {
-                int np = photon->shape[0];
-                info("Event #%d: found %d photons", eventID, np);
-                const sphoton* pp = (const sphoton*)photon->cvalues<float>();
-                std::map<unsigned, int> flag_counts;
-                std::map<unsigned, int> boundary_counts;
-                for (int i = 0; i < np; i++)
-                {
-                    flag_counts[pp[i].flagmask]++;
-                    boundary_counts[pp[i].boundary()]++;
-                }
-                for (auto& [f, c] : flag_counts)
-                    info("  flagmask 0x%08x : %d photons", f, c);
-                for (auto& [b, c] : boundary_counts)
-                    info("  boundary %u : %d photons", b, c);
-            }
-            else
-            {
-                info("Event #%d: no 'photon' key in topfold", eventID);
-            }
+            injectHits(event, sev, num_hit);
         }
-
-        // TODO: Convert GPU hits to DD4hep sensitive detector hits.
-        // Hits accessible via:
-        //   sphoton hit;
-        //   sev->getHit(hit, idx);
 
         sev->endOfEvent(eventID);
         gx->reset(eventID);
     }
     else
     {
+        if (verbose_ > 0)
+            info("Event #%d: no gensteps, skipping GPU simulation", eventID);
         sev->endOfEvent(eventID);
     }
+}
+
+//---------------------------------------------------------------------------//
+void OpticsEvent::injectHits(G4Event const* event,
+                             SEvt* sev,
+                             unsigned num_hit)
+{
+    using dd4hep::sim::Geant4SensDetSequences;
+    using dd4hep::sim::Geant4HitCollection;
+    using dd4hep::sim::Geant4Tracker;
+
+    int eventID = event->GetEventID();
+
+    Geant4SensDetSequences& sens = context()->sensitiveActions();
+    auto const& seqs = sens.sequences();
+
+    if (seqs.empty())
+    {
+        warning("Event #%d: no sensitive detectors registered -- "
+                "call setupTracker() in steering script", eventID);
+        return;
+    }
+
+    for (auto const& [det_name, seq] : seqs)
+    {
+        Geant4HitCollection* coll = seq->collection(0);
+        if (!coll)
+            continue;
+
+        for (unsigned i = 0; i < num_hit; i++)
+        {
+            sphoton ph;
+            sev->getHit(ph, i);
+            coll->add(createTrackerHit(ph));
+        }
+
+        info("Event #%d: injected %u hits into '%s' collection",
+             eventID, num_hit, det_name.c_str());
+    }
+}
+
+//---------------------------------------------------------------------------//
+dd4hep::sim::Geant4Tracker::Hit*
+OpticsEvent::createTrackerHit(sphoton const& ph)
+{
+    using dd4hep::sim::Geant4Tracker;
+
+    auto* hit = new Geant4Tracker::Hit();
+
+    hit->position = {ph.pos.x, ph.pos.y, ph.pos.z};
+    hit->momentum = {ph.mom.x, ph.mom.y, ph.mom.z};
+    hit->length = ph.wavelength;
+    hit->energyDeposit = 0;
+    hit->cellID = ph.identity;
+
+    hit->truth.trackID = ph.index;
+    hit->truth.pdgID = 0;
+    hit->truth.deposit = 0;
+    hit->truth.time = ph.time;
+    hit->truth.length = ph.wavelength;
+    hit->truth.x = ph.pos.x;
+    hit->truth.y = ph.pos.y;
+    hit->truth.z = ph.pos.z;
+    hit->truth.px = ph.mom.x;
+    hit->truth.py = ph.mom.y;
+    hit->truth.pz = ph.mom.z;
+
+    return hit;
 }
 
 //---------------------------------------------------------------------------//
