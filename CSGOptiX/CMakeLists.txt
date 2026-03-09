@@ -93,7 +93,7 @@ target_include_directories( ${name} PUBLIC
 
 target_link_libraries(${name} PUBLIC OptiX::OptiX CSG QUDARap SysRap)
 
-install(FILES $<TARGET_OBJECTS:CSGOptiX7.cu> DESTINATION ptx RENAME CSGOptiX_generated_CSGOptiX7.cu.ptx)
+install(FILES $<TARGET_OBJECTS:CSGOptiX7.cu> DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/${name})
 
 install(TARGETS ${name}
