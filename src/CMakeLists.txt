@@ -14,7 +14,7 @@ target_include_directories(gphox
 
 # Common Geant4 and G4CX dependencies shared by executables using Geant4/G4CX
 add_library(gphox_g4_deps INTERFACE)
-target_link_libraries(gphox_g4_deps INTERFACE ${Geant4_LIBRARIES} G4CX)
+target_link_libraries(gphox_g4_deps INTERFACE Geant4::G4vis_all Geant4::G4UI_all G4CX)
 
 # consgeo is a tool for converting GDML into CSG
 add_executable(consgeo consgeo.cc)
