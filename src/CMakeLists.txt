@@ -12,7 +12,7 @@ target_include_directories(gphox
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
-# Common Geant4 and G4CX dependencies shared by simulation executables
+# Common Geant4 and G4CX dependencies shared by executables using Geant4/G4CX
 add_library(gphox_g4_deps INTERFACE)
 target_link_libraries(gphox_g4_deps INTERFACE ${Geant4_LIBRARIES} G4CX)
 
