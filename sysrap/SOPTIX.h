@@ -33,7 +33,7 @@ struct SOPTIX
 
     int             irc ;
     SGLM&           gm  ;
-    std::string     optixpath ;
+    std::string optixpath;
 
     SOPTIX_Context  ctx ;
     SOPTIX_Options  opt ;
