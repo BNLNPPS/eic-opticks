@@ -81,6 +81,7 @@ HMM: looking like getting qudarap/qsim.h to work with OptiX < 7 is more effort t
 // CSGOptiX
 #include "Frame.h"
 #include "Params.h"
+#include "config.h"
 
 #if OPTIX_VERSION < 70000
 #include "Six.h"
@@ -93,8 +94,6 @@ HMM: looking like getting qudarap/qsim.h to work with OptiX < 7 is more effort t
 #endif
 
 #include "CSGOptiX.h"
-
-namespace gphox { class Config { public: static std::string PtxPath(const std::string& ptx_name); }; }
 
 const plog::Severity CSGOptiX::LEVEL = SLOG::EnvLevel("CSGOptiX", "DEBUG" );
 CSGOptiX* CSGOptiX::INSTANCE = nullptr ;
