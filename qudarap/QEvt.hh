@@ -10,7 +10,9 @@ struct quad6 ;
 struct NP ;
 
 struct SEvt ;
+
 struct sphoton_selector ;
+struct sphotonlite_selector ;
 
 
 #include <vector>
@@ -18,6 +20,7 @@ struct sphoton_selector ;
 #include "plog/Severity.h"
 #include "SComp.h"
 #include "QUDARAP_API_EXPORT.hh"
+#include "NP_future.h"
 
 /**
 QEvt.hh
@@ -64,6 +67,8 @@ where the upper part depends on details of how Opticks is integrated with the si
 
 **/
 
+
+
 struct QUDARAP_API QEvt : public SCompProvider
 {
     friend struct QEvtTest ;
@@ -93,7 +98,9 @@ private:
 public:
     SEvt*             sev ;
 private:
-    sphoton_selector* selector ;
+    sphoton_selector*     photon_selector ;
+    sphotonlite_selector* photonlite_selector ;
+
     sevent*           evt ;
     sevent*           d_evt ;
     const NP*         gs ;
@@ -137,6 +144,7 @@ public:
     bool hasGenstep() const ;
     bool hasSeed() const ;
     bool hasPhoton() const ;
+    bool hasPhotonLite() const ;
     bool hasRecord() const ;
     bool hasRec() const ;
     bool hasSeq() const ;
@@ -144,6 +152,7 @@ public:
     bool hasTag() const ;
     bool hasFlat() const ;
     bool hasHit() const ;
+    bool hasHitLite() const ;
     bool hasSimtrace() const ;
 public:
     static constexpr const char* TYPENAME = "QEvt" ;
@@ -158,7 +167,13 @@ public:
     // ]
 
     NP*      gatherPhoton() const ;
+    NP*      gatherPhotonLite() const ;
+
     NP*      gatherHit() const ;
+    NP*      gatherHitLite() const ;
+    NP*      gatherHitLiteMerged() const ;
+    NP*      gatherHitMerged() const ;
+
 
 #ifndef PRODUCTION
     NP*      gatherSeed() const ;
@@ -176,24 +191,37 @@ public:
 #endif
 
 public:
-    // mutating interface. TODO: Suspect only the photon mutating API actually needed for some QSimTest, remove the others
     void     gatherPhoton(       NP* p ) const ;
+    void     gatherPhotonLite(   NP* l ) const ;
 
 private:
     NP*      gatherComponent_(unsigned comp) const ;
     NP*      gatherHit_() const ;
+    NP*      gatherHitLite_() const ;
 public:
-    unsigned getNumHit() const ;
+
+    template<typename T>
+    static NP*       PerLaunchMerge(sevent* evt, cudaStream_t stream );
+
+    template<typename T>
+    static NP*       FinalMerge(      const NP* hitmerged_or_hitlitemerged, cudaStream_t stream);
+
+    template<typename T>
+    static NP_future FinalMerge_async(const NP* hitmerged_or_hitlitemerged, cudaStream_t stream);
+
+public:
+    size_t   getNumHit() const ;
+    size_t   getNumHitLite() const ;
 private:
-    void     setNumPhoton(unsigned num_photon) ;
-    void     setNumSimtrace(unsigned num_simtrace) ;
+    void     setNumPhoton(size_t num_photon) ;
+    void     setNumSimtrace(size_t num_simtrace) ;
     void     device_alloc_photon();
     void     device_alloc_simtrace();
     static void SetAllocMeta(salloc* alloc, const sevent* evt);
     void     uploadEvt();
 public:
-    unsigned getNumPhoton() const ;
-    unsigned getNumSimtrace() const ;
+    size_t getNumPhoton() const ;
+    size_t getNumSimtrace() const ;
 public:
     std::string desc() const ;
     std::string desc_alloc() const ;

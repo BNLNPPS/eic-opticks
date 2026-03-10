@@ -1,8 +1,8 @@
 #pragma once
 #include "QUDARAP_API_EXPORT.hh"
 #include "plog/Severity.h"
-#include <cstdint>
 #include <vector>
+#include <cstdint>
 
 struct NP ;
 struct dim3 ;

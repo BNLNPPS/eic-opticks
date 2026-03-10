@@ -25,6 +25,21 @@ SGLM::desc
 NB : to dump view param from interactive viz use "P" key invoking SGLM::desc
 
 
+Controlling orthographic views
+---------------------------------
+
+When using orthographic projection usual position movement navigation
+does not change the view like it perspective projection.
+Changing EYE actually does have the effect of changing
+the side and hence the coloring from the normal direction
+but it does not change the apparent size of the render.
+Instead EXTENT_FUDGE can be used to do that.
+
+::
+
+   CAM=orthographic EXTENT_FUDGE=1.5 EYE=0,1,-0.1 LOOK=0,0,-0.1 cxr_min.sh
+
+
 DONE : rasterized and raytrace render consistency
 -------------------------------------------------
 
@@ -118,8 +133,6 @@ Screen
 #include <string>
 #include <array>
 
-#define GLM_ENABLE_EXPERIMENTAL
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -136,6 +149,7 @@ Screen
 #include "SScene.h"
 #include "stree.h"
 
+#include "SGLM_View.h"
 #include "SGLM_Arcball.h"
 
 #include "sfr.h"     // formerly sframe.h
@@ -177,6 +191,25 @@ struct SYSRAP_API lrbtnf
 
 
 
+
+
+
+
+struct SGLM_Setting
+{
+    int value = 0;
+    int num_modes = 2; // Default for boolean-like toggles
+
+    void next() { value = (value + 1) % num_modes; }
+
+    // Helper to keep existing bool logic working where needed
+    bool operator!() const { return value == 0; }
+    explicit operator bool() const { return value != 0; }
+};
+
+
+
+
 /**
 SGLM_Toggle
 -------------
@@ -185,29 +218,32 @@ SGLM_Toggle
 
 struct SYSRAP_API SGLM_Toggle
 {
-    bool zoom = false ;
-    bool tmin = false ;
-    bool tmax = false ;
-    bool lrot = false ;
-    bool cuda = false ;
-    bool norm = false ;
-    bool time = false ;
-    bool stop = false ;
-    std::string desc() const ;
+    SGLM_Setting zoom{0, 2}; // Z
+    SGLM_Setting tmin{0, 2}; // N
+    SGLM_Setting tmax{0, 2}; // F
+    SGLM_Setting lrot{0, 2}; // R
+    SGLM_Setting cuda{0, 2}; // C
+    SGLM_Setting norm{0, 2}; // U
+    SGLM_Setting time{0, 2}; // T
+    SGLM_Setting spin{0, 5}; // L
+    SGLM_Setting stop{0, 2}; // SPACE
+
+    std::string desc() const;
 };
 
 inline std::string SGLM_Toggle::desc() const
 {
-    std::stringstream ss ;
+    std::stringstream ss;
     ss << "SGLM_Toggle::desc"
-       << " zoom:" << ( zoom ? "Y" : "N" )
-       << " tmin:" << ( tmin ? "Y" : "N" )
-       << " tmax:" << ( tmax ? "Y" : "N" )
-       << " lrot:" << ( lrot ? "Y" : "N" )
-       << " cuda:" << ( cuda ? "Y" : "N" )
-       << " norm:" << ( norm ? "Y" : "N" )
-       << " time:" << ( time ? "Y" : "N" )
-       << " stop:" << ( stop ? "Y" : "N" )
+       << " zoom: " << zoom.value
+       << " tmin: " << tmin.value
+       << " tmax: " << tmax.value
+       << " lrot: " << lrot.value
+       << " cuda: " << cuda.value
+       << " norm: " << norm.value
+       << " time: " << time.value
+       << " spin: " << spin.value
+       << " stop: " << stop.value
        ;
     std::string str = ss.str();
     return str ;
@@ -248,6 +284,7 @@ struct SYSRAP_API SGLM : public SCMD
     static SGLM* INSTANCE ;
     static SGLM* Get();
 
+    static constexpr const char* kTITLE = "TITLE" ;
     static constexpr const char* kWH = "WH" ;
     static constexpr const char* kCE = "CE" ;
     static constexpr const char* kEYE = "EYE" ;
@@ -282,6 +319,7 @@ struct SYSRAP_API SGLM : public SCMD
 
 
     // static defaults, some can be overridden in the instance
+    static const char* TITLE ;
     static glm::ivec2 WH ;
 
     static glm::vec4 CE ; // CE IS GEOMETRY NOT VIEW RELATED BUT ITS EXPEDIENT TO BE HERE
@@ -398,7 +436,11 @@ struct SYSRAP_API SGLM : public SCMD
     sfr fr = {} ;  // CAUTION: SEvt also holds an sframe used for input photon targetting
 
     static constexpr const char* _DUMP = "SGLM__set_frame_DUMP" ;
+    void set_frame();
+    void set_frame( const char* q_spec );
+    void set_frame( const float4& ce );
     void set_frame( const sfr& fr );
+
     int get_frame_idx() const ;
     bool has_frame_idx(int idx) const ;
     const std::string& get_frame_name() const ;
@@ -424,11 +466,16 @@ struct SYSRAP_API SGLM : public SCMD
     // world frame View converted from static model frame
     // initELU
 
+    void  initView();
+    SGLM_View view = {} ;
+
+
     void  initELU();   // depends on CE and EYE, LOOK, UP
     void updateGaze();
     std::string descELU() const ;
 
     std::vector<glm::vec3> axes ;
+
 
     glm::vec3 eye ;
     glm::vec3 look ;
@@ -438,6 +485,10 @@ struct SYSRAP_API SGLM : public SCMD
     glm::vec3 gaze ;
     glm::mat4 eye2look ;
     glm::mat4 look2eye ;
+
+    float spin_degrees_per_frame ;
+    glm::vec3 q_spin_axis ;
+    glm::quat q_spin;
 
     glm::quat q_lookrot ;
     glm::quat q_eyerot ;
@@ -552,6 +603,7 @@ struct SYSRAP_API SGLM : public SCMD
 
 
 
+    void increment_spin();
 
     void updateComposite();
 
@@ -675,6 +727,7 @@ struct SYSRAP_API SGLM : public SCMD
 SGLM* SGLM::INSTANCE = nullptr ;
 SGLM* SGLM::Get(){  return INSTANCE ? INSTANCE : new SGLM  ; }
 
+const char* SGLM::TITLE = ssys::getenvvar(kTITLE, "TITLE") ;
 glm::ivec2 SGLM::WH = EVec2i(kWH,"1920,1080") ;
 
 glm::vec4  SGLM::CE = EVec4(kCE,"0,0,0,100", 100.f) ;
@@ -682,6 +735,7 @@ glm::vec4  SGLM::CE = EVec4(kCE,"0,0,0,100", 100.f) ;
 glm::vec4  SGLM::EYE  = EVec4(kEYE, "-1,-1,0,1", 1.f) ;
 glm::vec4  SGLM::LOOK = EVec4(kLOOK, "0,0,0,1" , 1.f) ;
 glm::vec4  SGLM::UP  =  EVec4(kUP,   "0,0,1,0" , 0.f) ;
+
 
 float      SGLM::ZOOM = EValue<float>(kZOOM, "1");
 float      SGLM::TMIN = EValue<float>(kTMIN, "0.1");
@@ -707,6 +761,7 @@ int        SGLM::TN = ssys::getenvint(kTN, 5000 );
 inline void SGLM::SetWH( int width, int height ){ WH.x = width ; WH.y = height ; }
 inline void SGLM::SetCE(  float x, float y, float z, float w){ CE.x = x ; CE.y = y ; CE.z = z ;  CE.w = w ; }
 
+// HMM: these are setting the statics
 inline void SGLM::SetEYE( float x, float y, float z){ EYE.x = x  ; EYE.y = y  ; EYE.z = z  ;  EYE.w = 1.f ; }
 inline void SGLM::SetLOOK(float x, float y, float z){ LOOK.x = x ; LOOK.y = y ; LOOK.z = z ;  LOOK.w = 1.f ; }
 inline void SGLM::SetUP(  float x, float y, float z){ UP.x = x   ; UP.y = y   ; UP.z = z   ;  UP.w = 0.f ; }  // 0.f as treat as direction
@@ -778,6 +833,9 @@ inline SGLM::SGLM()
     gaze(  0.f,0.f,0.f),
     eye2look(1.f),
     look2eye(1.f),
+    spin_degrees_per_frame(0.15f),
+    q_spin_axis(0.f,0.f,1.f),
+    q_spin(1.f,0.f,0.f,0.f),     // identity quaternion
     q_lookrot(1.f,0.f,0.f,0.f),   // identity quaternion
     q_eyerot( 1.f,0.f,0.f,0.f),   // identity quaternion
     eyeshift(0.f,0.f,0.f),
@@ -838,6 +896,18 @@ inline void SGLM::init()
 
     constrain();
 }
+
+/**
+SGLM::setTreeScene
+-------------------
+
+This is invoked during initialization of some test executables,
+such as from::
+
+   CSGOptiXRenderInteractiveTest::init
+   sysrap/tests/SGLFW_SOPTIX_Scene_test.cc:main
+
+**/
 
 
 inline void SGLM::setTreeScene( stree* _tree, SScene* _scene )
@@ -1233,6 +1303,27 @@ SGLM::set_frame
 
 **/
 
+inline void SGLM::set_frame()
+{
+    assert(tree && "MUST CALL SGLM::setTreeScene BEFORE SGLM::set_frame");
+    sfr f = tree->get_frame_moi();
+    set_frame(f);
+}
+
+inline void SGLM::set_frame( const char* q_spec )
+{
+    assert(tree && "MUST CALL SGLM::setTreeScene BEFORE SGLM::set_frame");
+    sfr f = tree->get_frame(q_spec);
+    set_frame(f);
+}
+
+inline void SGLM::set_frame( const float4& ce )
+{
+    assert(tree && "MUST CALL SGLM::setTreeScene BEFORE SGLM::set_frame");
+    sfr f = sfr::MakeFromCE<float>(&ce.x);
+    set_frame(f);
+}
+
 
 inline void SGLM::set_frame( const sfr& fr_ )
 {
@@ -1275,6 +1366,10 @@ SGLM::update
 initModelMatrix
     model2world, world2model from frame or ce (translation only, not including extent scale)
     [note the only? use of these is from initELU]
+
+
+initView
+
 
 initELU
     eye,look,up in world frame from EYE,LOOK,UP in "ce" frame by using model2world
@@ -1321,7 +1416,9 @@ inline void SGLM::update()
     constrain();
 
     initModelMatrix();  //  fr.ce(center)->model2world translation
-    initELU();          //  EYE,LOOK,UP,model2world,extent->eye,look,up
+
+    initView();         // EYE,LOOK,UP -> view.EYE, view.LOOK, view.UP
+    initELU();          //  view.EYE,view.LOOK,view.UP,model2world,extent->eye,look,up
 
     updateGaze();       //  eye,look,up->gaze,eye2look,look2eye
     updateEyeSpace();   //  gaze,up,eye->world2camera,camera2world
@@ -1337,6 +1434,14 @@ inline void SGLM::update()
     constrain();
     addlog("SGLM::update", "]");
 }
+
+/**
+SGLM::constrain
+----------------
+
+UP is a direction vector, not a position, so non-zero UP.w would be a bug
+
+**/
 
 inline void SGLM::constrain() const
 {
@@ -1409,7 +1514,9 @@ inline void SGLM::initModelMatrix()
 
     //bool m2w_not_identity = fr.m2w.is_identity(sframe::EPSILON) == false ;
     //bool w2m_not_identity = fr.w2m.is_identity(sframe::EPSILON) == false ;
-    if( !fr.is_identity() )
+
+    bool fr_has_transform = !fr.is_identity() ;
+    if( fr_has_transform )
     {
         initModelMatrix_branch = 1 ;
         //model2world = glm::make_mat4x4<float>(fr.m2w.cdata());
@@ -1490,6 +1597,25 @@ glm::mat4 SGLM::get_escale() const
 }
 
 /**
+SGLM::initView
+----------------
+
+For standard non interpolated view animation mode the view is populated
+from the EYE, LOOK,UP statics that are populated at lib load time from envvars.
+
+**/
+
+
+void SGLM::initView()
+{
+    view.EYE = EYE ;
+    view.LOOK = LOOK ;
+    view.UP = UP ;
+}
+
+
+
+/**
 SGLM::initELU
 -----------------
 
@@ -1523,9 +1649,11 @@ void SGLM::initELU()
 {
     glm::mat4 escale = get_escale();
 
-    eye  = glm::vec3( model2world * escale * EYE ) ;
-    look = glm::vec3( model2world * escale * LOOK ) ;
-    up   = glm::vec3( model2world * escale * UP ) ;
+    eye  = glm::vec3( model2world * escale * view.EYE ) ;
+    look = glm::vec3( model2world * escale * view.LOOK ) ;
+    up   = glm::vec3( model2world * escale * view.UP ) ;
+
+
 
     if(LEVEL > 0) std::cout
         << "[ SGLM::initELU\n"
@@ -1816,11 +1944,26 @@ std::string SGLM::descNearFar() const
 }
 
 
+/**
+SGLM::updateTitle
+------------------
+
+The *title* is set as the cxr_min.sh OpenGL window title by SGLFW::renderloop_tail
+
+**/
+
+
+
 void SGLM::updateTitle()
 {
     std::stringstream ss ;
-    ss << fr.get_name() ;
-    ss << " sglm.e(c2w*ori) [" << Present(e) << "]" ;
+    ss
+       << fr.get_name()
+       << " "
+       << fr.desc_ce()
+       << " sglm.e(c2w*ori) [" << Present(e) << "]"
+       << " " << TITLE
+       ;
     title = ss.str();
 }
 
@@ -2143,6 +2286,20 @@ float SGLM::get_transverse_scale() const
 }
 
 
+
+void SGLM::increment_spin()
+{
+    if(toggle.spin.value == 0 ) return ;
+
+    float spin_speed = spin_degrees_per_frame*float(toggle.spin.value) ;
+
+    glm::quat step_spin = glm::angleAxis(glm::radians(spin_speed), q_spin_axis );
+
+    q_spin = step_spin * q_spin ;      // Global spin
+    //q_spin = q_spin * step_spin ;      // Local spin (relative to current view)
+}
+
+
 /**
 SGLM::updateComposite
 ----------------------
@@ -2159,23 +2316,25 @@ void SGLM::updateComposite()
 {
     //std::cout << "SGLM::updateComposite" << std::endl ;
 
-    glm::mat4 _eyeshift = glm::translate(glm::mat4(1.0), eyeshift ) ;
-    glm::mat4 _ieyeshift = glm::translate(glm::mat4(1.0), -eyeshift ) ;
-
+    glm::mat4 _worldspin = glm::mat4_cast(q_spin);
+    glm::mat4 _eyeshift = glm::translate(glm::mat4(1.0), eyeshift ) ;    // eyeshift starts (0,0,0) changed by WASDQE keys
     glm::mat4 _lookrot = glm::mat4_cast(q_lookrot) ;
-    glm::mat4 _ilookrot = glm::mat4_cast( glm::conjugate(q_lookrot) ) ;
-
     glm::mat4 _eyerot = glm::mat4_cast(q_eyerot) ;
-    glm::mat4 _ieyerot = glm::mat4_cast( glm::conjugate( q_eyerot )) ;
 
+    glm::mat4 _iworldspin = glm::mat4_cast(glm::conjugate(q_spin));
+    glm::mat4 _ilookrot   = glm::mat4_cast(glm::conjugate(q_lookrot) ) ;
+    glm::mat4 _ieyerot    = glm::mat4_cast(glm::conjugate(q_eyerot )) ;
+    glm::mat4 _ieyeshift  = glm::translate(glm::mat4(1.0), -eyeshift ) ;
 
-    MV = _eyeshift * _eyerot * look2eye * _lookrot * eye2look * world2camera ;
+    MV = _eyeshift * _eyerot * look2eye * _lookrot * eye2look * world2camera * _worldspin ;  // just world2camera before shifts, rotations
 
-    IMV = camera2world * look2eye * _ilookrot * eye2look * _ieyerot  * _ieyeshift  ;
+    IMV = _iworldspin * camera2world * look2eye * _ilookrot * eye2look * _ieyerot  * _ieyeshift  ;
     //IMV = glm::inverse( MV );
 
     MVP = projection * MV ;    // MVP aka world2clip (needed by OpenGL shader pipeline)
 }
+
+
 
 
 
@@ -3171,6 +3330,7 @@ inline void SGLM::time_bump()
 {
     if(!enabled_time_bump || enabled_time_halt) return ;
     set_time( get_time() + get_ts() );
+
 }
 
 inline void SGLM::inc_time(float dy)
@@ -3190,8 +3350,7 @@ inline void SGLM::inc_time(float dy)
 
 inline void SGLM::renderloop_head()
 {
-
-
+    increment_spin();
 }
 
 

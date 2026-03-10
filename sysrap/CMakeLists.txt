@@ -15,11 +15,9 @@ message(STATUS "${name} Custom4_FOUND:${Custom4_FOUND}  " )
 
 set(WITH_SLOG YES)
 
-
-set(SYSRAP_GENERATED_HEADER  "sconfig.h")
 set(SYSRAP_OPTICKS_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
-configure_file( ${SYSRAP_GENERATED_HEADER}.in inc/${SYSRAP_GENERATED_HEADER} )
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/inc/${SYSRAP_GENERATED_HEADER} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
+configure_file(sconfig.h.in inc/sconfig.h)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/inc/sconfig.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
 
 set(SOURCES
     SYSRAP_LOG.cc 
@@ -106,6 +104,7 @@ set(SOURCES
     OpticksPhoton.cc
 
     SU.cu 
+    SPM.cu
 
     SEventConfig.cc
     SFrameConfig.cc
@@ -683,6 +682,7 @@ target_compile_definitions( ${name}
 
       OPTICKS_SYSRAP 
       WITH_CHILD
+      WITH_CUDA
       PLOG_LOCAL
       RNG_PHILOX
 

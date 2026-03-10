@@ -35,7 +35,11 @@ int main(int argc, char** argv)
 
     LOG(info); 
 
+#if defined __APPLE__
+    std::vector<unsigned> rngmax_M = { 1, 3  } ; 
+#else
     std::vector<unsigned> rngmax_M = { 1, 3, 10 } ; 
+#endif
 
     for(unsigned i=0 ; i < rngmax_M.size() ; i++)
     {

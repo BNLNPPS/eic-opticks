@@ -5,6 +5,8 @@ sphoton_test.cc
 ::
 
      ~/o/sysrap/tests/sphoton_test.sh
+     TEST=set_lpos ~/o/sysrap/tests/sphoton_test.sh
+
      OFFSET=100,100,100 ~/o/sysrap/tests/sphoton_test.sh
      OFFSET=1000,1000,1000 ~/o/sysrap/tests/sphoton_test.sh
 
@@ -47,6 +49,15 @@ struct sphoton_test
     static int ChangeTimeInsitu();
 
     static int index();
+    static int demoarray();
+    static int set_lpos();
+
+    static NP* MockupPhotonsWithContiguousIIndex(const std::vector<size_t>& starts);
+    static int GetIndexBeyondCursorContiguousIIndex();
+    static int GetContiguousIIndexStartIndices();
+
+    template<typename T> static int localize_(sphoton& l, const sphoton& p, bool normalize );
+    static int localize();
 
     static int main();
 };
@@ -67,11 +78,16 @@ void sphoton_test::dump( const char* label, unsigned mask)
 
 int sphoton_test::qphoton_()
 {
+#ifdef WITH_QPHOTON
     qphoton qp ;
     qp.q.zero();
     std::cout << qp.q.desc() << std::endl ;
+#else
+    assert(0);
+#endif
     return 0;
 }
+
 int sphoton_test::cast()
 {
     sphoton p ;
@@ -636,6 +652,191 @@ int sphoton_test::index()
     return 0 ;
 }
 
+int sphoton_test::demoarray()
+{
+    NP* p = sphoton::demoarray(10);
+    p->save("$FOLD/demoarray.npy");
+    return 0 ;
+}
+
+int sphoton_test::set_lpos()
+{
+     sphoton p = {};
+
+     float eps = 1e-6 ;  // 1e-7 has one fphi deviant
+     int ni = 1000 ;
+
+     std::cout
+         << "[sphoton_test::set_lpos"
+         << " eps "  << std::setw(10) << std::setprecision(8) << std::fixed << eps
+         << " ni " << ni
+         << "\n"
+         ;
+
+     int deviant = 0 ;
+     for(int i=0 ; i < ni ; i++)
+     {
+         //float f = float(i)/float(ni) ;
+         float f = float(i+1)/float(ni+1) ;  // avoid zero and one
+
+         float cost_0 = f;
+         float fphi_0 = f;
+         p.set_lpos(cost_0, fphi_0);
+         float cost_1 = p.get_cost();
+         float fphi_1 = p.get_fphi();
+
+         float cost_01 = ( cost_0 - cost_1 );
+         float fphi_01 = ( fphi_0 - fphi_1 ) ;
+
+         bool select = std::abs(cost_01) > eps || std::abs(fphi_01) > eps ;
+         if(select)
+         {
+             deviant += 1 ;
+             std::cout
+                 << std::setw(5) << i
+                 << " cost_0 "  << std::setw(10) << std::setprecision(6) << std::fixed << cost_0
+                 << " cost_1 "  << std::setw(10) << std::setprecision(6) << std::fixed << cost_1
+                 << " cost_01*1e6 " << std::setw(10) << std::setprecision(6) << std::fixed << cost_01*1e6
+                 << " fphi_0 "  << std::setw(10) << std::setprecision(6) << std::fixed << fphi_0
+                 << " fphi_1 "  << std::setw(10) << std::setprecision(6) << std::fixed << fphi_1
+                 << " fphi_01*1e6 " << std::setw(10) << std::setprecision(6) << std::fixed << fphi_01*1e6
+                 << " p.pos.x " << std::setw(10) << std::setprecision(6) << std::fixed << p.pos.x
+                 << " p.pos.y " << std::setw(10) << std::setprecision(6) << std::fixed << p.pos.y
+                 << " p.pos.z " << std::setw(10) << std::setprecision(6) << std::fixed << p.pos.z
+                 << "\n"
+                 ;
+
+         }
+    }
+
+     std::cout
+         << "]sphoton_test::set_lpos deviant " << deviant << "\n" ;
+
+
+
+    return 0 ;
+}
+
+/**
+sphoton_test::MockupPhotonsWithContiguousIIndex
+-------------------------------------------------
+
+Creates an array of *ni* "starts[-1]" photons.
+For the i-th photon the index of the *starts* ranges
+that *i* is part of gives a *j* index that yields
+an *ii* result.
+
+**/
+
+
+NP* sphoton_test::MockupPhotonsWithContiguousIIndex(const std::vector<size_t>& starts) // static
+{
+    size_t nj = starts.size();
+    size_t ni = starts[nj-1] ;
+
+    NP* photons = sphoton::zeros(ni);
+    sphoton* pp = (sphoton*)photons->bytes();
+    for(size_t i=0 ; i < ni ; i++ )
+    {
+        unsigned ii = 0 ;
+        for(size_t j=1 ; j < nj ; j++)
+        {
+            bool j_range = i >= starts[j-1] && i < starts[j] ;
+            if( j_range )
+            {
+                ii = j*100 ;
+                break ;
+            }
+        }
+
+
+        pp[i].set_iindex__( ii );
+    }
+    return photons ;
+}
+
+int sphoton_test::GetIndexBeyondCursorContiguousIIndex()
+{
+    std::vector<size_t> starts = { 0, 100, 200, 400, 600, 800, 1000 };
+    NP* photons = MockupPhotonsWithContiguousIIndex(starts);
+
+    sphoton* pp = (sphoton*)photons->bytes();
+    size_t num = photons->num_items();
+
+    std::cout
+        << "sphoton_test::GetIndexBeyondCursorContiguousIIndex"
+        << "\n"
+        ;
+
+
+    std::vector<size_t> recover ;
+
+    size_t cursor = 0 ;
+    recover.push_back(cursor);
+    do
+    {
+        cursor = sphoton::GetIndexBeyondCursorContiguousIIndex(pp, num, cursor );
+        recover.push_back(cursor);
+        std::cout << " cursor " << cursor << "\n" ;
+    }
+    while( cursor < num );
+    assert( recover == starts );
+
+    return 0 ;
+}
+
+int sphoton_test::GetContiguousIIndexStartIndices()
+{
+    std::vector<size_t> starts = { 0, 100, 200, 400, 600, 800, 1000 };
+    NP* photons = MockupPhotonsWithContiguousIIndex(starts);
+    sphoton* pp = (sphoton*)photons->bytes();
+    size_t num = photons->num_items();
+
+    std::vector<size_t> recover ;
+    sphoton::GetContiguousIIndexStartIndices(recover, pp, num );
+    assert( recover == starts );
+
+    return 0 ;
+}
+
+template<typename T>
+int sphoton_test::localize_(sphoton& l, const sphoton& p, bool normalize )
+{
+    std::array<T, 16> src = {{
+         1.,     0.,     0.,     0.,
+         0.,     1.,     0.,     0.,
+         0.,     0.,     1.,     0.,
+         100., 200.,   300.,     1.  }} ;
+
+    glm::tmat4x4<T> tr(1.) ;
+    memcpy( glm::value_ptr(tr), src.data(), sizeof(T)*16 );
+    p.localize( l, tr, normalize );
+
+    return 0 ;
+}
+
+int sphoton_test::localize()
+{
+    sphoton p = {} ;
+    p.pos = { 0.f, 0.f, 0.f } ;
+    p.mom = { 0.f, 0.f, 1.f } ;
+    p.pol = { 0.f, 1.f, 0.f } ;
+
+    sphoton l = {} ;
+
+    int rc = localize_<double>(l,p, false);
+
+    std::cout
+        << "localize"
+        << "\n"
+        << "p " << p.desc()
+        << "\n"
+        << "l " << l.desc()
+        << "\n"
+        ;
+
+    return rc ;
+}
 
 
 
@@ -664,6 +865,12 @@ int sphoton_test::main()
     if(ALL||0==strcmp(TEST, "make_record_array"))     rc += make_record_array();
     if(ALL||0==strcmp(TEST, "ChangeTimeInsitu"))      rc += ChangeTimeInsitu();
     if(ALL||0==strcmp(TEST, "index"))                 rc += index();
+    if(ALL||0==strcmp(TEST, "demoarray"))             rc += demoarray();
+    if(ALL||0==strcmp(TEST, "set_lpos"))              rc += set_lpos();
+
+    if(ALL||0==strcmp(TEST, "GetIndexBeyondCursorContiguousIIndex")) rc += GetIndexBeyondCursorContiguousIIndex();
+    if(ALL||0==strcmp(TEST, "GetContiguousIIndexStartIndices"))      rc += GetContiguousIIndexStartIndices();
+    if(ALL||0==strcmp(TEST, "localize"))                             rc += localize();
 
     return rc ;
 }

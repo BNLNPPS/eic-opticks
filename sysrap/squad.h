@@ -37,6 +37,7 @@ The vector types include::
    #include <array>
    #include <cstring>
    #include <cassert>
+   #include "NP.hh"
 #endif
 
 
@@ -84,30 +85,43 @@ inline int unsigned_as_int( unsigned value )
 
 
 /**
-quad2
--------
+squad.h/quad2
+--------------
 
-::
+Previous::
 
-    +------------+------------+------------+---------------+
-    | f:normal_x | f:normal_y | f:normal_z | f:distance    |
-    +------------+------------+------------+---------------+
-    | f:lposcost | u:iindex   | u:identity | u:boundary    |
-    +------------+------------+------------+---------------+
+    +----------------------+---------------------+------------------------+-----------------------------+
+    | f:normal_x           | f:normal_y          | f:normal_z             | f:distance                  |
+    +----------------------+---------------------+------------------------+-----------------------------+
+    | f:lposcost           | u:iindex            | u:identity             | u:globalPrimIdx_boundary    |
+    +----------------------+---------------------+------------------------+-----------------------------+
 
-WIP: HMM? pack boundary_iindex to make room for f:lposphi ?
-would avoid awkward transform lookups
+Current::
+
+    +----------------------+---------------------+------------------------+-----------------------------+
+    | f:normal_x           | f:normal_y          | f:normal_z             | f:distance                  |
+    +----------------------+---------------------+------------------------+-----------------------------+
+    | f:lposcost           | f:lposfphi          | u:iindex_identity      | u:globalPrimIdx_boundary    |
+    +----------------------+---------------------+------------------------+-----------------------------+
+
+    Rearranged to squeeze in f:lposfphi, as that can avoid transform lookups with future photonlite/hitlite,
+    as no post-sim CPU transforms would then be needed to get "muon" hits.
 
 
 f:lposcost
-    Local position cos(theta) of intersect,
+    Local frame position cos(theta) of intersect,
     canonically calculated in CSGOptiX7.cu:__intersection__is
-    normalize_z(ray_origin + isect.w*ray_direction )
-    where normalize_z is v.z/sqrtf(dot(v, v))
+    scuda.h:normalize_cost(ray_origin + isect.w*ray_direction )
+    where scuda.h:normalize_cost is v.z/sqrtf(dot(v, v))
 
     This is kinda imagining a sphere thru the intersection point
     which is likely onto an ellipsoid or a box or anything
     to provide a standard way of giving a z-polar measure.
+
+f:lposfphi
+    Local frame position normalized phi fraction,
+    obtained from scuda.h:normalize_fphi
+
 
 u:iindex
     see cx:CSGOptiX7.cu:__closesthit__ch
@@ -115,6 +129,22 @@ u:iindex
 
 u:identity
     see cx:CSGOptiX7.cu:__closesthit__ch
+
+    749 extern "C" __global__ void __closesthit__ch()
+    750 {
+    751     unsigned iindex = optixGetInstanceIndex() ;
+    752     unsigned identity = optixGetInstanceId() ;
+    753     unsigned iindex_identity = (( iindex & 0xffffu ) << 16 ) | ( identity & 0xffffu ) ;
+    754
+
+    808         prd->set_iindex_identity_( iindex_identity ) ;
+    809         prd->set_globalPrimIdx_boundary_(  globalPrimIdx_boundary ) ;
+    810         prd->set_lpos(lposcost, lposfphi);   // __closesthit__ch.WITH_PRD.TRIANGLE
+    811
+
+
+
+
 
     FROM July 2023
         instance_id which is *sensor_identifier+1* (as need lpmtid for QPMT),
@@ -163,12 +193,14 @@ struct quad2
     SQUAD_METHOD void     distance_add(float delta);
 
     SQUAD_METHOD float lposcost() const ;
+    SQUAD_METHOD float lposfphi() const ;
+    SQUAD_METHOD void  set_lpos(float lposcost, float lposfphi );
+
+    SQUAD_METHOD void set_iindex_identity_(  unsigned ii_id );
+    SQUAD_METHOD void set_iindex_identity(unsigned ii, unsigned id );
+    SQUAD_METHOD unsigned iindex_identity() const ;
     SQUAD_METHOD unsigned iindex() const ;
     SQUAD_METHOD unsigned identity() const ;
-
-    SQUAD_METHOD void set_lposcost(float lpc);
-    SQUAD_METHOD void set_iindex(  unsigned ii);
-    SQUAD_METHOD void set_identity(unsigned id);
 
     SQUAD_METHOD void set_globalPrimIdx_boundary_(unsigned globalPrimIdx_boundary);
     SQUAD_METHOD void set_globalPrimIdx_boundary(unsigned gp, unsigned bn);
@@ -204,14 +236,17 @@ SQUAD_METHOD void           quad2::distance_add( float delta ){ q0.f.w += delta 
 
 
 SQUAD_METHOD float          quad2::lposcost() const {   return q1.f.x ; }
-SQUAD_METHOD unsigned       quad2::iindex() const {     return q1.u.y ; }
-SQUAD_METHOD unsigned       quad2::identity() const {   return q1.u.z ; }
+SQUAD_METHOD float          quad2::lposfphi() const {   return q1.f.y ; }
+SQUAD_METHOD void           quad2::set_lpos(float lposcost, float lposfphi){ q1.f.x = lposcost ; q1.f.y = lposfphi ;   }
 
-SQUAD_METHOD void           quad2::set_lposcost(float lpc)   { q1.f.x = lpc ; }
-SQUAD_METHOD void           quad2::set_iindex(  unsigned ii) { q1.u.y = ii ;  }
-SQUAD_METHOD void           quad2::set_identity(unsigned id) { q1.u.z = id ;  }
+SQUAD_METHOD void           quad2::set_iindex_identity_(unsigned ii_id) {           q1.u.z = ii_id ;  }
+SQUAD_METHOD void           quad2::set_iindex_identity( unsigned ii, unsigned id) { q1.u.z = (( ii & 0xffffu ) << 16 ) | ( id & 0xffffu ) ;  }
+SQUAD_METHOD unsigned       quad2::iindex_identity() const { return q1.u.z ; }
+SQUAD_METHOD unsigned       quad2::iindex() const {          return q1.u.z >> 16 ; }
+SQUAD_METHOD unsigned       quad2::identity() const {        return q1.u.z & 0xffffu ; }
 
-SQUAD_METHOD void           quad2::set_globalPrimIdx_boundary_(unsigned globalPrimIdx_boundary) { q1.u.w = globalPrimIdx_boundary ;  }
+
+SQUAD_METHOD void           quad2::set_globalPrimIdx_boundary_(unsigned globalPrimIdx_boundary) {          q1.u.w = globalPrimIdx_boundary ;  }
 SQUAD_METHOD void           quad2::set_globalPrimIdx_boundary(unsigned globalPrimIdx, unsigned boundary) { q1.u.w = (( globalPrimIdx & 0xffffu ) << 16 ) | ( boundary & 0xffffu ) ; }
 SQUAD_METHOD unsigned       quad2::globalPrimIdx_boundary() const {              return   q1.u.w ; }
 SQUAD_METHOD unsigned       quad2::globalPrimIdx() const {                       return   q1.u.w >> 16 ; }
@@ -256,10 +291,14 @@ struct quad4
 
     SQUAD_METHOD void set_wavelength( float wl );
     SQUAD_METHOD float wavelength() const ;
+    SQUAD_METHOD unsigned simtrace_globalPrimIdx() const ;
 
 #if defined(__CUDACC__) || defined(__CUDABE__)
 #else
     std::string desc() const ;
+    static NP* zeros(size_t num);
+    static NP* select_prim( const NP* simtrace, unsigned globalPrimIdx );
+
     static quad4 make_ephoton();
     void ephoton() ;
     void normalize_mom_pol();
@@ -342,6 +381,8 @@ SQUAD_METHOD unsigned quad4::flagmask() const
     return q3.u.w ;
 }
 
+
+
 SQUAD_METHOD void quad4::set_wavelength( float wl ){ q2.f.w = wl ; }
 SQUAD_METHOD float quad4::wavelength() const { return q2.f.w ; }
 
@@ -363,6 +404,36 @@ SQUAD_METHOD void quad4::get_flags(unsigned& boundary, unsigned& identity, unsig
     idx = ( q3.u.z & 0x7fffffffu ) ;
     orient = ( q3.u.z & 0x80000000u ) ? -1.f : 1.f ;
 }
+
+
+/**
+quad4::simtrace_globalPrimIdx
+------------------------------
+
+NB simtrace layout is different from standard, see sevent::add_simtrace
+
+**/
+
+SQUAD_METHOD unsigned quad4::simtrace_globalPrimIdx() const
+{
+    return q2.u.w >> 16 ;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 struct quad4_selector
 {
@@ -431,6 +502,9 @@ struct quad6
     SQUAD_METHOD void set_matline(  unsigned ml) { q0.u.z = ml ; }
     SQUAD_METHOD void set_numphoton(unsigned np) { q0.u.w = np ; }
 
+    template<typename T>
+    SQUAD_METHOD void read_transform( const T* v16, bool skip_col3 );
+
 #endif
 
 };
@@ -483,6 +557,23 @@ inline std::string quad6::desc() const
     return str ;
 }
 
+
+template<typename T>
+inline void quad6::read_transform( const T* v, bool skip_col3  )
+{
+    T zero(0);
+    T one(1);
+
+    T xx =  v[0] ; T xy =  v[1] ; T xz =  v[2] ; T xw = skip_col3 ? zero :  v[3] ;
+    T yx =  v[4] ; T yy =  v[5] ; T yz =  v[6] ; T yw = skip_col3 ? zero :  v[7] ;
+    T zx =  v[8] ; T zy =  v[9] ; T zz = v[10] ; T zw = skip_col3 ? zero : v[11] ;
+    T wx = v[12] ; T wy = v[13] ; T wz = v[14] ; T ww = skip_col3 ?  one : v[15] ;
+
+    q2.f.x = xx ; q2.f.y = xy ; q2.f.z = xz ; q2.f.w = xw ;
+    q3.f.x = yx ; q3.f.y = yy ; q3.f.z = yz ; q3.f.w = yw ;
+    q4.f.x = zx ; q4.f.y = zy ; q4.f.z = zz ; q4.f.w = zw ;
+    q5.f.x = wx ; q5.f.y = wy ; q5.f.z = wz ; q5.f.w = ww ;
+}
 
 
 #endif
@@ -782,6 +873,49 @@ inline std::string quad4::desc() const
     std::string s = ss.str();
     return s ;
 }
+
+inline NP* quad4::zeros(size_t num) // static
+{
+    NP* qq = NP::Make<float>(num, 4, 4 );
+    return qq ;
+}
+
+/**
+quad4::select_prim
+-------------------
+
+Select subset of the input simtrace array
+
+**/
+
+inline NP* quad4::select_prim( const NP* _simtrace, unsigned q_globalPrimIdx ) // static
+{
+    quad4* simtrace = (quad4*)(_simtrace->bytes()) ;
+    size_t num_simtrace = _simtrace->shape[0] ;
+
+    size_t count0 = 0 ;
+    for(size_t i=0 ; i < num_simtrace ; i++) if( simtrace[i].simtrace_globalPrimIdx() == q_globalPrimIdx ) count0 += 1 ;
+
+    NP* _qq = zeros(count0);
+    quad4* qq = (quad4*)(_qq->bytes());
+
+    size_t count1 = 0 ;
+    for(size_t i=0 ; i < num_simtrace ; i++)
+    {
+        const quad4& q = simtrace[i];
+        if( q.simtrace_globalPrimIdx() != q_globalPrimIdx ) continue ;
+        qq[count1] = q ;
+        count1 += 1 ;
+    }
+    assert( count0 == count1 );
+    return _qq ;
+}
+
+
+
+
+
+
 
 /**
 quad4::ephoton

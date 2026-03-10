@@ -2,6 +2,7 @@
 #include <csignal>
 #include "sstr.h"
 #include "ssys.h"
+#include "s_bb.h"
 #include "NP.hh"
 
 #include "G4SystemOfUnits.hh"
@@ -18,6 +19,7 @@
 #include "G4Ellipsoid.hh"
 #include "G4MultiUnion.hh"
 #include "G4CutTubs.hh"
+#include "G4Torus.hh"
 
 using CLHEP::pi ;
 using CLHEP::mm ;
@@ -50,6 +52,8 @@ BoxMinusTubs1
 BoxMinusOrb
 UnionOfHemiEllipsoids
 PolyconeWithMultipleRmin
+PolyconeWithPhiCut
+PolyconeWithPhiCutHalf
 AnnulusBoxUnion
 AnnulusTwoBoxUnion
 AnnulusTwoBoxUnionContiguous
@@ -71,6 +75,10 @@ AltLocalFastenerAcrylicConstruction
 AnotherLocalFastenerAcrylicConstruction
 WaterDistributer
 AltWaterDistributer
+WaterDistributorPartIIIUnion
+OuterReflectorOrbSubtraction
+R12860_PMTSolid
+LProfileSectorPolycone
 )LITERAL";
 
 
@@ -150,6 +158,8 @@ const G4VSolid* U4SolidMaker::Make(const char* qname, std::string& meta )  // st
     else if(StartsWith("BoxMinusOrb",qname))                  solid = BoxMinusOrb(qname);
     else if(StartsWith("UnionOfHemiEllipsoids", qname))       solid = UnionOfHemiEllipsoids(qname);
     else if(StartsWith("PolyconeWithMultipleRmin", qname))    solid = PolyconeWithMultipleRmin(qname) ;
+    else if(StartsWith("PolyconeWithPhiCutHalf", qname))      solid = PolyconeWithPhiCutHalf(qname) ;
+    else if(StartsWith("PolyconeWithPhiCut", qname))          solid = PolyconeWithPhiCut(qname) ;
     else if(StartsWith("AnnulusBoxUnion", qname))             solid = AnnulusBoxUnion(qname) ;
     else if(StartsWith("AnnulusTwoBoxUnion", qname))          solid = AnnulusTwoBoxUnion(qname) ;
     else if(StartsWith("AnnulusOtherTwoBoxUnion", qname))     solid = AnnulusOtherTwoBoxUnion(qname) ;
@@ -171,7 +181,10 @@ const G4VSolid* U4SolidMaker::Make(const char* qname, std::string& meta )  // st
     else if(StartsWith("BltLocalFastenerAcrylicConstruction", qname)) solid = BltLocalFastenerAcrylicConstruction(qname) ;
     else if(StartsWith("WaterDistributer", qname))                    solid = WaterDistributer(qname) ;
     else if(StartsWith("AltWaterDistributer", qname))                 solid = AltWaterDistributer(qname) ;
-
+    else if(StartsWith("WaterDistributorPartIIIUnion", qname))        solid = WaterDistributorPartIIIUnion(qname);
+    else if(StartsWith("OuterReflectorOrbSubtraction", qname))        solid = OuterReflectorOrbSubtraction(qname);
+    else if(StartsWith("R12860_PMTSolid", qname))                     solid = R12860_PMTSolid(qname);
+    else if(StartsWith("LProfileSectorPolycone",qname))               solid = LProfileSectorPolycone(qname);
     LOG(LEVEL) << " qname " << qname << " solid " << solid ;
     LOG_IF(error, solid==nullptr) << " Failed to create solid for qname " << qname << " CHECK U4SolidMaker::Make " ;
     return solid ;
@@ -1415,6 +1428,87 @@ const G4VSolid* U4SolidMaker::PolyconeWithMultipleRmin(const char* name)
     return base_steel ;
 }
 
+/**
+PolyconeWithPhiCut
+------------------
+
+phiStart=30 phiDelta=30 selects wedge in middle of +X+Y quadrant::
+
+   SOLID=PolyconeWithPhiCut EYE=0,0,1000  UP=0,1,0 ~/o/u4/tests/U4SolidMakerTest.sh
+
+
+          Y 30. + +
+          |  . 30+ .
+          | .+  .
+          |.+.   30
+          +-------X
+         /
+        /
+       Z
+
+**/
+
+const G4VSolid* U4SolidMaker::PolyconeWithPhiCut(const char* name)
+{
+    const int N = 2 ;
+
+    double ZPlane[N] = {  -50*mm ,  50*mm } ;
+    double Rmin[N]   = {    0*mm ,   0*mm } ;
+    double Rmax[N]   = {  200*mm , 200*mm } ;
+
+    double phiStart = 30.0*deg ;
+    double phiDelta = 30.0*deg ;
+    G4VSolid* polycone = new G4Polycone(name,phiStart,phiDelta,Z,ZPlane,Rmin,Rmax);
+    return polycone ;
+}
+
+/**
+U4SolidMaker::PolyconeWithPhiCutHalf
+--------------------------------------
+
+Confirmed that 0->pi selects +Y hemi with::
+
+    SOLID=PolyconeWithPhiCutHalf EYE=0,0,1000  UP=0,1,0 ~/o/u4/tests/U4SolidMakerTest.sh
+
+Convert this with::
+
+    GEOM # set GEOM to LocalPolyconeWithPhiCutHalf
+    ~/o/g4cx/tests/G4CX_U4TreeCreateCSGFoundryTest.sh
+
+Viz with::
+
+     cxr_min.sh
+        # from axial viewpoint get full circle of cylinder,
+        # from less axial get changing geom with a crevasse forming
+        # in the middle and getting larger as change angle until
+        # get expected half circle
+
+        # Cannot pin down any halfspace bug, so suspect its coming from
+        # the CSG unbounded handling
+        #
+        # WIP: try to reproduce issue on CPU with CSG/tests/csg_intersect_prim_test.sh
+
+**/
+
+const G4VSolid* U4SolidMaker::PolyconeWithPhiCutHalf(const char* name)
+{
+    const int N = 2 ;
+    double ZPlane[N] = {  -50*mm ,  50*mm } ;
+    double Rmin[N]   = {    0*mm ,   0*mm } ;
+    double Rmax[N]   = {  200*mm , 200*mm } ;
+
+    double phiStart = 0.0*deg ;
+    double phiDelta = 180.0*deg ;
+    G4VSolid* polycone = new G4Polycone(name,phiStart,phiDelta,Z,ZPlane,Rmin,Rmax);
+    return polycone ;
+}
+
+
+
+
+
+
+
 
 const G4VSolid* U4SolidMaker::UnionOfHemiEllipsoids(const char* name )
 {
@@ -2143,7 +2237,7 @@ const G4VSolid* U4SolidMaker::BltLocalFastenerAcrylicConstruction(const char* na
 {
     [[maybe_unused]] const char* PREFIX = "BltLocalFastenerAcrylicConstruction" ;
     assert( sstr::StartsWith(name,PREFIX ));
-    const size_t num_column = static_cast<size_t>(sstr::ExtractLong(name, 1));
+    const size_t num_column = sstr::ExtractSize(name, 1) ;
 
     LOG(info)
         << " name " <<  ( name ? name : "-" )
@@ -2157,12 +2251,10 @@ const G4VSolid* U4SolidMaker::BltLocalFastenerAcrylicConstruction(const char* na
     G4Tubs* screw = new G4Tubs("screw",0,13*mm,50.*mm,0.0*deg,360.0*deg);
 
     std::vector<G4ThreeVector> tlate(num_column, G4ThreeVector(0, 0, 0));
-
-    for (long i = 0; i < num_column; i++)
-        tlate[i] = G4ThreeVector(164. * cos(i * pi / 4) * mm, 164. * sin(i * pi / 4) * mm, -65.0 * mm);
+    for(size_t i=0;i<num_column;i++) tlate[i] = G4ThreeVector(164.*cos(i*pi/4)*mm, 164.*sin(i*pi/4)*mm,-65.0*mm);
 
     G4VSolid* muni = screw ;
-    for(long i=1 ; i < num_column ; i++) muni = new G4UnionSolid( name, muni, screw, 0, tlate[i] ) ;
+    for(size_t i=1 ; i < num_column ; i++) muni = new G4UnionSolid( name, muni, screw, 0, tlate[i] ) ;
 
     G4UnionSolid* uni1 = new G4UnionSolid(name, IonRing, muni, 0, tlate[0] );
     return uni1 ;
@@ -2413,6 +2505,874 @@ void U4SolidMaker::AltWaterDistributerHelper(G4MultiUnion* multiUnion, double di
     }
 }
 
+
+/**
+U4SolidMaker::Snake
+--------------------
+
+WaterdistributorpipeMaker::MakeWaterDistributorPartIIIUnion
+
+**/
+
+
+const G4VSolid* U4SolidMaker::WaterDistributorPartIIIUnion(const char* name_) // static
+{
+    //double m_lowerchimney_rotangle = 0. ;
+
+    // Create individual solid components first
+    double flange_r_inner = 66.5*mm;
+    double flange_r_outer = 125.*mm;
+    int numZplanes_flange = 4;
+    G4double zPlane_flange[] = {-50 *mm, -25 *mm , -25 *mm, 0 *mm};
+    G4double rInner_flange[] = {0 , 0, 0, 0};
+    G4double rOuter_flange[] = {flange_r_inner, flange_r_inner, flange_r_outer , flange_r_outer};
+    auto solidFlange = new G4Polycone("sBotChimneySSEnclosure_Flange",
+                                    0, 360*deg,
+                                    numZplanes_flange, zPlane_flange, rInner_flange, rOuter_flange);
+
+    double dz1 = 529/2 * mm;
+    double theta1 = 27*deg;
+    G4ThreeVector pLowNorm1( sin(theta1), 0, -cos(theta1) );
+    G4ThreeVector pHighNorm1( -sin(theta1), 0, cos(theta1) );
+    auto cutTube1 = new G4CutTubs("CutTube1", 0, 66.5 * cos(theta1), dz1, 0, 360*deg, pLowNorm1, pHighNorm1);
+
+    double dz2 = 1125.25/2 * mm;
+    double theta2 = -16*deg;
+    G4ThreeVector pLowNorm2( sin(theta2), 0, -cos(theta2) );
+    G4ThreeVector pHighNorm2( -sin(theta2), 0, cos(theta2) );
+    auto cutTube2 = new G4CutTubs("CutTube2", 0, 66.5 * cos(theta2), dz2, 0, 360*deg, pLowNorm2, pHighNorm2);
+
+    double r_tube = 66.5 * mm;
+    double r_main1 = 283 * mm;
+    double phi_start1 = 180 * deg;
+    double phi_delta1 = 135 * deg;
+    auto torus1 = new G4Torus("torus1", 0, r_tube, r_main1, phi_start1, phi_delta1);
+
+    double r_main2 = 352 * mm;
+    double phi_start2 = 45 * deg;
+    double phi_delta2 = 45 * deg;
+    auto torus2 = new G4Torus("torus2", 0, r_tube, r_main2, phi_start2, phi_delta2);
+
+    // Component definition arrays
+    G4VSolid* solids[] = {solidFlange, cutTube1, cutTube2, torus1, torus2};
+
+    // Rotation angles around X and Y axes
+    double rotX_angles[] = {0*deg, 0*deg, 0*deg, -90*deg, 90*deg};
+    double rotY_angles[] = {0*deg, 27*deg, -16*deg, 180*deg, 0*deg};
+
+    // Pre-calculate offsets for CutTubes
+    double offset1 = dz1 * cos(27*deg);
+    double offset2 = dz2 * cos(-16*deg);
+
+    // Position vectors
+    G4ThreeVector positions[] = {
+        G4ThreeVector(0, 0, -19120),                                                          // Flange
+        G4ThreeVector(-120, 0, -19120 - 50*mm - offset1),                                    // CutTube1
+        G4ThreeVector(-240 + dz2 * sin(16*deg), 0, -19120 - 50*mm - offset1 * 2 - offset2), // CutTube2
+        G4ThreeVector(70 - r_main1, 0, -20724),                                             // Torus1
+        G4ThreeVector(70 - 449 - 283, 0, -21181)                                            // Torus2
+    };
+
+    // Component names for debugging
+    //const char* component_names[] = {"Flange", "CutTube1", "CutTube2", "Torus1", "Torus2"};
+
+    // Create MultiUnion and add all components in a loop
+    G4MultiUnion* unionSolid = new G4MultiUnion("WaterDistributorPartIIIUnion");
+
+    for (int i = 0; i < 5; ++i) {
+        // Create rotation matrix for this component
+        G4RotationMatrix rotation;
+        if (rotX_angles[i] != 0) {
+            rotation.rotateX(rotX_angles[i]);
+        }
+        if (rotY_angles[i] != 0) {
+            rotation.rotateY(rotY_angles[i]);
+        }
+
+        // Create transform and add node
+        G4Transform3D transform(rotation, positions[i]);
+        unionSolid->AddNode(*solids[i], transform);
+    }
+
+    unionSolid->Voxelize();
+
+    // Apply final rotation for the entire assembly
+    //G4RotationMatrix finalRotation;
+    //finalRotation.rotateZ(-m_lowerchimney_rotangle);
+
+    return unionSolid ;
+}
+
+
+
+/**
+U4SolidMaker::MakeLowerWaterDistributorCurvedCutTubes
+-------------------------------------------------------
+
+After WaterdistributorpipeMaker::MakeLowerWaterDistributorCurvedCutTubes
+
+
+2025-12-17 14:14:52.868 INFO  [2884720] [U4SolidMaker::OuterReflectorOrbSubtraction@2690] m_radOuterReflector 20476
+2025-12-17 14:14:52.868 INFO  [2884720] [U4SolidMaker::MakeLowerWaterDistributorCurvedCutTubes@2653]
+                                                    offset1    235.226
+                                                    offset2    540.830
+                                        offset1*2 + offset2   1011.281
+                                      offset1*2 + offset2*2   1552.111
+ trans_cutTube1 [  -120.000,     0.000,-19405.226]
+ trans_cutTube2 [   -84.920,     0.000,-20181.281]
+
+
+
+::
+
+
+    In [4]: z = np.array( [-20476, -20181, -19405, -19170] )
+
+    In [5]: z - z[0]
+    Out[5]: array([   0,  295, 1071, 1306])
+
+    In [6]: z - z[-1]
+    Out[6]: array([-1306, -1011,  -235,     0])
+
+
+    20476 - 1552 = 18924
+
+    20476 - 235 - 541 = 19700
+
+
+
+Start centered::
+
+
+                +-----+  -
+               /     /
+              /     /    offset1
+             /     /
+            /  +  /     -                   z = 0
+           /     /
+          /     /       offset1
+         /     /
+        +-----+         -
+
+
+Offset by  -19120 - 50*mm = -19170 puts middle at -19170::
+
+
+                +-----+  -
+               /     /
+              /     /    offset1
+             /     /
+            /  +  /     - -  - - - - - -    z = -19170
+           /     /
+          /     /       offset1
+         /     /
+        +-----+         -
+
+
+Then offset more, -19170 - offset1 puts top at -19170::
+
+
+
+                            +-----+  -   - - - - - - - - - -   z = -19170
+                           /     /
+                          /     /    offset1
+                         /     /
+                        /  +  /     - -  - - - - - -    z = -19170 - offset1              = -19170 - 235.22              = -19405.22
+                       /     /
+                      /     /       offset1
+                     /     /
+                    +-----+         -                   z =  -19170 - 2*offset1          = -19170 - 2*235.22             = -19640.44
+                     \     \
+                      \     \
+                       \     \
+                        \     \
+                         \     \
+                          \  +  \                       z = -19170 - 2*offset1 - offset2 = -19170 - 2*235.22 - 540.830  =  -20181.27
+                           \     \
+                            \     \
+                             \     \                                                                                -------- -20476 --
+                              \     \
+                               \     \
+                                \     \
+                                 +-----+                z = -19170 - 2*offset2 - 2*offset2 = -19170 - 2*235.22 - 2*540.830 = -20722.1
+
+
+**/
+
+
+
+std::vector<PlacedSolid> U4SolidMaker::MakeLowerWaterDistributorCurvedCutTubes(double m_lowerchimney_rotangle) {
+    std::vector<PlacedSolid> cutTubes;
+
+    double UNCOINCIDE_MM = ssys::getenvdouble(U4SolidMaker__MakeLowerWaterDistributorCurvedCutTubes_UNCOINCIDE_MM, 0 );
+
+    double rMin = 0;
+    //double rMax = 50*mm;
+    double sPhi = 0;
+    double dPhi = 360*deg;
+
+
+    // First section parameters
+    double dz1 = 529/2 * mm;
+    double theta1 = 27*deg;
+    G4ThreeVector pLowNorm1( sin(theta1), 0, -cos(theta1) );
+    G4ThreeVector pHighNorm1( -sin(theta1), 0, cos(theta1) );
+    auto cutTube1 = new G4CutTubs("CutTube1", rMin, 66.5 * cos(theta1), dz1, sPhi, dPhi, pLowNorm1, pHighNorm1);
+
+    // Second section parameters
+    double dz2 = 1125.25/2 * mm;
+    double theta2 = -16*deg;
+    G4ThreeVector pLowNorm2( sin(theta2), 0, -cos(theta2) );
+    G4ThreeVector pHighNorm2( -sin(theta2), 0, cos(theta2) );
+    auto cutTube2 = new G4CutTubs("CutTube2", rMin, 66.5 * cos(theta2), dz2, sPhi, dPhi, pLowNorm2, pHighNorm2);
+
+    double offset1 = dz1 * cos(27*deg);
+    double offset2 = dz2 * cos(-16*deg);
+
+    double cos_rot = cos(m_lowerchimney_rotangle);
+    double sin_rot = sin(m_lowerchimney_rotangle);
+    double sin_theta2 = sin(16*deg);
+
+    // Rotation and translation for cutTube1
+    G4RotationMatrix rot_cutTube1;
+    rot_cutTube1.rotateY(27*deg);
+    rot_cutTube1.rotateZ(-m_lowerchimney_rotangle);
+
+    G4ThreeVector trans_cutTube1(-120 * cos_rot, 120 * sin_rot, -19120 - 50*mm - offset1);
+
+    cutTubes.push_back({
+        cutTube1,
+        trans_cutTube1,
+        rot_cutTube1,
+        0,
+        "lCutTube1",
+        "pCutTube1"
+    });
+
+    // Rotation and translation for cutTube2
+    G4RotationMatrix rot_cutTube2;
+    rot_cutTube2.rotateY(-16*deg);
+    rot_cutTube2.rotateZ(-m_lowerchimney_rotangle);
+
+    G4ThreeVector trans_cutTube2(
+        2 * (-120 * cos_rot) + dz2 * sin_theta2 * cos_rot,
+        2 * (120 * sin_rot) - dz2 * sin_theta2 * sin_rot,
+        -19120 - 50*mm - offset1 * 2 - offset2 + UNCOINCIDE_MM*mm
+    );
+
+
+    cutTubes.push_back({
+        cutTube2,
+        trans_cutTube2,
+        rot_cutTube2,
+        1,
+        "lCutTube2",
+        "pCutTube2"
+    });
+
+
+    std::array<double,3> tr1 = {trans_cutTube1.x(), trans_cutTube1.y(), trans_cutTube1.z() };
+    std::array<double,3> tr2 = {trans_cutTube2.x(), trans_cutTube2.y(), trans_cutTube2.z() };
+
+    LOG(info)
+       << "\n"
+       << "[" << U4SolidMaker__MakeLowerWaterDistributorCurvedCutTubes_UNCOINCIDE_MM << "]"
+       << "\n"
+       << std::setw(60) << " UNCOINCIDE_MM " << std::fixed << std::setw(10) << std::setprecision(3) << UNCOINCIDE_MM
+       << "\n"
+       << std::setw(60) << " offset1 " << std::fixed << std::setw(10) << std::setprecision(3) << offset1
+       << "\n"
+       << std::setw(60) << " offset2 "  << std::fixed << std::setw(10) << std::setprecision(3) << offset2
+       << "\n"
+       << std::setw(60) <<  " offset1*2 + offset2 " << std::fixed << std::setw(10) << std::setprecision(3) << (offset1*2.+offset2)
+       << "\n"
+       << std::setw(60) <<  " offset1*2 + offset2*2 " << std::fixed << std::setw(10) << std::setprecision(3) << (offset1*2.+offset2*2.)
+       << "\n"
+       << " trans_cutTube1 " << s_bb::Desc_<double,3>(tr1.data())
+       << "\n"
+       << " trans_cutTube2 " << s_bb::Desc_<double,3>(tr2.data())
+       ;
+
+    return cutTubes;
+}
+
+
+/**
+U4SolidMaker::OuterReflectorOrbSubtraction
+--------------------------------------------
+
+Checking::
+
+    DetSim1Construction::helper_subtract_water_distributor
+
+**/
+
+const G4VSolid* U4SolidMaker::OuterReflectorOrbSubtraction(const char* name_) // static
+{
+    G4String name = name_ ;
+
+    double m_radOuterWater = 20.50*m - 26*mm; // due to back of veto pmt mask is -25.05 mm (See R12860OnlyFrontMaskManager).
+    double m_thicknessReflector = 2*mm;
+    double m_radOuterReflector = m_radOuterWater + m_thicknessReflector;
+
+
+    double radOuterReflector = ssys::getenvfloat(U4SolidMaker__OuterReflectorOrbSubtraction_radOuterReflector, m_radOuterReflector );
+    G4VSolid* solid_output = new G4Orb(name_,  radOuterReflector );
+
+
+    double m_lowerchimney_rotangle = 0. ;
+
+  // ==== New: Subtract two inclined cutTubes of lower water distributor ====
+    auto cutTubes = MakeLowerWaterDistributorCurvedCutTubes(m_lowerchimney_rotangle);
+
+    for (size_t i = 0; i < cutTubes.size(); ++i) {
+        const auto& tube = cutTubes[i];
+        G4Transform3D transform(tube.rot, tube.pos);
+
+        solid_output = new G4SubtractionSolid(
+            name + "_cutTube" + std::to_string(i+1),
+            solid_output,
+            tube.solid,
+            transform
+        );
+    }
+
+    G4String solid_output_name = solid_output->GetName();
+
+    LOG(info)
+         << "\n"
+         << "m_radOuterReflector " << m_radOuterReflector     // 20476 mm
+         << "\n"
+         << " [" << U4SolidMaker__OuterReflectorOrbSubtraction_radOuterReflector << "]"
+         << "\n"
+         << " radOuterReflector " << radOuterReflector
+         << "\n"
+         << " solid_output_name " << solid_output_name
+         ;
+
+    return solid_output ;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct R12860_PMTSolid_Maker
+{
+    R12860_PMTSolid_Maker(double R1, double R1z, double R2, double R3, double H, double H3);
+
+    G4VSolid* GetSolid(G4String solidname, double thickness=0.0, char X='\0' );
+
+    double m_R1;
+    double m_R1z;
+    double m_R1p;
+    double m_R2;
+    double m_R3;
+    double m_theta;
+    double m_hypotenuse ;
+    double m_H;
+    double m_H_1_2;
+
+    double m_H3;
+
+    double m_delta_torlerance;
+
+};
+
+
+
+
+R12860_PMTSolid_Maker::R12860_PMTSolid_Maker(
+    double R1,
+    double R1z,
+    double R2,
+    double R3,
+    double H,
+    double H3
+    )
+    :
+    m_R1(R1),    // 101.0
+    m_R1z(R1z),  //  75.5
+    m_R2(R2),    //  23.0   radius of torus circle
+    m_R3(R3),    //  42.5
+    m_H(H),      // 220.0
+    m_H3(H3)     //  62.0
+{
+    m_H_1_2 = m_H - m_R1z - m_H3;              //    220 - 75.5 - 62 =  82.5
+    m_theta = atan((m_R2+m_R3)/(m_H_1_2));     //    23+42.5 = 65.5   65.6/82.5 = 0.7951 atan(0.7951)
+    m_hypotenuse = sqrt(pow(m_H_1_2,2)+pow(m_R2+m_R3,2)) ;
+    m_R1p = m_hypotenuse - m_R2;  // hypot distance from ellipse center to torus circle
+
+    m_delta_torlerance = 1E-2*mm;
+
+
+}
+
+
+/**
+                  ........+.........                          +                +
+            ..''''        |         ''''..
+        ..''              |               ''..
+      .'                  |                   '.            m_R1z
+    .'                   r1zt                   '.
+   '                      |                       '
+  '                       |                        '
+ '                        +----------r1t----------- +         +
+  '                      /:\                       '
+   '                    / : \                     '
+    '.                 /  :  \                  .'
+      '.              /   :   \               .'             m_H_1_2           m_H
+        ''..         /    :    \          ..''
+            ''''.   /     :     \    .''''
+                  ./      :      \  .   .
+                  /               \
+                 /                 \
+                /                   \
+               +    +     +     +    +
+                    |           |
+                    |           |
+                    |           |
+                    |           |
+                    |           |
+                    |           |
+                    |           |
+                    +-----------+
+     Z
+     |
+     +--X
+
+
+ symbol : pmttube_solid_tube(scarf)
+ name   : R12860_PMTSolidU_pmt_solid_2_Tube
+ r4t    : 51.1993
+ h2t/2  : 9.00616
+ symbol  : pmttube_solid_torus(scarfSub)
+ name    : R12860_PMTSolidU_pmt_solid_2_Torus
+ r2t     : 22.999
+ r2t+r3t : 65.5
+ symbol  : pmttube_solid_part2
+ name    : R12860_PMTSolidU_pmt_solid_part2
+ -h2t/2  : -9.00616(neck-torus-dz)
+ symbol  : pmttube_solid_1_2(bulb+neck)
+ name    : R12860_PMTSolidU_pmt_solid_1_2
+ neck_dz : -73.4938
+ total_torus_dz : -82.5
+ symbol  : pmttube_solid_1_2_3((bulb+neck)+endtube)
+ name    : R12860_PMTSolidU_pmt_solid
+ endtube_dz : -113.501
+
+
+POINT=-65.5,0,-82.5,65.5,0,-82.5 BBOX=-51.19,0,-82.4999,51.19,0,-64.48764,-51.19,0,-64.48764,51.19,0,-82.4999   KLUDGE=1 cxt_min.sh pdb
+
+
+**/
+
+
+
+
+G4VSolid* R12860_PMTSolid_Maker::GetSolid(G4String solidname, double thickness, char X)
+{
+    // Calculate Parameter first
+    double r1t = m_R1 + thickness;
+    double r1zt = m_R1z + thickness;
+    double r2t = m_R2 - thickness;
+    double r3t = m_R3 + thickness;
+    double r1zp = (m_R1p+thickness);
+    double r4t = r1zp * sin(m_theta);
+
+    double h1t = r1zp * cos(m_theta);   // above necktop height (up to ellipse equator)
+    double h2t = r2t * cos(m_theta);    // below necktop height (down to torus plane line)
+
+    double h3t = m_H3 + thickness;
+
+
+    double scarf_radius = r4t+m_delta_torlerance ;
+    double scarf_halfheight = h2t/2+m_delta_torlerance ;
+
+    double endtube_radius = r3t+m_delta_torlerance ;
+    double endtube_halfheight = h3t/2+m_delta_torlerance ;
+
+
+    std::cout
+        << " thickness           : " << std::setw(10) << thickness          << "\n"
+        << " m_delta_torlerance    : " << std::setw(10) << m_delta_torlerance   << "\n"
+        << " m_R1                : " << std::setw(10) << m_R1               << " (input ellipse width)"                  << "\n"
+        << " r1t                 : " << std::setw(10) << r1t                << " (m_R1 + thickness)"                     << "\n"
+        << " m_R1z               : " << std::setw(10) << m_R1z              << " (input ellipse height)"                 << "\n"
+        << " r1zt                : " << std::setw(10) << r1zt               << " (m_R1z + thickness)"                    << "\n"
+        << " m_R2                : " << std::setw(10) << m_R2               << " (input torus circle radius)"            << "\n"
+        << " m_R3                : " << std::setw(10) << m_R3               << " (input endtube radius)"                 << "\n"
+        << " m_H                 : " << std::setw(10) << m_H                << " (input total height)"                   << "\n"
+        << " m_H3                : " << std::setw(10) << m_H3               << " (input endtube height)"                 << "\n"
+        << " m_H_1_2             : " << std::setw(10) << m_H_1_2            << " (m_H - m_R1z - m_H3)"                   << "\n"
+        << " m_theta             : " << std::setw(10) << m_theta            << " (ellipse ^ torus centers)"              << "\n"
+        << " m_hypotenuse        : " << std::setw(10) << m_hypotenuse       << " (dist from ellipse to torus center)"    << "\n"
+        << " m_R1p               : " << std::setw(10) << m_R1p              << " (m_hypotenuse - m_R2)"                  << "\n"
+        << " r1zp                : " << std::setw(10) << r1zp               << " (m_R1p + thickness)"                    << "\n"
+        << " r4t                 : " << std::setw(10) << r4t                << " (r1zp*sin(m_theta))"                    << "\n"
+        << " scarf_radius        : " << std::setw(10) << scarf_radius       << " (r4t+m_delta_torlerance)"                 << "\n"
+        << " r2t                 : " << std::setw(10) << r2t                << " (m_R2 - thickness)"                     << "\n"
+        << " h1t                 : " << std::setw(10) << h1t                << " (r1zp*cos(m_theta)) above neck height " << "\n"
+        << " h2t                 : " << std::setw(10) << h2t                << " (r2t*cos(m_theta))  neck h"             << "\n"
+        << " scarf_halfheight    : " << std::setw(10) << scarf_halfheight   << " (h2t/2+m_delta_torlerance)"               << "\n"
+        << " endtube_radius      : " << std::setw(10) << endtube_radius     << " (r3t+m_delta_torlerance)"                 << "\n"
+        << " h3t                 : " << std::setw(10) << h3t                << " (m_H3 + thickness)"                     << "\n"
+        << " endtube_halfheight  : " << std::setw(10) << endtube_halfheight << " (h3t/2+m_delta_torlerance)"               << "\n"
+        ;
+
+
+
+    // Show variables
+    G4cout << "r1t: " << r1t/mm << " mm" << G4endl;
+    G4cout << "r4t: " << r4t/mm << " mm" << G4endl;
+    G4cout << "r2t: " << r2t/mm << " mm" << G4endl;
+    G4cout << "r3t: " << r3t/mm << " mm" << G4endl;
+    G4cout << "h1t: " << h1t/mm << " mm" << G4endl;
+    G4cout << "h2t: " << h2t/mm << " mm" << G4endl;
+    G4cout << "h3t: " << h3t/mm << " mm" << G4endl;
+
+    // Construct the PMT Solid
+    // * PART 1
+    // G4Sphere* pmttube_solid_sphere = new G4Sphere(
+    //                                         solidname+"_1_Sphere",
+    //                                         0*mm, // R min
+    //                                         r1t, // R max
+    //                                         0*deg, // Start Phi
+    //                                         360*deg, // Delta Phi
+    //                                         0*deg, // Start Theta
+    //                                         180*deg  // Delta Theta
+    //                                         );
+    G4Ellipsoid* pmttube_solid_sphere = new G4Ellipsoid(
+                                            solidname+"_1_Ellipsoid",
+                                            r1t, // pxSemiAxis
+                                            r1t, // pySemiAxis
+                                            r1zt // pzSemiAxis
+                                            );
+    // * PART 2  : neck
+
+
+    G4Tubs* pmttube_solid_tube = new G4Tubs(
+                                    solidname+"_2_Tube",
+                                    0*mm,  /* inner */
+                                    scarf_radius, /* pmt_r */
+                                    scarf_halfheight, /* part 2 h */
+                                    0*deg,
+                                    360*deg);
+
+    std::cout
+         << " symbol : pmttube_solid_tube(scarf)" << "\n"
+         << " name   : " << pmttube_solid_tube->GetName() << "\n"
+         << " r4t    : " << r4t << "\n"
+         << " h2t/2  : " << h2t/2 << "\n"
+         ;
+
+    G4Torus* pmttube_solid_torus = new G4Torus(
+                                        solidname+"_2_Torus",
+                                        0*mm,  // R min
+                                        r2t+m_delta_torlerance, // R max
+                                        (r2t+r3t), // Swept Radius
+                                        -0.01*deg,
+                                        360.01*deg);
+
+    std::cout
+         << " symbol  : pmttube_solid_torus(scarfSub) " << "\n"
+         << " name    : " << pmttube_solid_torus->GetName() << "\n"
+         << " r2t     : " << r2t << "\n"
+         << " r2t+r3t : " << r2t+r3t << "\n"
+         ;
+
+
+
+
+
+    [[maybe_unused]] G4VSolid* pmttube_solid_part2 = nullptr ;
+
+    G4VSolid* neck = nullptr ;
+
+    if( X == 'U' )
+    {
+        pmttube_solid_part2 = new G4UnionSolid(
+                                            solidname+"_part2",
+                                            pmttube_solid_tube,
+                                            pmttube_solid_torus,
+                                            0,
+                                            G4ThreeVector(0,0,-h2t/2)
+                                            );
+
+        neck = pmttube_solid_part2 ;   // debug union : allows to see the position of the torus relative to the rest
+    }
+    else if( X == 'K' )
+    {
+        neck = pmttube_solid_tube ;  // KLUDGE : DONT SUBTRACT TORUS
+    }
+    else if( X == 'P' )
+    {
+        G4double phiStart = 0.00*deg ;
+        G4double phiTotal = 360.00*deg ;
+        G4int numZPlanes = 2 ;
+        G4double zPlane[] = { -scarf_halfheight, scarf_halfheight  } ;
+        G4double rInner[] = {  0.0             , 0.0   } ;
+        G4double rOuter[] = {  endtube_radius  , scarf_radius } ;
+
+        G4Polycone* polycone_neck = new G4Polycone(
+                                   solidname+"_part2",
+                                   phiStart,
+                                   phiTotal,
+                                   numZPlanes,
+                                   zPlane,
+                                   rInner,
+                                   rOuter
+                                   );
+
+        neck = polycone_neck ;
+    }
+    else
+    {
+        pmttube_solid_part2 = new G4SubtractionSolid(
+                                            solidname+"_part2",
+                                            pmttube_solid_tube,
+                                            pmttube_solid_torus,
+                                            0,
+                                            G4ThreeVector(0,0,-h2t/2)
+                                            );
+        neck = pmttube_solid_part2 ;   // original monstrosity
+    }
+
+    std::cout
+         << " symbol  : pmttube_solid_part2 " << "\n"
+         << " name    : " << ( pmttube_solid_part2 ? pmttube_solid_part2->GetName() : "-" ) << "\n"
+         << " -h2t/2  : " << -h2t/2 << "(neck-torus-dz)\n"
+         ;
+
+
+    // * PART 3  : EndTube
+
+
+
+    G4Tubs* pmttube_solid_end_tube = new G4Tubs(
+                                    solidname+"_3_EndTube",
+                                    0*mm,  /* inner */
+                                    endtube_radius, //21*cm/2, /* pmt_r */
+                                    endtube_halfheight, //30*cm/2, /* pmt_h */
+                                    0*deg,
+                                    360*deg);
+
+
+
+    // * PART 1 + 2   : bulb + neck
+    G4UnionSolid* pmttube_solid_1_2 = new G4UnionSolid(
+                                            solidname+"_1_2",
+                                            pmttube_solid_sphere,
+                                            neck,
+                                            0,
+                                            G4ThreeVector(0, 0, -(h1t+h2t/2))
+                                            );
+
+     std::cout
+          << " symbol  : pmttube_solid_1_2(bulb+neck) \n"
+          << " name    : " << pmttube_solid_1_2->GetName() << "\n"
+          << " neck_dz : " << -(h1t+h2t/2) << "\n"
+          << " total_torus_dz : " << -h2t/2 + -(h1t+h2t/2) << "\n"
+          ;
+
+    // * PART 1+2 + 3
+    [[maybe_unused]] G4UnionSolid* pmttube_solid_1_2_3 = new G4UnionSolid(
+                                            solidname,
+                                            pmttube_solid_1_2,
+                                            pmttube_solid_end_tube,
+                                            0,
+                                            G4ThreeVector(0,0,
+                                                -(m_H_1_2+h3t*0.50))
+                                            );
+
+     std::cout
+          << " symbol  : pmttube_solid_1_2_3((bulb+neck)+endtube) \n"
+          << " name    : " << pmttube_solid_1_2_3->GetName() << "\n"
+          << " endtube_dz : " << -(m_H_1_2+h3t*0.50) << "\n"
+          ;
+
+
+    return pmttube_solid_1_2_3;
+}
+
+
+
+const G4VSolid* U4SolidMaker::R12860_PMTSolid(const char* name_) // static
+{
+    const char* PREFIX = "R12860_PMTSolid" ;
+    assert( sstr::StartsWith(name_,PREFIX ));
+    const char* suffix = name_ + strlen(PREFIX);
+    G4String solidname = name_ ;
+
+    // Ham8inchPMTManager::init_variables
+
+    double m_pmt_r, m_pmt_h, m_z_equator ;
+
+    m_pmt_r = 101.*mm;
+    m_pmt_h = 220.*mm;
+    m_z_equator = 75.5*mm; // From top to equator
+
+    R12860_PMTSolid_Maker* m_pmtsolid_maker = new R12860_PMTSolid_Maker(
+                            m_pmt_r,       // m_R1     101.0
+                            m_z_equator,   // m_R1z     75.5
+                            23*mm,         // m_R2      23.0
+                            42.5*mm,       // m_R3      42.5
+                            m_pmt_h,       // m_H       220.0
+                            62.*mm         // m_H3      62.0
+                            );
+
+
+
+
+    double thickness = 1E-3*mm ;
+
+    bool with_suffix = suffix && ( suffix[0] == 'U' || suffix[0] == 'K' || suffix[0] == 'P' ) ;
+
+    return m_pmtsolid_maker->GetSolid(solidname + "_pmt_solid", thickness, ( with_suffix ? suffix[0] : '\0' ) );
+}
+
+
+
+
+
+
+
+
+
+
+struct EMFCoil
+{
+    static const double EMF_RC_32[32] ;
+    static G4Polycone* BuildLProfileSectorPolycone( const std::string& solidName, double Rout_mm, double L_mm, double t_mm, double phiStart, double phiTotal, bool flangeUp = false );
+    static const G4VSolid* Example(int i);
+};
+
+const double EMFCoil::EMF_RC_32[32] = {
+        3.843,   6.509,   9.185,  11.029,
+       13.210,  14.924,  16.325,  17.495,
+       18.465,  19.284,  19.953,  20.502,
+       20.931,  21.241,  21.450,  21.559,
+       21.559,  21.450,  21.240,  20.930,
+       20.501,  19.951,  19.282,  18.463,
+       17.495,  16.325,  14.924,  13.210,
+       11.053,   9.185,   6.509,   3.843
+    };
+
+
+
+G4Polycone* EMFCoil::BuildLProfileSectorPolycone(
+    const std::string& solidName,
+    double Rout_mm,
+    double L_mm,
+    double t_mm,
+    double phiStart,
+    double phiTotal,
+    bool flangeUp
+){
+
+    const double H     = L_mm;
+
+    const int    NZ    = 4;
+
+    double zPlane[NZ];
+    double rMin[NZ];
+    double rMax[NZ];
+
+    if (!flangeUp) {
+
+        zPlane[0] = -H*0.5;
+        zPlane[1] = -H*0.5 + t_mm;
+        zPlane[2] = -H*0.5 + t_mm;
+        zPlane[3] = +H*0.5;
+
+        // flange：r ∈ [Rout - L, Rout]
+        rMin[0] = Rout_mm - L_mm;
+        rMin[1] = Rout_mm - L_mm;
+
+        // web：r ∈ [Rout - t, Rout]
+        rMin[2] = Rout_mm - t_mm;
+        rMin[3] = Rout_mm - t_mm;
+    } else {
+
+        zPlane[0] = -H*0.5;
+        zPlane[1] = -H*0.5 + (H - t_mm);
+        zPlane[2] = -H*0.5 + (H - t_mm);
+        zPlane[3] = +H*0.5;
+
+        rMin[0] = Rout_mm - t_mm;
+        rMin[1] = Rout_mm - t_mm;
+        rMin[2] = Rout_mm - L_mm;
+        rMin[3] = Rout_mm - L_mm;
+    }
+
+
+    for (int i = 0; i < NZ; ++i) rMax[i] = Rout_mm;
+
+
+    for (int i = 0; i < NZ; ++i)
+    {
+        std::cout
+           << "EMFCoil::BuildLProfileSectorPolycone"
+           << " i " << std::setw(2) << i
+           << " z    " << std::setw(10) << zPlane[i]
+           << " rMin " << std::setw(10) << rMin[i]
+           << " rMax " << std::setw(10) << rMax[i]
+           << "\n"
+           ;
+    }
+
+    return new G4Polycone(
+        solidName.c_str(),
+        phiStart * rad,
+        phiTotal * rad,
+        NZ, zPlane, rMin, rMax
+    );
+}
+
+
+
+const G4VSolid* EMFCoil::Example(int i) // static
+{
+    // WaterPoolConstruction::makeEMFCoilHolders_Polycone
+    const double L_leg_mm  = 56.0;
+    const double t_mm      = 4.0;
+    const double eps_r_mm  = 2.0;
+
+    const double R0_m = EMF_RC_32[i] + eps_r_mm * 1e-3;
+
+    double phiS = 89.60*deg ;
+    double phiE = 134.72*deg ;
+
+    const double PHI_EPS = 0.01 * deg;
+    const double s = phiS + PHI_EPS;
+    const double e = phiE - PHI_EPS;
+    const double dphi = e - s;
+
+    std::string solidName = "example" ;
+    double Rout_mm = R0_m * 1000.0 ;
+    double L_mm = L_leg_mm ;
+    double phiStart = s ;
+    double phiTotal = dphi ;
+    bool flangeUp = false ;
+
+    return BuildLProfileSectorPolycone(solidName, Rout_mm, L_mm, t_mm, phiStart, phiTotal, flangeUp );
+}
+
+
+const G4VSolid* U4SolidMaker::LProfileSectorPolycone( const char* )
+{
+    return EMFCoil::Example(16);
+}
 
 
 

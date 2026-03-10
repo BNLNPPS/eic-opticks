@@ -81,6 +81,7 @@ HMM: looking like getting qudarap/qsim.h to work with OptiX < 7 is more effort t
 // CSGOptiX
 #include "Frame.h"
 #include "Params.h"
+#include "config.h"
 
 #if OPTIX_VERSION < 70000
 #include "Six.h"
@@ -149,6 +150,21 @@ int CSGOptiX::RenderMain() // static
     delete cx ;
     return 0 ;
 }
+
+/**
+CSGOptiX::SimtraceMain
+-------------------------
+
+Q: Where is the frame needed when simtracing ?
+A: Its needed for genstep preparation with SEvt
+   so the setup by SSim::afterLoadOrCreate giving it to SEvt
+   should be OK if that happens before gensteps are prepared
+
+
+
+**/
+
+
 int CSGOptiX::SimtraceMain()
 {
     SEventConfig::SetRGModeSimtrace();
@@ -236,7 +252,12 @@ void CSGOptiX::InitEvt( CSGFoundry* fd  )
 {
     SEvt* sev = SEvt::CreateOrReuse(SEvt::EGPU) ;
 
+#ifdef WITH_OLD_FRAME
     sev->setGeo((SGeo*)fd);
+#else
+    const SSim* ssim = fd->getSim();
+    sev->setSim(ssim);
+#endif
 
     std::string* rms = SEvt::RunMetaString() ;
     assert(rms);
@@ -348,11 +369,13 @@ CSGOptiX* CSGOptiX::Create(CSGFoundry* fd )
     SProf::Add("CSGOptiX__Create_HEAD");
     LOG(LEVEL) << "[ fd.descBase " << ( fd ? fd->descBase() : "-" ) ;
 
+    SSim* ssim = const_cast<SSim*>(fd->sim) ;
+
 
     InitEvt(fd);
-    InitSim( const_cast<SSim*>(fd->sim) ); // QSim instanciation after uploading SSim arrays
-    InitMeta();                            // recording GPU, switches etc.. into run metadata
-    InitGeo(fd);                           // uploads geometry
+    InitSim(ssim);    // QSim instanciation after uploading SSim arrays
+    InitMeta();       // recording GPU, switches etc.. into run metadata
+    InitGeo(fd);      // uploads geometry
 
     CSGOptiX* cx = new CSGOptiX(fd) ;
 
@@ -392,7 +415,20 @@ CSGOptiX::~CSGOptiX()
 }
 
 /**
-TODO: generalize for ptx or optixir
+CSGOptiX::CSGOptiX
+--------------------
+
+Instanciated at near to main level in both running modes:
+
+* pure-Opticks running (no Geant4) eg via cxs_min.sh uses CSGOptiX::SimulateMain
+  that instanciates via CSGOptiX::Create with event processing CSGOptiX::simulate
+  called directly from CSGOptiX::SimulateMain
+
+* Geant4 integrated running eg from OJ python "main", instanciation again uses
+  CSGOptiX::Create that is invoked from G4CXOpticks::setGeometry_
+  with event processing CSGOptiX::simulate called from
+  junoSD_PMT_v2_Opticks::EndOfEvent_Simulate
+
 **/
 
 
@@ -402,14 +438,8 @@ CSGOptiX::CSGOptiX(const CSGFoundry* foundry_)
     flight(SGeoConfig::FlightConfig()),
     foundry(foundry_),
     outdir(SEventConfig::OutFold()),
-#ifdef CONFIG_Debug
-    _optixpath("${CSGOptiX__optixpath:-$OPTICKS_PREFIX/optix/objects-Debug/CSGOptiX_OPTIX/CSGOptiX7.ptx}"),
-#elif CONFIG_Release
-    _optixpath("${CSGOptiX__optixpath:-$OPTICKS_PREFIX/optix/objects-Release/CSGOptiX_OPTIX/CSGOptiX7.ptx}"),
-#else
-    _optixpath(nullptr),
-#endif
-    optixpath(_optixpath ? spath::Resolve(_optixpath) : nullptr),
+    _optixpath(std::getenv("CSGOptiX__optixpath")),
+    optixpath(spath::Resolve(gphox::Config::PtxPath("CSGOptiX7.ptx").c_str())),
     tmin_model(ssys::getenvfloat("TMIN",0.1)),    // CAUTION: tmin very different in rendering and simulation
     kernel_count(0),
     raygenmode(SEventConfig::RGMode()),
@@ -422,7 +452,7 @@ CSGOptiX::CSGOptiX(const CSGFoundry* foundry_)
     kernel_dt(0.),
     sctx(nullptr),
     sim(QSim::Get()),
-    qev(sim == nullptr  ? nullptr : sim->qev)
+    qev(sim == nullptr  ? nullptr : sim->qev)   // QEvt
 {
     init();
 }
@@ -453,7 +483,11 @@ void CSGOptiX::init()
     initParams();
     initGeometry();
     initSimulate();
+
+#ifdef WITH_OLD_FRAME
     initFrame();
+#endif
+
     initRender();
     initPIDXYZ();
 
@@ -640,6 +674,7 @@ void CSGOptiX::initSimulate()
 
 
 
+#ifdef WITH_OLD_FRAME
 
 /**
 CSGOptiX::initFrame (formerly G4CXOpticks::setupFrame)
@@ -662,14 +697,18 @@ TODO: see CSGFoundry::AfterLoadOrCreate for maybe auto frame hookup
 
 void CSGOptiX::initFrame()
 {
+    assert(0);
+
     sframe _fr = foundry->getFrameE() ;   // TODO: migrate to lighweight sfr from stree level
     LOG(LEVEL) << _fr ;
+
     SEvt::SetFrame(_fr) ;
 
     sfr _lfr = _fr.spawn_lite();
     setFrame(_lfr);
 }
 
+#endif
 
 
 
@@ -692,8 +731,8 @@ void CSGOptiX::initRender()
 
     if(SEventConfig::IsRGModeRender())
     {
-        setFrame(); // MOI
-        // HMM: done twice ?
+        LOG(LEVEL) << "FORMERLY CALLED CSGOptiX::setFrame FROM HERE" ;
+        //setFrame(); // MOI
     }
 
     params->pixels = framebuf->d_pixel ;
@@ -758,7 +797,6 @@ copy hits or other content from SEvt elsewhere.
 **/
 double CSGOptiX::simulate(int eventID, bool reset)
 {
-    SProf::SetTag(eventID, "A%0.3d_" ) ;
     assert(sim);
     double dt = sim->simulate(eventID, reset) ; // (QSim)
     return dt ;
@@ -846,11 +884,13 @@ A: Currently think that it is just a bookkeeping convenience for simtrace and no
 
 void CSGOptiX::setFrame()
 {
+    assert(0 && " DONT USE THIS - DIRECTLY USE sglm INSTEAD"  );
     setFrame(ssys::getenvvar("MOI", "-1"));  // TODO: generalize to FRS
 }
 
 void CSGOptiX::setFrame(const char* frs)
 {
+    assert(0 && " DONT USE THIS - DIRECTLY USE sglm INSTEAD"  );
     LOG(LEVEL) << " frs " << frs ;
     sframe fr = foundry->getFrame(frs) ;
     sfr lfr = fr.spawn_lite();
@@ -859,6 +899,7 @@ void CSGOptiX::setFrame(const char* frs)
 }
 void CSGOptiX::setFrame(const float4& ce )
 {
+    assert(0 && " DONT USE THIS - DIRECTLY USE sglm INSTEAD"  );
     sfr lfr ;   // m2w w2m default to identity
 
     lfr.ce.x = ce.x ;
@@ -876,12 +917,23 @@ CSGOptiX::setFrame into the SGLM.h instance
 Note that SEvt already holds an sframe used for input photon transformation,
 the sframe here is used for raytrace rendering.  Could perhaps rehome sglm
 into SEvt and use a single sframe for both input photon transformation
-and rendering ?
+and rendering ? But SGLM is for viz, so that is out of place.
+
+Where to keep the frame?
+
+* for simulation the obvious location is SEvt
+* for simtrace it needs to be in SEvt for genstep preparation
+* for rendering the obvious location is SGLM
+
+Currently reluctant to depend on SEvt for rendering, because it
+brings complexity without much utility. So live with two locations
+for the frame.
 
 **/
 
 void CSGOptiX::setFrame(const sfr& lfr )
 {
+    assert(0 && " DONT USE THIS - DIRECTLY USE sglm INSTEAD"  );
     sglm->set_frame(lfr);   // TODO: aim to remove sframe from sglm ? instead operate at ce (or sometimes m2w w2m level)
 
     LOG(LEVEL) << "sglm.desc:" << std::endl << sglm->desc() ;
@@ -1079,7 +1131,7 @@ double CSGOptiX::launch()
     unsigned depth  = 0 ;
     switch(raygenmode)
     {
-        case SRG_RENDER:    { width = params->width           ; height = params->height ; depth = params->depth ; } ; break ;
+        case SRG_RENDER:    { width = params->width         ; height = params->height ; depth = params->depth ; } ; break ;
         case SRG_SIMTRACE:  { width = qev->getNumSimtrace() ; height = 1              ; depth = 1             ; } ; break ;
         case SRG_SIMULATE:  { width = qev->getNumPhoton()   ; height = 1              ; depth = 1             ; } ; break ;
     }
@@ -1110,24 +1162,20 @@ double CSGOptiX::launch()
          << " DEBUG_SKIP_LAUNCH " << ( DEBUG_SKIP_LAUNCH ? "YES" : "NO " )
          ;
 
-#if OPTIX_VERSION < 70000
-    assert( width <= 1000000 );
-    six->launch(width, height, depth );
-#else
     if(DEBUG_SKIP_LAUNCH == false)
     {
         CUdeviceptr d_param = (CUdeviceptr)Params::d_param ; ;
         assert( d_param && "must alloc and upload params before launch");
 
-        CUstream stream = 0 ;  // default stream
-        OPTIX_CHECK( optixLaunch( pip->pipeline, stream, d_param, sizeof( Params ), &(sbt->sbt), width, height, depth ) );
+        //cudaStream_t stream = SMgr::Stream();
+        cudaStream_t stream = 0 ; // default stream
+        OPTIX_CHECK( optixLaunch( pip->pipeline, (CUstream)stream, d_param, sizeof( Params ), &(sbt->sbt), width, height, depth ) );
 
         CUDA_SYNC_CHECK();
         // see CSG/CUDA_CHECK.h the CUDA_SYNC_CHECK does cudaDeviceSyncronize
         // THIS LIKELY HAS LARGE PERFORMANCE IMPLICATIONS : BUT NOT EASY TO AVOID (MULTI-BUFFERING ETC..)
         kernel_count += 1 ;
     }
-#endif
 
 
     TP _t1 = std::chrono::high_resolution_clock::now();

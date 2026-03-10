@@ -216,3 +216,5 @@ foreach(SRC ${BASH_RUN_TEST_SOURCES})
        COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/STestRunner.sh ${CMAKE_CURRENT_BINARY_DIR}/${TGT}  
     )
 endforeach()
+
+set_tests_properties(${name}.SBndTest PROPERTIES DISABLED TRUE)

@@ -16,10 +16,24 @@ Example from /usr/include/openssl/opensslv.h::
 #include <array>
 #include <sstream>
 
-#include <openssl/md5.h>
-#include <openssl/opensslv.h>
+#if defined __APPLE__
 
-struct NP ; 
+#   define COMMON_DIGEST_FOR_OPENSSL
+#   include <CommonCrypto/CommonDigest.h>
+#   define SHA1 CC_SHA1
+
+#elif defined _MSC_VER
+
+#   include "md5.hh"
+
+#elif __linux
+
+#   include <openssl/md5.h>
+#   include <openssl/opensslv.h>
+
+#endif
+
+struct NP ;
 
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -295,7 +309,8 @@ inline void sdigest::add_( T* vv, size_t count ){ Update_<T>(ctx, vv, count  ); 
 inline std::string sdigest::DescRaw( unsigned char* digest16 )
 {
     char buf[32+1] ;
-    for (int n = 0; n < 16; ++n) std::snprintf( &buf[2*n], 32+1, "%02x", (unsigned int)digest16[n]) ;
+    for (int n = 0; n < 16; ++n)
+        std::snprintf(&buf[2 * n], 3, "%02x", (unsigned int)digest16[n]);
     buf[32] = '\0' ;
     return std::string(buf, buf + 32);
 }
@@ -309,7 +324,8 @@ inline std::string sdigest::Finalize(MD5_CTX& c) // static
     // 16 binary bytes, into 32 char hex string
 
     char buf[32+1] ;
-    for (int n = 0; n < 16; ++n) std::snprintf( &buf[2*n], 32+1, "%02x", (unsigned int)digest[n]) ;
+    for (int n = 0; n < 16; ++n)
+        std::snprintf(&buf[2 * n], 3, "%02x", (unsigned int)digest[n]);
     buf[32] = '\0' ;
 
     return std::string(buf, buf + 32);
