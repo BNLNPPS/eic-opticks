@@ -1,7 +1,6 @@
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
-#include <fstream>
 #include <stdexcept>
 #include <string>
 #include <sys/stat.h>
@@ -52,7 +51,6 @@ std::string Config::PtxPath(const std::string &ptx_name)
            << "  - " << default_path;
     throw std::runtime_error(errmsg.str());
 }
-
 
 std::string Config::Locate(std::string filename) const
 {
