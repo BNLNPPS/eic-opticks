@@ -12,8 +12,7 @@ SOPTIX__HANDLE
 
 **/
 
-#include "config.h"
-#include "ssys.h"
+#include "SOPTIX_Accel.h"
 #include "SOPTIX_Context.h"
 #include "SOPTIX_Desc.h"
 #include "SOPTIX_MeshGroup.h"
