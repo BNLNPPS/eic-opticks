@@ -1993,12 +1993,6 @@ std::string QSim::Desc(char delim)  // static
        << "NOT-WITH_CHILD"
 #endif
        << delim
-#ifdef WITH_CUSTOM4
-       << "WITH_CUSTOM4"
-#else
-       << "NOT-WITH_CUSTOM4"
-#endif
-       << delim
 #ifdef PLOG_LOCAL
        << "PLOG_LOCAL"
 #else
@@ -2046,5 +2040,3 @@ std::string QSim::Switches()  // static
 {
     return Desc(',');
 }
-
-
