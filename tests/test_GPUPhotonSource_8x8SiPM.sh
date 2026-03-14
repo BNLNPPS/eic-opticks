@@ -5,22 +5,22 @@ set -e
 export OPTICKS_MAX_BOUNCE=32
 
 SEED=42
-TOLERANCE_PCT=5
+NSIGMA=3
 PASS=true
 
-check_within_pct() {
+check_within_nsigma() {
     local label=$1
-    local actual=$2
-    local expected=$3
-    local tol=$4
-    local diff=$(( actual - expected ))
+    local n1=$2
+    local n2=$3
+    local nsigma=$4
+    local diff=$(( n1 - n2 ))
     if [ "$diff" -lt 0 ]; then diff=$(( -diff )); fi
-    local threshold=$(( expected * tol / 100 ))
-    if [ "$threshold" -lt 1 ]; then threshold=1; fi
+    # For two independent Poisson counts: sigma = sqrt(n1 + n2)
+    local threshold=$(awk "BEGIN {printf \"%d\", $nsigma * sqrt($n1 + $n2) + 1}")
     if [ "$diff" -le "$threshold" ]; then
-        echo "PASSED: $label ($actual) is within ${tol}% of $expected (diff=$diff, threshold=$threshold)"
+        echo "PASSED: $label |$n1 - $n2| = $diff <= ${nsigma}-sigma threshold ($threshold)"
     else
-        echo "FAILED: $label ($actual) is NOT within ${tol}% of $expected (diff=$diff, threshold=$threshold)"
+        echo "FAILED: $label |$n1 - $n2| = $diff > ${nsigma}-sigma threshold ($threshold)"
         PASS=false
     fi
 }
@@ -58,10 +58,10 @@ echo "Opticks (GPU): NumHits: $OPTICKS_HITS"
 check_nonzero "Geant4 hits"  "$G4_HITS"
 check_nonzero "Opticks hits" "$OPTICKS_HITS"
 
-# GPU and CPU should agree within tolerance
+# GPU and CPU should agree within 3-sigma (Poisson statistics)
 echo ""
-echo "=== Comparing GPU vs CPU hit counts (tolerance: ${TOLERANCE_PCT}%) ==="
-check_within_pct "Opticks vs Geant4" "$OPTICKS_HITS" "$G4_HITS" "$TOLERANCE_PCT"
+echo "=== Comparing GPU vs CPU hit counts (${NSIGMA}-sigma) ==="
+check_within_nsigma "Opticks vs Geant4" "$OPTICKS_HITS" "$G4_HITS" "$NSIGMA"
 
 # ---- Summary ----
 echo ""
