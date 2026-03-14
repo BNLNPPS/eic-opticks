@@ -1,6 +1,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <map>
+#include <sstream>
 
 #include "G4AutoLock.hh"
 #include "G4BooleanSolid.hh"
@@ -379,44 +381,60 @@ struct RunAction : G4UserRunAction
             std::cout << "Opticks: NumCollected:  " << sev->GetNumPhotonCollected(0) << std::endl;
             std::cout << "Opticks: NumHits:  " << num_hits << std::endl;
             std::cout << "Geant4: NumHits:  " << fEventAction->GetTotalG4Hits() << std::endl;
-            std::ofstream outFile("opticks_hits_output.txt");
-            if (!outFile.is_open())
-            {
-                std::cerr << "Error opening output file!" << std::endl;
-                return;
-            }
+
+            // Decode event ID from time and group hits per event
+            // Time was encoded as: t0 + eventID * 1e6 ns
+            constexpr float TIME_MULTIPLIER = 1000000.f;
+
+            std::map<int, std::vector<std::string>> lines_by_event;
+            std::map<int, int> hits_per_event;
 
             for (int idx = 0; idx < int(num_hits); idx++)
             {
                 sphoton hit;
                 sev->getHit(hit, idx);
-                G4ThreeVector position = G4ThreeVector(hit.pos.x, hit.pos.y, hit.pos.z);
-                G4ThreeVector direction = G4ThreeVector(hit.mom.x, hit.mom.y, hit.mom.z);
-                G4ThreeVector polarization = G4ThreeVector(hit.pol.x, hit.pol.y, hit.pol.z);
+
+                int eventID = static_cast<int>(hit.time / TIME_MULTIPLIER);
+                float real_time = hit.time - eventID * TIME_MULTIPLIER;
+
+                G4ThreeVector position(hit.pos.x, hit.pos.y, hit.pos.z);
+                G4ThreeVector direction(hit.mom.x, hit.mom.y, hit.mom.z);
+                G4ThreeVector polarization(hit.pol.x, hit.pol.y, hit.pol.z);
                 int theCreationProcessid;
                 if (OpticksPhoton::HasCerenkovFlag(hit.flagmask))
-                {
                     theCreationProcessid = 0;
-                }
                 else if (OpticksPhoton::HasScintillationFlag(hit.flagmask))
-                {
                     theCreationProcessid = 1;
-                }
                 else
-                {
                     theCreationProcessid = -1;
-                }
-                //    std::cout << "Adding hit from Opticks:" << hit.wavelength << " " << position << " " << direction
-                //    << "
-                //    "
-                //              << polarization << std::endl;
-                outFile << hit.time << " " << hit.wavelength << "  " << "(" << position.x() << ", " << position.y()
-                        << ", " << position.z() << ")  " << "(" << direction.x() << ", " << direction.y() << ", "
-                        << direction.z() << ")  " << "(" << polarization.x() << ", " << polarization.y() << ", "
-                        << polarization.z() << ")  " << "CreationProcessID=" << theCreationProcessid << std::endl;
+
+                std::ostringstream oss;
+                oss << real_time << " " << hit.wavelength << "  "
+                    << "(" << position.x() << ", " << position.y() << ", " << position.z() << ")  "
+                    << "(" << direction.x() << ", " << direction.y() << ", " << direction.z() << ")  "
+                    << "(" << polarization.x() << ", " << polarization.y() << ", " << polarization.z() << ")  "
+                    << "CreationProcessID=" << theCreationProcessid;
+
+                lines_by_event[eventID].push_back(oss.str());
+                hits_per_event[eventID]++;
             }
 
-            outFile.close();
+            // Write per-event files
+            for (auto& [evtid, lines] : lines_by_event)
+            {
+                std::string filename = "opticks_hits_evt" + std::to_string(evtid) + ".txt";
+                std::ofstream outFile(filename);
+                if (!outFile.is_open())
+                {
+                    std::cerr << "Error opening output file: " << filename << std::endl;
+                    continue;
+                }
+                for (const auto& line : lines)
+                    outFile << line << std::endl;
+                outFile.close();
+                std::cout << "Event " << evtid << ": " << lines.size()
+                          << " hits written to " << filename << std::endl;
+            }
         }
     }
 };
