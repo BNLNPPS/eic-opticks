@@ -174,9 +174,9 @@ public:
     NP*      gatherHitLiteMerged() const ;
     NP*      gatherHitMerged() const ;
 
+    NP*      gatherSeed() const ;
 
 #ifndef PRODUCTION
-    NP*      gatherSeed() const ;
     NP*      gatherDomain() const ;
     NP*      gatherGenstepFromDevice() const ;
     void     gatherSimtrace(     NP* t ) const ;

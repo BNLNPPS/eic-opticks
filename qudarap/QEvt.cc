@@ -723,8 +723,6 @@ NP* QEvt::gatherPhotonLite() const
 
 
 
-#ifndef PRODUCTION
-
 NP* QEvt::gatherSeed() const
 {
     bool has_seed = hasSeed() ;
@@ -734,6 +732,8 @@ NP* QEvt::gatherSeed() const
     QU::copy_device_to_host<int>( (int*)s->bytes(), evt->seed, evt->num_seed );
     return s ;
 }
+
+#ifndef PRODUCTION
 
 NP* QEvt::gatherDomain() const { return sev ? sev->gatherDomain() : nullptr ; }
 
@@ -1379,13 +1379,13 @@ NP* QEvt::gatherComponent_(unsigned cmp) const
         case SCOMP_HITLITE:       a = gatherHitLite()           ; break ;
         case SCOMP_HITLITEMERGED: a = gatherHitLiteMerged()     ; break ;
         case SCOMP_HITMERGED:     a = gatherHitMerged()         ; break ;
+        case SCOMP_SEED:      a = gatherSeed()     ; break ;
 #ifndef PRODUCTION
         case SCOMP_DOMAIN:    a = gatherDomain()      ; break ;
         case SCOMP_RECORD:    a = gatherRecord()   ; break ;
         case SCOMP_REC:       a = gatherRec()      ; break ;
         case SCOMP_SEQ:       a = gatherSeq()      ; break ;
         case SCOMP_PRD:       a = gatherPrd()      ; break ;
-        case SCOMP_SEED:      a = gatherSeed()     ; break ;
         case SCOMP_SIMTRACE:  a = gatherSimtrace() ; break ;
         case SCOMP_TAG:       a = gatherTag()      ; break ;
         case SCOMP_FLAT:      a = gatherFlat()     ; break ;

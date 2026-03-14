@@ -1,0 +1,3 @@
+/run/verbose 1
+/run/initialize
+/run/beamOn 5

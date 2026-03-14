@@ -43,6 +43,8 @@
 #include "u4/U4StepPoint.hh"
 #include "u4/U4Touchable.h"
 #include "u4/U4Track.h"
+#include "qudarap/QEvt.hh"
+#include "EventBatcher.h"
 
 namespace
 {
@@ -348,6 +350,7 @@ struct EventAction : G4UserEventAction
 struct RunAction : G4UserRunAction
 {
     EventAction *fEventAction;
+    EventBatcher batcher;
 
     RunAction(EventAction *eventAction) : fEventAction(eventAction)
     {
@@ -367,11 +370,9 @@ struct RunAction : G4UserRunAction
             gx->simulate(0, false);
             cudaDeviceSynchronize();
             auto end = std::chrono::high_resolution_clock::now();
-            // Compute duration
             std::chrono::duration<double> elapsed = end - start;
             std::cout << "Simulation time: " << elapsed.count() << " seconds" << std::endl;
 
-            // unsigned int num_hits = SEvt::GetNumHit(EGPU);
             SEvt *sev = SEvt::Get_EGPU();
             unsigned int num_hits = sev->GetNumHit(0);
 
@@ -379,44 +380,88 @@ struct RunAction : G4UserRunAction
             std::cout << "Opticks: NumCollected:  " << sev->GetNumPhotonCollected(0) << std::endl;
             std::cout << "Opticks: NumHits:  " << num_hits << std::endl;
             std::cout << "Geant4: NumHits:  " << fEventAction->GetTotalG4Hits() << std::endl;
+
+            // Download seed buffer: seed[photon_idx] = genstep_idx
+            QEvt* qevt = QEvt::Get();
+            NP* seed_np = qevt ? qevt->gatherSeed() : nullptr;
+            const int* seed = seed_np ? seed_np->cvalues<int>() : nullptr;
+
+            const EventBatcher& bat = batcher;
+
+            // Unpack hits by G4 event ID
+            std::map<int, std::vector<sphoton>> hits_by_event;
+            if (seed && bat.numGensteps() > 0)
+            {
+                hits_by_event = bat.unpackHits(sev, seed);
+            }
+
+            // Write per-event hit files
+            for (auto& [evtid, hits] : hits_by_event)
+            {
+                std::string filename = "opticks_hits_evt" + std::to_string(evtid) + ".txt";
+                std::ofstream outFile(filename);
+                if (!outFile.is_open())
+                {
+                    std::cerr << "Error opening output file: " << filename << std::endl;
+                    continue;
+                }
+
+                for (const sphoton& hit : hits)
+                {
+                    G4ThreeVector position(hit.pos.x, hit.pos.y, hit.pos.z);
+                    G4ThreeVector direction(hit.mom.x, hit.mom.y, hit.mom.z);
+                    G4ThreeVector polarization(hit.pol.x, hit.pol.y, hit.pol.z);
+                    int theCreationProcessid;
+                    if (OpticksPhoton::HasCerenkovFlag(hit.flagmask))
+                        theCreationProcessid = 0;
+                    else if (OpticksPhoton::HasScintillationFlag(hit.flagmask))
+                        theCreationProcessid = 1;
+                    else
+                        theCreationProcessid = -1;
+
+                    outFile << hit.time << " " << hit.wavelength << "  "
+                            << "(" << position.x() << ", " << position.y() << ", " << position.z() << ")  "
+                            << "(" << direction.x() << ", " << direction.y() << ", " << direction.z() << ")  "
+                            << "(" << polarization.x() << ", " << polarization.y() << ", " << polarization.z() << ")  "
+                            << "CreationProcessID=" << theCreationProcessid << std::endl;
+                }
+
+                outFile.close();
+                std::cout << "Event " << evtid << ": " << hits.size() << " hits written to " << filename << std::endl;
+            }
+
+            // Also write combined file for backwards compatibility
             std::ofstream outFile("opticks_hits_output.txt");
-            if (!outFile.is_open())
+            if (outFile.is_open())
             {
-                std::cerr << "Error opening output file!" << std::endl;
-                return;
+                for (auto& [evtid, hits] : hits_by_event)
+                {
+                    for (const sphoton& hit : hits)
+                    {
+                        G4ThreeVector position(hit.pos.x, hit.pos.y, hit.pos.z);
+                        G4ThreeVector direction(hit.mom.x, hit.mom.y, hit.mom.z);
+                        G4ThreeVector polarization(hit.pol.x, hit.pol.y, hit.pol.z);
+                        int theCreationProcessid;
+                        if (OpticksPhoton::HasCerenkovFlag(hit.flagmask))
+                            theCreationProcessid = 0;
+                        else if (OpticksPhoton::HasScintillationFlag(hit.flagmask))
+                            theCreationProcessid = 1;
+                        else
+                            theCreationProcessid = -1;
+
+                        outFile << hit.time << " " << hit.wavelength << "  "
+                                << "(" << position.x() << ", " << position.y() << ", " << position.z() << ")  "
+                                << "(" << direction.x() << ", " << direction.y() << ", " << direction.z() << ")  "
+                                << "(" << polarization.x() << ", " << polarization.y() << ", " << polarization.z()
+                                << ")  "
+                                << "CreationProcessID=" << theCreationProcessid
+                                << " EventID=" << evtid << std::endl;
+                    }
+                }
+                outFile.close();
             }
 
-            for (int idx = 0; idx < int(num_hits); idx++)
-            {
-                sphoton hit;
-                sev->getHit(hit, idx);
-                G4ThreeVector position = G4ThreeVector(hit.pos.x, hit.pos.y, hit.pos.z);
-                G4ThreeVector direction = G4ThreeVector(hit.mom.x, hit.mom.y, hit.mom.z);
-                G4ThreeVector polarization = G4ThreeVector(hit.pol.x, hit.pol.y, hit.pol.z);
-                int theCreationProcessid;
-                if (OpticksPhoton::HasCerenkovFlag(hit.flagmask))
-                {
-                    theCreationProcessid = 0;
-                }
-                else if (OpticksPhoton::HasScintillationFlag(hit.flagmask))
-                {
-                    theCreationProcessid = 1;
-                }
-                else
-                {
-                    theCreationProcessid = -1;
-                }
-                //    std::cout << "Adding hit from Opticks:" << hit.wavelength << " " << position << " " << direction
-                //    << "
-                //    "
-                //              << polarization << std::endl;
-                outFile << hit.time << " " << hit.wavelength << "  " << "(" << position.x() << ", " << position.y()
-                        << ", " << position.z() << ")  " << "(" << direction.x() << ", " << direction.y() << ", "
-                        << direction.z() << ")  " << "(" << polarization.x() << ", " << polarization.y() << ", "
-                        << polarization.z() << ")  " << "CreationProcessID=" << theCreationProcessid << std::endl;
-            }
-
-            outFile.close();
+            delete seed_np;
         }
     }
 };
@@ -424,8 +469,9 @@ struct RunAction : G4UserRunAction
 struct SteppingAction : G4UserSteppingAction
 {
     SEvt *sev;
+    EventBatcher *batcher;
 
-    SteppingAction(SEvt *sev) : sev(sev)
+    SteppingAction(SEvt *sev, EventBatcher *batcher) : sev(sev), batcher(batcher)
     {
     }
 
@@ -505,6 +551,8 @@ struct SteppingAction : G4UserSteppingAction
                         U4::CollectGenstep_G4Cerenkov_modified(aTrack, aStep, fNumPhotons, BetaInverse, Pmin, Pmax,
                                                                maxCos, maxSin2, MeanNumberOfPhotons1,
                                                                MeanNumberOfPhotons2);
+                        int evtID = G4EventManager::GetEventManager()->GetConstCurrentEvent()->GetEventID();
+                        batcher->recordGenstep(evtID);
                     }
                 }
                 if ((*procPost)[i3]->GetProcessName() == "Scintillation")
@@ -527,6 +575,8 @@ struct SteppingAction : G4UserSteppingAction
 
                         U4::CollectGenstep_DsG4Scintillation_r4695(aTrack, aStep, fNumPhotons, 1,
                                                                    SCINTILLATIONTIMECONSTANT1);
+                        int evtID = G4EventManager::GetEventManager()->GetConstCurrentEvent()->GetEventID();
+                        batcher->recordGenstep(evtID);
                     }
                 }
             }
@@ -561,7 +611,7 @@ struct G4App
     G4App(std::filesystem::path gdml_file)
         : sev(SEvt::CreateOrReuse_EGPU()), det_cons_(new DetectorConstruction(gdml_file)),
           prim_gen_(new PrimaryGenerator(sev)), event_act_(new EventAction(sev)), run_act_(new RunAction(event_act_)),
-          stepping_(new SteppingAction(sev)),
+          stepping_(new SteppingAction(sev, &run_act_->batcher)),
 
           tracking_(new TrackingAction(sev))
     {
