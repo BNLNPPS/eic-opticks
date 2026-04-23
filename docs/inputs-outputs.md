@@ -8,8 +8,8 @@ For the optical-surface physics implemented by Simphony, see
 
 ## Geometry input
 
-Simphony imports detector geometry in GDML format. Example applications accept
-GDML files through `-g`, for example:
+Simphony's example applications import a complete Geant4 detector from GDML
+through `-g`, for example:
 
 ```bash
 GPUCerenkov -g tests/geom/opticks_raindrop.gdml
@@ -31,18 +31,22 @@ See [Physics](physics.md) for the current standard-GPU interpretation of GDML
 optical-surface properties such as `model`, `finish`, `type`, `EFFICIENCY`,
 and `REFLECTIVITY`.
 
-### Analytic and tessellated geometry
+The integration API can instead accept a live `G4VPhysicalVolume` world. This
+is how applications that construct geometry in C++ and the DD4hep plugins use
+the same conversion pipeline. The standalone `-g` option reads GDML; it does
+not read DD4hep compact XML or a saved `CSGFoundry`.
 
-GDML can provide native `<tessellated>` solids, but triangle geometry does not
-have to originate in that form. Simphony automatically selects native
-tessellated solids, including tessellated constituents inside Boolean,
-displaced, or multi-union solids. Other Geant4 solids can be selected
-automatically or by exact solid name with `stree__force_triangulate_solid`.
+Simphony supports a mixed analytic and triangle scene. Native
+`G4TessellatedSolid` input is selected for triangles automatically, while
+recognized Geant4 solids can also be selected by exact solid name. Selection
+applies to the whole logical-volume solid and all of its placements. Repeated
+triangle-selected subtrees lose analytic instancing and remain in global
+triangle geometry.
 
-Triangulation selection and mesh resolution are persisted in the generated
-geometry cache, so configure them before generating the cache. If a selected
-solid is repeated, its placements remain in global triangle geometry rather
-than an analytic instance factor, which can increase memory use.
+The [Geometry guide](geometry-requirements.md) gives a runnable conversion
+workflow, the current solid support table and parameter limits, triangle
+selection and mesh-resolution settings, saved geometry output, and validation
+steps.
 
 ## Photon source inputs
 
