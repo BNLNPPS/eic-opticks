@@ -123,12 +123,10 @@ std::string Params::detail() const
         << std::setw(20) << " evt " << std::setw(10) << evt  << std::endl
         ;
     std::string s = ss.str();
-    return s ;
+    return s;
 }
 
-
-Params::Params(int raygenmode_, unsigned width, unsigned height, unsigned depth)
-    :
+Params::Params(int raygenmode_, unsigned width, unsigned height, unsigned depth) :
     raygenmode(SRG_RENDER),
     node(nullptr),
     plan(nullptr),
