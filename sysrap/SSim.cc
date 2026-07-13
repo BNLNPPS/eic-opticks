@@ -1026,7 +1026,6 @@ std::string SSim::DescOptical(const NP* optical, const NP* bnd )
 
 std::string SSim::GetItemDigest( const NP* bnd, int i, int j, int w )
 {
-    //std::string dig = SDigestNP::Item(bnd, i, j ) ;
     std::string dig = sdigest::Item(bnd, i, j ) ;
     std::string sdig = dig.substr(0, w);
     return sdig ;

@@ -23,7 +23,6 @@ set(TEST_SOURCES
    SSortKVTest.cc
    SPairVecTest.cc
    SDigestTest.cc
-   SDigestNPTest.cc
 
    SCFTest.cc
 
