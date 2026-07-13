@@ -49,7 +49,6 @@ set(SOURCES
     SGDML.cc
     S_get_option.cc
     STime.cc
-    SPack.cc
     SBit.cc
     SEnabled.cc
     SRand.cc
@@ -226,7 +225,6 @@ set(HEADERS
     SColor.hh
     SId.hh
     SGDML.hh
-    SPack.hh
     SBit.hh
     SBitSet.h
     SEnabled.hh
