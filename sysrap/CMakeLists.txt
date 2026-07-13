@@ -119,7 +119,6 @@ set(HEADERS
 
     SBacktrace.h
     SStackFrame.h
-    SProfile.h 
 
     ssys.h
     SSys.hh
