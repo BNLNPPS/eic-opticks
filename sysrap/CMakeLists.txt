@@ -56,8 +56,6 @@ set(SOURCES
 
     CheckGeo.cc
 
-    SLabelCache.cc
-
     SMath.cc
 
     snd.cc
@@ -235,8 +233,6 @@ set(HEADERS
     SRand.hh
 
     CheckGeo.hh
-    SLabelCache.hh
-
     SRng.hh
 
     SName.h 
