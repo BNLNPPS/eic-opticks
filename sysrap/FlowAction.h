@@ -1,5 +1,4 @@
 #pragma once
-#include <string_view>
 
 /**
  * Flow-control actions shared by CSG traversal and photon propagation.
@@ -33,7 +32,7 @@ enum class FlowAction : unsigned
  * @param action Flow-control action to format.
  * @return Uppercase enumerator name, or "UNKNOWN" for an invalid value.
  */
-constexpr std::string_view flow_action_name(FlowAction action) noexcept
+constexpr const char* flow_action_name(FlowAction action) noexcept
 {
     switch (action)
     {
