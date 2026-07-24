@@ -69,10 +69,16 @@ def detect_build_type(base):
     return "default"
 
 
+def normalize_build_type(build_type):
+    """Map CMake build types onto the available expectation sets."""
+    normalized = (build_type or "").strip().casefold()
+    return "Release" if normalized == "minsizerel" or normalized.startswith("rel") else "Debug"
+
+
 def expected_diff_for_version(geometry, version, build_type):
     """Return expected record mismatch indices for a Geant4 version and build type."""
     expected_by_build = EXPECTED_DIFF[geometry][geant4_series(version)]
-    return expected_by_build.get(build_type, expected_by_build["Debug"])
+    return expected_by_build[normalize_build_type(build_type)]
 
 
 def load_records(base, a_record, b_record):
@@ -139,6 +145,7 @@ def compare_records_main(args):
     print(f"B_SHAPE={b.shape}")
     print(f"GEANT4_VERSION={geant4_version}")
     print(f"BUILD_TYPE={build_type}")
+    print(f"EXPECTATION_BUILD_TYPE={normalize_build_type(build_type)}")
     print(f"EXPECTED_DIFF={expected_diff}")
     print(f"ACTUAL_DIFF={diff}")
 
