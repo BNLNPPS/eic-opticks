@@ -34,7 +34,7 @@ EXPECTED_DIFF = {
             "Release": [0, 16, 30, 32, 42, 67, 69, 78, 86],
         },
     },
-    "nested_dune_module": {
+    "dune_mock_wls_detector_box": {
         "11.3": {
             "Debug": [13, 22, 34, 43, 50, 61, 63, 68, 82, 88],
             "Release": [6, 22, 25, 34, 61, 63, 68, 82],
@@ -69,7 +69,7 @@ def detect_build_type(base):
     return "default"
 
 
-def expected_diff_for_version(version, build_type):
+def expected_diff_for_version(geometry, version, build_type):
     """Return expected record mismatch indices for a Geant4 version and build type."""
     expected_by_build = EXPECTED_DIFF[geometry][geant4_series(version)]
     return expected_by_build.get(build_type, expected_by_build["Debug"])
@@ -111,11 +111,6 @@ def record_parser():
         help="geometry expectation set to use",
     )
     parser.add_argument(
-        "--build-type",
-        default="Debug",
-        help="build type expectation set to use, falling back to Debug when unknown",
-    )
-    parser.add_argument(
         "--a-record",
         default="ALL0_no_opticks_event_name/A000/record.npy",
         help="path to the A-side record.npy relative to --base",
@@ -132,7 +127,7 @@ def compare_records_main(args):
     """Run record validation and fail unless its mismatch indices are expected."""
     base = Path(args.base).resolve()
     geant4_version = detect_geant4_version()
-    build_type = args.build_type
+    build_type = detect_build_type(base)
     expected_diff = expected_diff_for_version(args.geometry, geant4_version, build_type)
 
     a, b = load_records(base, Path(args.a_record), Path(args.b_record))

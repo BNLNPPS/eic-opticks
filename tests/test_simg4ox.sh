@@ -2,19 +2,50 @@
 
 set -euo pipefail
 
-SCRIPT_DIR=$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)
-REPO_DIR=${REPO_DIR:-$(cd ${SCRIPT_DIR}/.. && pwd)}
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+REPO_DIR=${REPO_DIR:-$(cd "${SCRIPT_DIR}/.." && pwd)}
 
 SIMG4OX_BIN=${SIMG4OX_BIN:-simg4ox}
 PYTHON=${PYTHON:-python3}
 COMPARE_AB="${REPO_DIR}/optiphy/ana/compare_ab.py"
+GEOMETRY=${1:-raindrop}
 
 export OPTICKS_HOME="${REPO_DIR}"
 export SIMPHONY_CONFIG_DIR="${SIMPHONY_CONFIG_DIR:-${REPO_DIR}/config}"
 export PYTHONPATH="${REPO_DIR}${PYTHONPATH:+:${PYTHONPATH}}"
 
-"${SIMG4OX_BIN}" -g "${REPO_DIR}/tests/geom/raindrop.gdml" -m "${REPO_DIR}/tests/run.mac" -c dev
-"${PYTHON}" "${COMPARE_AB}"
+if [[ $# -gt 1 ]]; then
+    echo "Usage: $(basename "$0") [raindrop|dune_mock_wls_detector_box]" >&2
+    exit 2
+fi
+
+case "${GEOMETRY}" in
+    raindrop)
+        CONFIG=dev
+        ;;
+    dune_mock_wls_detector_box)
+        CONFIG=dune_mock_wls_detector_box
+        ;;
+    *)
+        echo "Unknown simg4ox test geometry: ${GEOMETRY}" >&2
+        exit 2
+        ;;
+esac
+
+rm -rf "${PWD}/ALL0_no_opticks_event_name"
+
+"${SIMG4OX_BIN}" \
+    -g "${REPO_DIR}/tests/geom/${GEOMETRY}.gdml" \
+    -m "${REPO_DIR}/tests/run.mac" \
+    -c "${CONFIG}"
+"${PYTHON}" "${COMPARE_AB}" --base "${PWD}" --geometry "${GEOMETRY}"
+
+# The DUNE invocation is record-only. Raindrop also retains the consolidated
+# CPU/GPU hit validations from the main branch, whether selected explicitly or
+# by default.
+if [[ "${GEOMETRY}" == dune_mock_wls_detector_box ]]; then
+    exit 0
+fi
 
 SEED=42
 NSIGMA=3
@@ -46,51 +77,3 @@ run_hit_validation 8x8-sipm "${GEOM_FILE}" 8x8SiPM_crystal
 # This geometry has two distinct SensDet logical volumes.  It catches a
 # regression where each PhotonSD overwrites g_hits.npy with its own collection.
 run_hit_validation multi-sensdet "${REPO_DIR}/tests/geom/opticks_two_spheres.gdml" dev
-
-
-GEOM_NAME=${1:-raindrop}
-BUILD_TYPE=${2:-Debug}
-KNOWN_GEOMETRIES=(raindrop nested_dune_module)
-
-export OPTICKS_HOME=${REPO_DIR}
-export GPHOX_CONFIG_DIR=${GPHOX_CONFIG_DIR:-${REPO_DIR}/config}
-export PYTHONPATH=${REPO_DIR}${PYTHONPATH:+:${PYTHONPATH}}
-
-usage() {
-    cat >&2 <<EOF
-Usage: $(basename $0) <geometry> <build-type>
-
-Known geometries:
-  raindrop
-  nested_dune_module
-EOF
-}
-
-if [[ $# -gt 2 ]]; then
-    usage
-    exit 2
-fi
-
-is_known_geometry() {
-    local known
-
-    for known in ${KNOWN_GEOMETRIES[@]}; do
-        [[ ${GEOM_NAME} == ${known} ]] && return 0
-    done
-
-    return 1
-}
-
-if ! is_known_geometry; then
-    echo Unknown simg4ox test geometry: ${GEOM_NAME} >&2
-    usage
-    exit 2
-fi
-
-GDML_FILE=${REPO_DIR}/tests/geom/${GEOM_NAME}.gdml
-
-rm -rf ALL0_no_opticks_event_name g_hits.npy o_hits.npy run.npy run_meta.txt
-
-echo === simg4ox: ${GEOM_NAME} ===
-${SIMG4OX_BIN} -g ${GDML_FILE} -m ${REPO_DIR}/tests/run.mac -c ${GEOM_NAME}
-${PYTHON} ${REPO_DIR}/optiphy/ana/compare_ab.py --base ${PWD} --geometry ${GEOM_NAME} --build-type ${BUILD_TYPE}
