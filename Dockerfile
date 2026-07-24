@@ -90,6 +90,18 @@ COPY optiphy $SIMPHONY_HOME/optiphy
 RUN uv sync --python "${PYTHON_VERSION}" --managed-python
 
 
+FROM base AS devenv
+
+ARG DEV_USER=dev
+
+RUN if ! id -u "${DEV_USER}" >/dev/null 2>&1; then \
+      useradd --create-home --user-group --shell /bin/bash "${DEV_USER}"; \
+    fi
+
+ENV HOME=/home/${DEV_USER}
+
+USER ${DEV_USER}
+
 FROM base AS release
 
 ARG CMAKE_BUILD_JOBS
