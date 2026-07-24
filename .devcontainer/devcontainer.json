@@ -20,6 +20,7 @@
       "version": "23"
     }
   },
+  "initializeCommand": "mkdir -p \"${localEnv:HOME}/.codex\"",
   "mounts": [
     "source=${localEnv:HOME}/.codex,target=/home/${localEnv:USER}/.codex,type=bind"
   ],
