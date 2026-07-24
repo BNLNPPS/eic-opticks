@@ -440,7 +440,7 @@ static __forceinline__ __device__ void simulate( const uint3& launch_idx, const 
 
     sim->generate_photon(ctx.p, rng, gs, photon_idx, genstep_idx );
 
-    int command = START ;
+    FlowAction command = FlowAction::Start;
     int bounce = 0 ;
     if(evt->record) ctx.point(bounce);
     while( bounce < evt->max_bounce && ctx.p.time < params.max_time )
@@ -472,7 +472,7 @@ static __forceinline__ __device__ void simulate( const uint3& launch_idx, const 
         command = sim->propagate(bounce, rng, ctx);
         bounce++;
         if(evt->record) ctx.point(bounce) ;
-        if(command == BREAK) break ;
+        if(command == FlowAction::Break) break;
     }
 #ifndef PRODUCTION
     ctx.end();  // write seq, tag, flat
