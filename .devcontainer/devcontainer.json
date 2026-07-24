@@ -4,15 +4,12 @@
     "dockerfile": "../Dockerfile",
     "context": "..",
     "target": "devenv",
-    "args": {
-      "DEV_USER": "${localEnv:USER}"
-    },
     "cacheFrom": [
       "ghcr.io/bnlnpps/simphony:base"
     ]
   },
-  "containerUser": "${localEnv:USER}",
-  "remoteUser": "${localEnv:USER}",
+  "containerUser": "dev",
+  "remoteUser": "dev",
   "updateRemoteUserUID": true,
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
@@ -22,7 +19,7 @@
   },
   "initializeCommand": "mkdir -p \"${localEnv:HOME}/.codex\"",
   "mounts": [
-    "source=${localEnv:HOME}/.codex,target=/home/${localEnv:USER}/.codex,type=bind"
+    "source=${localEnv:HOME}/.codex,target=/home/dev/.codex,type=bind"
   ],
   "customizations": {
     "vscode": {
