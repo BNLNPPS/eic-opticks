@@ -8,41 +8,83 @@ REPO_DIR=${REPO_DIR:-$(cd "${SCRIPT_DIR}/.." && pwd)}
 SIMG4OX_BIN=${SIMG4OX_BIN:-simg4ox}
 PYTHON=${PYTHON:-python3}
 COMPARE_AB="${REPO_DIR}/optiphy/ana/compare_ab.py"
+TEST_CASE=${1:-raindrop}
 
 export OPTICKS_HOME="${REPO_DIR}"
 export SIMPHONY_CONFIG_DIR="${SIMPHONY_CONFIG_DIR:-${REPO_DIR}/config}"
 export PYTHONPATH="${REPO_DIR}${PYTHONPATH:+:${PYTHONPATH}}"
 
-"${SIMG4OX_BIN}" -g "${REPO_DIR}/tests/geom/raindrop.gdml" -m "${REPO_DIR}/tests/run.mac" -c dev
-"${PYTHON}" "${COMPARE_AB}"
+usage() {
+    echo "Usage: $(basename "$0") [test-case]" >&2
+    echo "Test cases:" >&2
+    echo "  raindrop" >&2
+    echo "  dune_mock_wls_detector_box" >&2
+    echo "  8x8SiPM_w_CSI_optial_grease" >&2
+    echo "  opticks_two_spheres" >&2
+}
+
+if [[ $# -gt 1 ]]; then
+    usage
+    exit 2
+fi
 
 SEED=42
 NSIGMA=3
-GEOM_FILE="${REPO_DIR}/tests/geom/8x8SiPM_w_CSI_optial_grease.gdml"
 MAC_FILE="${REPO_DIR}/tests/run.mac"
-HIT_OUTPUT_DIR="${PWD}/simg4ox_hits"
+
+run_record_validation() {
+    local geometry=$1
+    local config_name=$2
+
+    rm -rf "${PWD}/ALL0_no_opticks_event_name"
+
+    echo "=== simg4ox ${geometry} record validation ==="
+    "${SIMG4OX_BIN}" \
+        -g "${REPO_DIR}/tests/geom/${geometry}.gdml" \
+        -m "${MAC_FILE}" \
+        -c "${config_name}"
+
+    "${PYTHON}" "${COMPARE_AB}" --base "${PWD}" --geometry "${geometry}"
+}
 
 run_hit_validation() {
-    local case_name=$1
-    local geom_file=$2
-    local config_name=$3
-    local case_dir="${HIT_OUTPUT_DIR}/${case_name}"
+    local geometry=$1
+    local config_name=$2
+    local run_log="${PWD}/simg4ox.log"
 
-    mkdir -p "${case_dir}"
-    echo "=== simg4ox ${case_name} CPU/GPU hit validation ==="
-    (
-        cd "${case_dir}"
-        "${SIMG4OX_BIN}" -g "${geom_file}" -c "${config_name}" -m "${MAC_FILE}" -s "${SEED}" > run.log 2>&1
-    )
+    rm -f "${PWD}/g_hits.npy" "${PWD}/s_hits.npy" "${run_log}"
 
-    "${PYTHON}" "${COMPARE_AB}" hits "${case_dir}/g_hits.npy" "${case_dir}/s_hits.npy" \
+    echo "=== simg4ox ${geometry} CPU/GPU hit validation ==="
+    "${SIMG4OX_BIN}" \
+        -g "${REPO_DIR}/tests/geom/${geometry}.gdml" \
+        -c "${config_name}" \
+        -m "${MAC_FILE}" \
+        -s "${SEED}" > "${run_log}" 2>&1
+
+    "${PYTHON}" "${COMPARE_AB}" hits "${PWD}/g_hits.npy" "${PWD}/s_hits.npy" \
         --count-nsigma "${NSIGMA}" \
         --chi2-ndf-tolerance 5 \
         --require-hits
 }
 
-run_hit_validation 8x8-sipm "${GEOM_FILE}" 8x8SiPM_crystal
-
-# This geometry has two distinct SensDet logical volumes.  It catches a
-# regression where each PhotonSD overwrites g_hits.npy with its own collection.
-run_hit_validation multi-sensdet "${REPO_DIR}/tests/geom/opticks_two_spheres.gdml" dev
+case "${TEST_CASE}" in
+    raindrop)
+        run_record_validation raindrop dev
+        ;;
+    dune_mock_wls_detector_box)
+        run_record_validation dune_mock_wls_detector_box dune_mock_wls_detector_box
+        ;;
+    8x8SiPM_w_CSI_optial_grease)
+        run_hit_validation 8x8SiPM_w_CSI_optial_grease 8x8SiPM_crystal
+        ;;
+    opticks_two_spheres)
+        # This geometry has two distinct SensDet logical volumes. It catches a
+        # regression where each PhotonSD overwrites g_hits.npy with its own collection.
+        run_hit_validation opticks_two_spheres dev
+        ;;
+    *)
+        echo "Unknown simg4ox test case: ${TEST_CASE}" >&2
+        usage
+        exit 2
+        ;;
+esac
