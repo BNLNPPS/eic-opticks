@@ -4,8 +4,15 @@
     "dockerfile": "../Dockerfile",
     "context": "..",
     "target": "devenv",
+    "args": {
+      "OS": "${localEnv:OS_VERSION:ubuntu24.04}",
+      "CUDA_VERSION": "${localEnv:CUDA_VERSION:13.0.3}",
+      "OPTIX_VERSION": "${localEnv:OPTIX_VERSION:9.0.0}",
+      "GEANT4_VERSION": "${localEnv:GEANT4_VERSION:11.4.2}",
+      "CMAKE_VERSION": "${localEnv:CMAKE_VERSION:4.2.1}"
+    },
     "cacheFrom": [
-      "ghcr.io/bnlnpps/simphony:base"
+      "type=registry,ref=ghcr.io/bnlnpps/simphony-buildcache:cuda${localEnv:CUDA_VERSION:13.0.3}-base-${localEnv:OS_VERSION:ubuntu24.04}-optix${localEnv:OPTIX_VERSION:9.0.0}-geant4${localEnv:GEANT4_VERSION:11.4.2}-cmake${localEnv:CMAKE_VERSION:4.2.1}"
     ]
   },
   "containerUser": "dev",
