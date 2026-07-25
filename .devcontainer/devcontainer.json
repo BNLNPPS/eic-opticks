@@ -1,15 +1,26 @@
 {
   "name": "simphony",
-  "image": "ghcr.io/bnlnpps/simphony:base",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": "..",
+    "target": "devenv",
+    "cacheFrom": [
+      "ghcr.io/bnlnpps/simphony:base"
+    ]
+  },
+  "containerUser": "dev",
+  "remoteUser": "dev",
+  "updateRemoteUserUID": true,
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "./features/llvm": {
       "version": "23"
     }
   },
-  "remoteEnv": {
-    "CODEX_HOME": "${containerWorkspaceFolder}/.codex"
-  },
+  "initializeCommand": "mkdir -p \"${localEnv:HOME}/.codex\"",
+  "mounts": [
+    "source=${localEnv:HOME}/.codex,target=/home/dev/.codex,type=bind"
+  ],
   "customizations": {
     "vscode": {
       "extensions": [
