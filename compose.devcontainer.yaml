@@ -1,0 +1,17 @@
+services:
+  simphony:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: devenv
+      args:
+        OS: ${OS:?Set OS in the selected environment file}
+        CUDA_VERSION: ${CUDA_VERSION:?Set CUDA_VERSION in the selected environment file}
+        OPTIX_VERSION: ${OPTIX_VERSION:?Set OPTIX_VERSION in the selected environment file}
+        GEANT4_VERSION: ${GEANT4_VERSION:?Set GEANT4_VERSION in the selected environment file}
+        CMAKE_VERSION: ${CMAKE_VERSION:?Set CMAKE_VERSION in the selected environment file}
+      cache_from:
+        - type=registry,ref=ghcr.io/bnlnpps/simphony-buildcache:cuda${CUDA_VERSION}-base-${OS}-optix${OPTIX_VERSION}-geant4${GEANT4_VERSION}-cmake${CMAKE_VERSION}
+    volumes:
+      - .:/workspaces/simphony:cached
+    command: sleep infinity
