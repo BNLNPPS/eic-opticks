@@ -373,12 +373,12 @@ struct SteppingAction : G4UserSteppingAction
         bool     tir;
         unsigned flag = U4StepPoint::Flag<G4OpBoundaryProcess>(post, true, tir);
         bool     is_sensitive_detect = post_is_sensitive && flag == SURFACE_SREFLECT;
-        bool     is_sensitive_nan_abort = pre_is_sensitive && flag == NAN_ABORT && track->GetTrackStatus() == fStopAndKill;
+        bool     is_sensitive_termination = pre_is_sensitive && track->GetTrackStatus() == fStopAndKill;
 
-        if (is_sensitive_nan_abort && current_photon.flag() == SURFACE_DETECT)
+        if (is_sensitive_termination && current_photon.flag() == SURFACE_DETECT)
             return;
 
-        if (is_sensitive_detect || is_sensitive_nan_abort)
+        if (is_sensitive_detect || is_sensitive_termination)
             flag = SURFACE_DETECT;
 
         bool is_detect_flag = OpticksPhoton::IsSurfaceDetectFlag(flag);
