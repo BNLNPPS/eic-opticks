@@ -13,7 +13,7 @@
     }
   },
   "initializeCommand": "mkdir -p \"${localEnv:HOME}/.codex\"",
-  "postCreateCommand": "curl -fsSL --output /tmp/codex-install.sh https://chatgpt.com/codex/install.sh && CODEX_NON_INTERACTIVE=1 sh /tmp/codex-install.sh",
+  "postCreateCommand": "curl -fsSL --output /tmp/codex-install.sh https://chatgpt.com/codex/install.sh && CODEX_NON_INTERACTIVE=1 sh /tmp/codex-install.sh; status=$?; rm -f /tmp/codex-install.sh; exit $status",
   "mounts": [
     "source=${localEnv:HOME}/.codex,target=/home/dev/.codex,type=bind"
   ],
