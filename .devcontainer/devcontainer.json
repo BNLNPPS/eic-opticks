@@ -17,6 +17,9 @@
   "mounts": [
     "source=${localEnv:HOME}/.codex,target=/home/dev/.codex,type=bind"
   ],
+  "remoteEnv": {
+    "PATH": "/home/dev/.local/bin:${containerEnv:PATH}"
+  },
   "customizations": {
     "vscode": {
       "extensions": [
