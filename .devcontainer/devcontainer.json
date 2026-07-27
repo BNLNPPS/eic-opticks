@@ -1,6 +1,6 @@
 {
   "name": "simphony",
-  "dockerComposeFile": "../compose.devcontainer.yaml",
+  "dockerComposeFile": "compose.devcontainer.yaml",
   "service": "simphony",
   "workspaceFolder": "/workspaces/simphony",
   "containerUser": "dev",

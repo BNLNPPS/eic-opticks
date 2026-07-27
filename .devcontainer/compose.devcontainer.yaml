@@ -1,7 +1,7 @@
 services:
   simphony:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
       target: devenv
       args:
@@ -13,5 +13,5 @@ services:
       cache_from:
         - type=registry,ref=ghcr.io/bnlnpps/simphony-buildcache:cuda${CUDA_VERSION}-base-${OS_VERSION}-optix${OPTIX_VERSION}-geant4${GEANT4_VERSION}-cmake${CMAKE_VERSION}
     volumes:
-      - .:/workspaces/simphony:cached
+      - ..:/workspaces/simphony:cached
     command: sleep infinity
