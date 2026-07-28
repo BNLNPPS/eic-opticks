@@ -151,13 +151,8 @@ void intersect_leaf_zsphere(bool& valid_isect, float4& isect, const quad& q0, co
     }
 
     float t_cand = t_min;
-    if(sdisc > 0.f)
+    if (sdisc > 0.f)
     {
-
-#ifdef DEBUG_RECORD
-        //std::raise(SIGINT); 
-#endif
-
         if (t1sph > t_min && z1sph > zmin && z1sph <= zmax && csg_in_phi_wedge(O.x + t1sph * D.x, O.y + t1sph * D.y, startPhi, deltaPhi))
             t_cand = t1sph;
         else if( t1cap > t_min )                                   t_cand = t1cap ;  // t1cap qualifies -> t1cap 
@@ -204,5 +199,3 @@ void intersect_leaf_zsphere(bool& valid_isect, float4& isect, const quad& q0, co
     printf("//]intersect_leaf_zsphere valid_isect %d \n", valid_isect ); 
 #endif
 }
-
-

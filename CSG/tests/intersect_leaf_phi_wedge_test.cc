@@ -1,11 +1,8 @@
 /**
-intersect_leaf_phi_wedge_test.cc
-================================
-
-Exercises phi intervals baked into centred ZSphere and Cylinder leaves. The
-radial-wall cases are essential: filtering only curved roots would return the
-wrong, later surface.
-**/
+ * Exercises phi intervals baked into centred ZSphere and Cylinder leaves. The
+ * radial-wall cases are essential: filtering only curved roots would return the
+ * wrong, later surface.
+ */
 
 #include <cmath>
 #include <cstdio>

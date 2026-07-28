@@ -24,15 +24,8 @@ void intersect_leaf_sphere( bool& valid_isect, float4& isect, const quad& q0, co
     float c = dot(O, O)-radius*radius;
     float d = dot(D, D);
 
-#ifdef CATASTROPHIC_SUBTRACTION_ROOTS
-    float disc = b*b-d*c;   // when d*c small,  sdisc ~ b => catastrophic precision loss in root2 = (-b + sdisc)/d
-    float sdisc = disc > 0.f ? sqrtf(disc) : 0.f ;   // repeated root for sdisc 0.f
-    float root1 = (-b - sdisc)/d ;
-    float root2 = (-b + sdisc)/d ;  // root2 > root1 always
-#else
     float root1, root2, disc, sdisc ;   
     robust_quadratic_roots(root1, root2, disc, sdisc, d, b, c ) ; //  Solving:  d t^2 + 2 b t +  c = 0    root2 > root1 
-#endif
 
     float t_cand = sdisc > 0.f ? ( root1 > t_min ? root1 : root2 ) : t_min ;
 
@@ -50,8 +43,4 @@ void intersect_leaf_sphere( bool& valid_isect, float4& isect, const quad& q0, co
     printf("//intersect_leaf_sphere valid %d radius %10.4f center (%10.4f, %10.4f, %10.4f) ray_ori (%10.4f, %10.4f, %10.4f)  \n", 
        valid_isect,  radius, center.x, center.y, center.z, ray_origin.x, ray_origin.y, ray_origin.z  );  
 #endif
-
-
 }
-
-

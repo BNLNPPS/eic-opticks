@@ -80,15 +80,10 @@ Alternative quadratic in 1/t
              -b  +-  sqrt( b^2 - d c )
 
 
-----------------
-
       q =  b + sign(b) sqrt( b^2 - d c )      
 
       q =  b + sqrt( b^2 - d c ) # b > 0
       q =  b - sqrt( b^2 - d c ) # b < 0
-   
-
-
 */
 
 static csg_D
@@ -97,17 +92,12 @@ void robust_quadratic_roots(float& t1, float &t2, float& disc, float& sdisc, con
     disc = b*b-d*c;
     sdisc = disc > 0.f ? sqrtf(disc) : 0.f ;   // real roots for sdisc > 0.f 
 
-#ifdef NAIVE_QUADRATIC
-    t1 = (-b - sdisc)/d ;
-    t2 = (-b + sdisc)/d ;  // t2 > t1 always, sdisc and d always +ve
-#else
     // picking robust quadratic roots that avoid catastrophic subtraction 
     float q = b > 0.f ? -(b + sdisc) : -(b - sdisc) ; 
     float root1 = q/d  ; 
     float root2 = c/q  ;
     t1 = fminf( root1, root2 );
     t2 = fmaxf( root1, root2 );
-#endif
 } 
 
 
@@ -132,7 +122,3 @@ void robust_quadratic_roots_disqualifying(const float t_min, float& t1, float &t
     t1 = fminf( root1, root2 );
     t2 = fmaxf( root1, root2 );
 } 
-
-
-
-
