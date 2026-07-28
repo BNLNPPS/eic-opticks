@@ -79,7 +79,7 @@ int main()
 
     std::vector<const sn*> primitives;
     root->collect_prim(primitives);
-    int  matching = 0;
+    int  cylinders = 0;
     bool outer = false;
     bool inner = false;
     int  complemented = 0;
@@ -95,24 +95,25 @@ int main()
             continue;
 
         bool phi = close(param[0], startPhi) && close(param[1], deltaPhi);
+        bool full_phi = close(param[0], 0.) && close(param[1], 0.);
         bool bounds = close(aabb[0], -param[3]) && close(aabb[1], -param[3]) && close(aabb[3], param[3]) && close(aabb[4], param[3]);
-        if (phi && bounds)
-        {
-            matching++;
-            outer = outer || close(param[3], 100.);
-            inner = inner || close(param[3], 50.);
-            complemented += primitive->complement == 1 ? 1 : 0;
-        }
+        if (!bounds)
+            continue;
+
+        cylinders++;
+        complemented += primitive->complement == 1 ? 1 : 0;
+        outer = outer || (phi && close(param[3], 100.) && primitive->complement == 0);
+        inner = inner || (full_phi && close(param[3], 50.) && primitive->complement == 1);
     }
 
     delete root;
 
-    if (matching != 2 || !outer || !inner || complemented != 1)
+    if (cylinders != 2 || !outer || !inner || complemented != 1)
     {
-        std::cerr << "converted tube did not retain phi metadata, bounds, and annular complement" << std::endl;
+        std::cerr << "converted tube did not use one wedged outer and one full inner cylinder" << std::endl;
         return EXIT_FAILURE;
     }
 
-    std::cout << "partial-phi G4Tubs converted to two phi-aware Cylinder leaves" << std::endl;
+    std::cout << "partial-phi G4Tubs converted to a wedged outer and full inner Cylinder" << std::endl;
     return EXIT_SUCCESS;
 }
