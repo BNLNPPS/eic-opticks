@@ -1,6 +1,6 @@
 {
   "name": "simphony",
-  "dockerComposeFile": "../compose.devcontainer.yaml",
+  "dockerComposeFile": "compose.devcontainer.yaml",
   "service": "simphony",
   "workspaceFolder": "/workspaces/simphony",
   "containerUser": "dev",
@@ -13,9 +13,13 @@
     }
   },
   "initializeCommand": "mkdir -p \"${localEnv:HOME}/.codex\"",
+  "postCreateCommand": "curl -fsSL --output /tmp/codex-install.sh https://chatgpt.com/codex/install.sh && CODEX_NON_INTERACTIVE=1 sh /tmp/codex-install.sh; status=$?; rm -f /tmp/codex-install.sh; exit $status",
   "mounts": [
     "source=${localEnv:HOME}/.codex,target=/home/dev/.codex,type=bind"
   ],
+  "remoteEnv": {
+    "PATH": "/home/dev/.local/bin:${containerEnv:PATH}"
+  },
   "customizations": {
     "vscode": {
       "extensions": [
