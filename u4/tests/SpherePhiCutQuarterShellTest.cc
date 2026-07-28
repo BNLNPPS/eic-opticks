@@ -1,11 +1,12 @@
 #include <cassert>
+#include <cmath>
 #include <csignal>
 #include <cstdlib>
 #include <iostream>
-#include <set>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <vector>
 
 #include <plog/Appenders/ConsoleAppender.h>
 #include <plog/Formatters/TxtFormatter.h>
@@ -50,30 +51,30 @@ bool IsExpectedRejectSignal(int signal)
     return signal == SIGABRT || signal == SIGINT;
 }
 
-bool HasNonSpherePrimitive(const sn* nd)
+bool HasBakedPhiZSpheres(const sn* nd)
 {
     if (nd == nullptr)
         return false;
 
-    std::set<int> typecodes;
-    nd->typecodes(typecodes);
+    std::vector<const sn*> primitives;
+    nd->collect_prim(primitives);
+    int matching = 0;
 
-    for (int typecode : typecodes)
+    for (const sn* primitive : primitives)
     {
-        if (CSG::IsPrimitive(typecode) == false)
+        if (primitive->typecode != CSG_ZSPHERE)
             continue;
 
-        if (typecode == CSG_SPHERE || typecode == CSG_ZSPHERE)
+        const double* param = primitive->getParam();
+        if (param == nullptr)
             continue;
 
-        if (typecode == CSG_NOTSUPPORTED || typecode == CSG_UNDEFINED)
-            continue;
-
-        if (typecode == CSG_PHICUT || typecode == CSG_HALFSPACE)
-            return true;
+        bool quarter_phi = std::fabs(param[0]) < 1.e-9 && std::fabs(param[1] - 0.5 * CLHEP::pi) < 1.e-9;
+        if (quarter_phi)
+            matching++;
     }
 
-    return false;
+    return matching == 2;
 }
 
 int CountPartialPhiSpheres(const G4VSolid* solid)
@@ -117,13 +118,13 @@ ConvertOutcome ConvertInChildProcess(const G4VSolid* solid)
         int exit_code = 4;
         if (nd != nullptr)
         {
-            bool has_phi_cut_representation = HasNonSpherePrimitive(nd);
+            bool has_phi_cut_representation = HasBakedPhiZSpheres(nd);
             exit_code = has_phi_cut_representation ? 0 : 5;
             if (has_phi_cut_representation == false)
             {
                 std::cerr
-                    << "child conversion produced non-null tree without any non-sphere primitive; "
-                    << "phi-cut geometry is not represented"
+                    << "child conversion did not preserve quarter-phi metadata "
+                    << "on both ZSphere leaves"
                     << std::endl;
             }
         }
@@ -155,7 +156,7 @@ ConvertOutcome ConvertInChildProcess(const G4VSolid* solid)
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
     {
         std::cout
-            << "child converted partial-phi sphere with non-sphere primitive(s) in the CSG tree"
+            << "child converted both partial-phi spheres with baked phi metadata"
             << std::endl;
         return CONVERT_ACCEPTED;
     }
@@ -222,10 +223,10 @@ int main(int argc, char** argv)
     switch (outcome)
     {
     case CONVERT_REJECTED:
-        std::cout
-            << "partial-phi sphere conversion is rejected, matching current fail-fast behavior"
+        std::cerr
+            << "partial-phi sphere conversion was rejected"
             << std::endl;
-        return EXIT_SUCCESS;
+        return EXIT_FAILURE;
 
     case CONVERT_ACCEPTED:
         std::cout
@@ -238,8 +239,7 @@ int main(int argc, char** argv)
     }
 
     std::cerr
-        << "SpherePhiCutQuarterShellTest could neither confirm fail-fast rejection nor "
-        << "successful conversion of the partial-phi spherical shell."
+        << "SpherePhiCutQuarterShellTest could not confirm partial-phi sphere conversion."
         << std::endl;
 
     return EXIT_FAILURE;

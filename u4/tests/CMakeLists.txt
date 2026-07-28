@@ -62,6 +62,7 @@ set(TEST_SOURCES
    U4PhysicsTableTest.cc 
 
    SpherePhiCutQuarterShellTest.cc
+   TubePhiCutQuarterShellTest.cc
 )
 
 set(EXPECTED_TO_FAIL_SOURCES

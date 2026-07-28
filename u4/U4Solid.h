@@ -535,7 +535,7 @@ inline void U4Solid::init_Sphere()
 U4Solid::init_Sphere_
 -----------------------
 
-TODO: bring over phicut handling from X4Solid
+Partial-phi intervals are baked into centred ZSphere leaves.
 
 ::
 
@@ -581,9 +581,8 @@ inline sn* U4Solid::init_Sphere_(char layer)
     double deltaPhi = sphere->GetDeltaPhiAngle()/CLHEP::radian ;
     bool has_deltaPhi = startPhi != 0. || deltaPhi != 2.*CLHEP::pi  ;
 
-    bool has_deltaPhi_expect = has_deltaPhi == false ;
-    assert( has_deltaPhi_expect );
-    if(!has_deltaPhi_expect) std::raise(SIGINT);
+    if (has_deltaPhi)
+        return sn::ZSphere(radius, zmin, zmax, startPhi, deltaPhi);
 
     return z_slice ? sn::ZSphere( radius, zmin, zmax ) : sn::Sphere(radius ) ;
 }
@@ -973,8 +972,13 @@ inline void U4Solid::init_Tubs()
     double rmin = tubs->GetInnerRadius()/CLHEP::mm ;
     bool has_inner = rmin > 0. ;
 
-    sn* outer = sn::Cylinder(rmax, -hz, hz );
+    double startPhi = tubs->GetStartPhiAngle() / CLHEP::radian;
+    double deltaPhi = tubs->GetDeltaPhiAngle() / CLHEP::radian;
+    bool   has_deltaPhi = startPhi != 0. || deltaPhi != 2. * CLHEP::pi;
 
+    sn* outer = has_deltaPhi
+                    ? sn::Cylinder(rmax, -hz, hz, startPhi, deltaPhi)
+                    : sn::Cylinder(rmax, -hz, hz);
 
     if(has_inner == false)
     {
@@ -986,7 +990,9 @@ inline void U4Solid::init_Tubs()
         double nudge_inner = 0.01 ;
         double dz = do_nudge_inner ? hz*nudge_inner : 0. ;
 
-        sn* inner = sn::Cylinder(rmin, -(hz+dz), hz+dz );
+        sn* inner = has_deltaPhi
+                        ? sn::Cylinder(rmin, -(hz + dz), hz + dz, startPhi, deltaPhi)
+                        : sn::Cylinder(rmin, -(hz + dz), hz + dz);
         root = sn::Boolean( CSG_DIFFERENCE, outer, inner );
     }
 

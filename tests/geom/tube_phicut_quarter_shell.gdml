@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="">
+
+  <materials>
+    <element name="O" formula="O" Z="8">
+      <atom value="15.999" unit="g/mole"/>
+    </element>
+
+    <material name="Dummy" state="solid">
+      <D value="1.0" unit="g/cm3"/>
+      <fraction n="1.0" ref="O"/>
+    </material>
+  </materials>
+
+  <solids>
+    <box name="WorldBox" x="400" y="400" z="400" lunit="mm"/>
+
+    <tube name="QuarterTube"
+          rmin="50"
+          rmax="100"
+          z="120"
+          startphi="0"
+          deltaphi="1.57079632679"
+          aunit="rad"
+          lunit="mm"/>
+  </solids>
+
+  <structure>
+    <volume name="QuarterTube_lv">
+      <materialref ref="Dummy"/>
+      <solidref ref="QuarterTube"/>
+    </volume>
+
+    <volume name="World_lv">
+      <materialref ref="Dummy"/>
+      <solidref ref="WorldBox"/>
+      <physvol name="QuarterTube_pv">
+        <volumeref ref="QuarterTube_lv"/>
+        <position name="QuarterTube_pos" unit="mm" x="0" y="0" z="0"/>
+      </physvol>
+    </volume>
+  </structure>
+
+  <setup name="Default" version="1.0">
+    <world ref="World_lv"/>
+  </setup>
+</gdml>
