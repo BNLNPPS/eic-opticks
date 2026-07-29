@@ -419,6 +419,7 @@ struct SYSRAP_API sn
     std::string descXF() const ;
 
     static sn* Cylinder(double radius, double z1, double z2) ;
+    static sn* Cylinder(double radius, double z1, double z2, double startPhi, double deltaPhi);
     static sn* CutCylinder(
         double R,
         double dz,
@@ -446,6 +447,7 @@ struct SYSRAP_API sn
     static sn* Cone(double r1, double z1, double r2, double z2);
     static sn* Sphere(double radius);
     static sn* ZSphere(double radius, double z1, double z2);
+    static sn* ZSphere(double radius, double z1, double z2, double startPhi, double deltaPhi);
     static sn* Box3(double fullside);
     static sn* Box3(double fx, double fy, double fz );
     static sn* ConvexPolyhedron(const double* pl, unsigned num_planes, double bbmin_x, double bbmin_y, double bbmin_z, double bbmax_x, double bbmax_y, double bbmax_z);
@@ -2779,6 +2781,14 @@ inline sn* sn::Cylinder(double radius, double z1, double z2) // static
     nd->setBB( -radius, -radius, z1, +radius, +radius, z2 );
     return nd ;
 }
+inline sn* sn::Cylinder(double radius, double z1, double z2, double startPhi, double deltaPhi) // static
+{
+    assert(z2 > z1);
+    sn* nd = Create(CSG_CYLINDER);
+    nd->setPA(startPhi, deltaPhi, 0.f, radius, z1, z2);
+    nd->setBB(-radius, -radius, z1, +radius, +radius, z2);
+    return nd;
+}
 
 /**
 sn::CutCylinder
@@ -2958,6 +2968,15 @@ inline sn* sn::ZSphere(double radius, double z1, double z2)  // static
     nd->setPA( zero, zero, zero, radius, z1, z2 );
     nd->setBB(  -radius, -radius, z1,  radius, radius, z2  );
     return nd ;
+}
+inline sn* sn::ZSphere(double radius, double z1, double z2, double startPhi, double deltaPhi) // static
+{
+    assert(radius > zero);
+    assert(z2 > z1);
+    sn* nd = Create(CSG_ZSPHERE);
+    nd->setPA(startPhi, deltaPhi, zero, radius, z1, z2);
+    nd->setBB(-radius, -radius, z1, radius, radius, z2);
+    return nd;
 }
 inline sn* sn::Box3(double fullside)  // static
 {
@@ -5113,7 +5132,8 @@ inline double sn::radius_sphere() const
 {
     double cx, cy, cz, r, z1, z2 ;
     getParam_(cx, cy, cz, r, z1, z2 );
-    assert( cx == 0. && cy == 0. && cz == 0. ) ;
+    assert(cz == 0.);
+    assert(typecode == CSG_ZSPHERE || (cx == 0. && cy == 0.));
     return r ;
 }
 
@@ -5144,9 +5164,9 @@ inline void sn::setAABB_LeafFrame()
     }
     else if(typecode == CSG_ZSPHERE)
     {
-        double cx, cy, cz, r, z1, z2 ;
-        getParam_(cx, cy, cz, r, z1, z2 );
-        assert( cx == 0. && cy == 0. && cz == 0. ) ;
+        double startPhi, deltaPhi, zero_, r, z1, z2;
+        getParam_(startPhi, deltaPhi, zero_, r, z1, z2);
+        assert(zero_ == 0.);
         assert( z1 == zmin());
         assert( z2 == zmax());
         assert( z2 > z1 );
@@ -5167,7 +5187,14 @@ inline void sn::setAABB_LeafFrame()
         assert( a == 0. && b == 0. && c == 0. );
         setBB( -fx*0.5 , -fy*0.5, -fz*0.5, fx*0.5 , fy*0.5, fz*0.5 );
     }
-    else if( typecode == CSG_CYLINDER || typecode == CSG_OLDCYLINDER )
+    else if (typecode == CSG_CYLINDER)
+    {
+        double startPhi, deltaPhi, zero_, radius, z1, z2;
+        getParam_(startPhi, deltaPhi, zero_, radius, z1, z2);
+        assert(zero_ == 0.);
+        setBB(-radius, -radius, z1, radius, radius, z2);
+    }
+    else if (typecode == CSG_OLDCYLINDER)
     {
         double px, py, a, radius, z1, z2 ;
         getParam_(px, py, a, radius, z1, z2 ) ;

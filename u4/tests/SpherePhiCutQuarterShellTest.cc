@@ -1,11 +1,12 @@
 #include <cassert>
+#include <cmath>
 #include <csignal>
 #include <cstdlib>
 #include <iostream>
-#include <set>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <vector>
 
 #include <plog/Appenders/ConsoleAppender.h>
 #include <plog/Formatters/TxtFormatter.h>
@@ -50,30 +51,43 @@ bool IsExpectedRejectSignal(int signal)
     return signal == SIGABRT || signal == SIGINT;
 }
 
-bool HasNonSpherePrimitive(const sn* nd)
+bool HasSinglePhiShell(const sn* nd, double outer_radius, double inner_radius)
 {
     if (nd == nullptr)
         return false;
 
-    std::set<int> typecodes;
-    nd->typecodes(typecodes);
+    std::vector<const sn*> primitives;
+    nd->collect_prim(primitives);
+    int  primitive_count = 0;
+    bool outer = false;
+    bool inner = false;
+    int  complemented = 0;
 
-    for (int typecode : typecodes)
+    for (const sn* primitive : primitives)
     {
-        if (CSG::IsPrimitive(typecode) == false)
+        bool sphere_leaf = primitive->typecode == CSG_SPHERE || primitive->typecode == CSG_ZSPHERE;
+        if (!sphere_leaf)
             continue;
 
-        if (typecode == CSG_SPHERE || typecode == CSG_ZSPHERE)
+        const double* param = primitive->getParam();
+        if (param == nullptr)
             continue;
 
-        if (typecode == CSG_NOTSUPPORTED || typecode == CSG_UNDEFINED)
-            continue;
+        bool z_sphere = primitive->typecode == CSG_ZSPHERE;
+        bool quarter_phi = z_sphere && std::fabs(param[0]) < 1.e-9 && std::fabs(param[1] - 0.5 * CLHEP::pi) < 1.e-9;
+        bool full_phi =
+            primitive->typecode == CSG_SPHERE ||
+            (z_sphere && std::fabs(param[0]) < 1.e-9 && std::fabs(param[1]) < 1.e-9);
+        bool outer_radius_match = std::fabs(param[3] - outer_radius) < 1.e-9;
+        bool inner_radius_match = std::fabs(param[3] - inner_radius) < 1.e-9;
 
-        if (typecode == CSG_PHICUT || typecode == CSG_HALFSPACE)
-            return true;
+        primitive_count++;
+        complemented += primitive->complement == 1 ? 1 : 0;
+        outer = outer || (quarter_phi && outer_radius_match && primitive->complement == 0);
+        inner = inner || (full_phi && inner_radius_match && primitive->complement == 1);
     }
 
-    return false;
+    return primitive_count == 2 && outer && inner && complemented == 1;
 }
 
 int CountPartialPhiSpheres(const G4VSolid* solid)
@@ -113,21 +127,20 @@ ConvertOutcome ConvertInChildProcess(const G4VSolid* solid)
         int lvid = 0;
         int depth = 0;
         int level = 1;
-        sn* nd = U4Solid::Convert(solid, lvid, depth, level);
-        int exit_code = 4;
-        if (nd != nullptr)
+        sn* gdml_nd = U4Solid::Convert(solid, lvid, depth, level);
+
+        G4Sphere native_shell("NativeQuarterShell", 95. * CLHEP::mm, 100. * CLHEP::mm, 0., 0.5 * CLHEP::pi, 0., CLHEP::pi);
+        sn*      native_nd = U4Solid::Convert(&native_shell, lvid + 1, depth, level);
+
+        bool gdml_ok = HasSinglePhiShell(gdml_nd, 100., 95.);
+        bool native_ok = HasSinglePhiShell(native_nd, 100., 95.);
+        int  exit_code = gdml_ok && native_ok ? 0 : 5;
+        if (exit_code != 0)
         {
-            bool has_phi_cut_representation = HasNonSpherePrimitive(nd);
-            exit_code = has_phi_cut_representation ? 0 : 5;
-            if (has_phi_cut_representation == false)
-            {
-                std::cerr
-                    << "child conversion produced non-null tree without any non-sphere primitive; "
-                    << "phi-cut geometry is not represented"
-                    << std::endl;
-            }
+            std::cerr << "child conversion did not produce a wedged outer and full inner sphere for both shell forms" << std::endl;
         }
-        delete nd;
+        delete gdml_nd;
+        delete native_nd;
         _exit(exit_code);
     }
 
@@ -155,7 +168,7 @@ ConvertOutcome ConvertInChildProcess(const G4VSolid* solid)
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
     {
         std::cout
-            << "child converted partial-phi sphere with non-sphere primitive(s) in the CSG tree"
+            << "child converted both shell forms with one phi-wedged outer sphere"
             << std::endl;
         return CONVERT_ACCEPTED;
     }
@@ -222,10 +235,10 @@ int main(int argc, char** argv)
     switch (outcome)
     {
     case CONVERT_REJECTED:
-        std::cout
-            << "partial-phi sphere conversion is rejected, matching current fail-fast behavior"
+        std::cerr
+            << "partial-phi sphere conversion was rejected"
             << std::endl;
-        return EXIT_SUCCESS;
+        return EXIT_FAILURE;
 
     case CONVERT_ACCEPTED:
         std::cout
@@ -238,8 +251,7 @@ int main(int argc, char** argv)
     }
 
     std::cerr
-        << "SpherePhiCutQuarterShellTest could neither confirm fail-fast rejection nor "
-        << "successful conversion of the partial-phi spherical shell."
+        << "SpherePhiCutQuarterShellTest could not confirm partial-phi sphere conversion."
         << std::endl;
 
     return EXIT_FAILURE;

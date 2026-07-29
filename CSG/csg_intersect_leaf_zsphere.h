@@ -1,19 +1,23 @@
 #pragma once
 
+#include "csg_intersect_leaf_phi_wedge.h"
+
 LEAF_FUNC
 float distance_leaf_zsphere(const float3& pos, const quad& q0, const quad& q1 )
 {
-    float3 center = make_float3(q0.f);
-    float radius = q0.f.w;
-    const float2 zdelta = make_float2(q1.f);
-    const float z2 = center.z + zdelta.y ; 
-    const float z1 = center.z + zdelta.x ;    
+    const float startPhi = q0.f.x;
+    const float deltaPhi = q0.f.y;
+    const float radius = q0.f.w;
+    const float z2 = q1.f.y;
+    const float z1 = q1.f.x;
 
-    float3 p = pos - center;
-    float sd_sphere = length(p) - radius ; 
-    float sd_capslab = fmaxf( pos.z - z2 , z1 - pos.z ); 
+    float sd_sphere = length(pos) - radius;
+    float sd_capslab = fmaxf(pos.z - z2, z1 - pos.z);
+    float sd = fmaxf(sd_capslab, sd_sphere); // CSG intersect
 
-    float sd = fmaxf( sd_capslab, sd_sphere );    // CSG intersect
+    if (csg_has_phi_wedge(deltaPhi))
+        sd = fmaxf(sd, csg_distance_phi_wedge(pos.x, pos.y, startPhi, deltaPhi));
+
     return sd ; 
 }
 
@@ -44,10 +48,12 @@ See : notes/issues/unexpected_zsphere_miss_from_inside_for_rays_that_would_be_ex
 LEAF_FUNC
 void intersect_leaf_zsphere(bool& valid_isect, float4& isect, const quad& q0, const quad& q1, const float& t_min, const float3& ray_origin, const float3& ray_direction )
 {
-    const float3 center = make_float3(q0.f);
-    float3 O = ray_origin - center;  
+    float3      O = ray_origin;
     float3 D = ray_direction;
     const float radius = q0.f.w;
+    const float startPhi = q0.f.x;
+    const float deltaPhi = q0.f.y;
+    const bool  has_phi_wedge = csg_has_phi_wedge(deltaPhi);
 
     float b = dot(O, D);               // t of closest approach to sphere center
     float c = dot(O, O)-radius*radius; // < 0. indicates ray_origin inside sphere
@@ -57,16 +63,15 @@ void intersect_leaf_zsphere(bool& valid_isect, float4& isect, const quad& q0, co
 #endif
 
     if( c > 0.f && b > 0.f )
-    { 
-        valid_isect = false ; 
-        return ; 
-    }   
+    {
+        valid_isect = false;
+        return;
+    }
     // Cannot intersect when ray origin outside sphere and direction away from sphere.
-    // Whether early exit speeds things up (or slows things down) is another question ... 
+    // Whether early exit speeds things up (or slows things down) is another question ...
 
-    const float2 zdelta = make_float2(q1.f);
-    const float zmax = center.z + zdelta.y ;   // + 0.1f artificial increase zmax to test apex bug 
-    const float zmin = center.z + zdelta.x ;    
+    const float zmax = q1.f.y;
+    const float zmin = q1.f.x;
 
 #ifdef DEBUG_RECORD
     bool with_upper_cut = zmax < radius ; 
@@ -104,24 +109,62 @@ void intersect_leaf_zsphere(bool& valid_isect, float4& isect, const quad& q0, co
 #endif
 
     // disqualify plane intersects outside sphere t range
-    if(t1cap < t1sph || t1cap > t2sph) t1cap = t_min ; 
-    if(t2cap < t1sph || t2cap > t2sph) t2cap = t_min ; 
+    if (t1cap < t1sph || t1cap > t2sph)
+        t1cap = t_min;
+    if (t2cap < t1sph || t2cap > t2sph)
+        t2cap = t_min;
 
+    if (t1cap > t_min && !csg_in_phi_wedge(O.x + t1cap * D.x, O.y + t1cap * D.y, startPhi, deltaPhi))
+        t1cap = t_min;
+    if (t2cap > t_min && !csg_in_phi_wedge(O.x + t2cap * D.x, O.y + t2cap * D.y, startPhi, deltaPhi))
+        t2cap = t_min;
     // hmm somehow is seems unclean to have to use both z and t language
 
-    float t_cand = t_min ; 
-    if(sdisc > 0.f)
+    float t_phi_start = CUDART_INF_F;
+    float t_phi_end = CUDART_INF_F;
+    float n_start_x = 0.f;
+    float n_start_y = 0.f;
+    float n_end_x = 0.f;
+    float n_end_y = 0.f;
+    bool  phi_start_ok = false;
+    bool  phi_end_ok = false;
+
+    if (has_phi_wedge)
     {
+        phi_start_ok = csg_intersect_phi_wall(t_phi_start, n_start_x, n_start_y, startPhi, true, O.x, O.y, D.x, D.y);
+        if (phi_start_ok)
+        {
+            const float x = O.x + t_phi_start * D.x;
+            const float y = O.y + t_phi_start * D.y;
+            const float z = O.z + t_phi_start * D.z;
+            phi_start_ok = x * x + y * y + z * z <= radius * radius && z > zmin && z < zmax;
+        }
 
-#ifdef DEBUG_RECORD
-        //std::raise(SIGINT); 
-#endif
+        phi_end_ok = csg_intersect_phi_wall(t_phi_end, n_end_x, n_end_y, startPhi + deltaPhi, false, O.x, O.y, D.x, D.y);
+        if (phi_end_ok)
+        {
+            const float x = O.x + t_phi_end * D.x;
+            const float y = O.y + t_phi_end * D.y;
+            const float z = O.z + t_phi_end * D.z;
+            phi_end_ok = x * x + y * y + z * z <= radius * radius && z > zmin && z < zmax;
+        }
+    }
 
-        if(      t1sph > t_min && z1sph > zmin && z1sph <= zmax )  t_cand = t1sph ;  // t1sph qualified and t1cap disabled or disqualified -> t1sph
+    float t_cand = t_min;
+    if (sdisc > 0.f)
+    {
+        if (t1sph > t_min && z1sph > zmin && z1sph <= zmax && csg_in_phi_wedge(O.x + t1sph * D.x, O.y + t1sph * D.y, startPhi, deltaPhi))
+            t_cand = t1sph;
         else if( t1cap > t_min )                                   t_cand = t1cap ;  // t1cap qualifies -> t1cap 
         else if( t2cap > t_min )                                   t_cand = t2cap ;  // t2cap qualifies -> t2cap
-        else if( t2sph > t_min && z2sph > zmin && z2sph <= zmax)   t_cand = t2sph ;  // t2sph qualifies and t2cap disabled or disqialified -> t2sph
+        else if (t2sph > t_min && z2sph > zmin && z2sph <= zmax && csg_in_phi_wedge(O.x + t2sph * D.x, O.y + t2sph * D.y, startPhi, deltaPhi))
+            t_cand = t2sph;
     }
+
+    if (t_phi_start > t_min && phi_start_ok && (t_cand <= t_min || t_phi_start < t_cand))
+        t_cand = t_phi_start;
+    if (t_phi_end > t_min && phi_end_ok && (t_cand <= t_min || t_phi_end < t_cand))
+        t_cand = t_phi_end;
 
     valid_isect = t_cand > t_min ;
 #ifdef DEBUG_RECORD
@@ -137,11 +180,18 @@ void intersect_leaf_zsphere(bool& valid_isect, float4& isect, const quad& q0, co
             isect.y = (O.y + t_cand*D.y)/radius ;
             isect.z = (O.z + t_cand*D.z)/radius ;
         }
-        else
+        else if (t_cand == t_PCAP || t_cand == t_QCAP)
         {
             isect.x = 0.f ;
             isect.y = 0.f ;
             isect.z = t_cand == t_PCAP ? -1.f : 1.f ;
+        }
+        else
+        {
+            const bool start = t_cand == t_phi_start;
+            isect.x = start ? n_start_x : n_end_x;
+            isect.y = start ? n_start_y : n_end_y;
+            isect.z = 0.f;
         }
     }
 
@@ -149,5 +199,3 @@ void intersect_leaf_zsphere(bool& valid_isect, float4& isect, const quad& q0, co
     printf("//]intersect_leaf_zsphere valid_isect %d \n", valid_isect ); 
 #endif
 }
-
-

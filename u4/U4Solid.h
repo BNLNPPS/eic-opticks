@@ -535,7 +535,9 @@ inline void U4Solid::init_Sphere()
 U4Solid::init_Sphere_
 -----------------------
 
-TODO: bring over phicut handling from X4Solid
+Partial-phi intervals are baked into the outer centred ZSphere leaf. Inner
+radial-shell leaves remain phi-unclipped so Boolean subtraction does not
+introduce coincident radial walls.
 
 ::
 
@@ -581,9 +583,8 @@ inline sn* U4Solid::init_Sphere_(char layer)
     double deltaPhi = sphere->GetDeltaPhiAngle()/CLHEP::radian ;
     bool has_deltaPhi = startPhi != 0. || deltaPhi != 2.*CLHEP::pi  ;
 
-    bool has_deltaPhi_expect = has_deltaPhi == false ;
-    assert( has_deltaPhi_expect );
-    if(!has_deltaPhi_expect) std::raise(SIGINT);
+    if (has_deltaPhi && layer == 'O')
+        return sn::ZSphere(radius, zmin, zmax, startPhi, deltaPhi);
 
     return z_slice ? sn::ZSphere( radius, zmin, zmax ) : sn::Sphere(radius ) ;
 }
@@ -973,8 +974,13 @@ inline void U4Solid::init_Tubs()
     double rmin = tubs->GetInnerRadius()/CLHEP::mm ;
     bool has_inner = rmin > 0. ;
 
-    sn* outer = sn::Cylinder(rmax, -hz, hz );
+    double startPhi = tubs->GetStartPhiAngle() / CLHEP::radian;
+    double deltaPhi = tubs->GetDeltaPhiAngle() / CLHEP::radian;
+    bool   has_deltaPhi = startPhi != 0. || deltaPhi != 2. * CLHEP::pi;
 
+    sn* outer = has_deltaPhi
+                    ? sn::Cylinder(rmax, -hz, hz, startPhi, deltaPhi)
+                    : sn::Cylinder(rmax, -hz, hz);
 
     if(has_inner == false)
     {
@@ -986,7 +992,7 @@ inline void U4Solid::init_Tubs()
         double nudge_inner = 0.01 ;
         double dz = do_nudge_inner ? hz*nudge_inner : 0. ;
 
-        sn* inner = sn::Cylinder(rmin, -(hz+dz), hz+dz );
+        sn* inner = sn::Cylinder(rmin, -(hz + dz), hz + dz);
         root = sn::Boolean( CSG_DIFFERENCE, outer, inner );
     }
 
@@ -1227,6 +1233,33 @@ inline void U4Solid::init_BooleanSolid()
 
     sn* l = Convert( left,  lvid, depth+1, level );
     sn* r = Convert( right, lvid, depth+1, level );
+
+    bool right_is_identity = !is_right_displaced ||
+                             (r->xform != nullptr && stra<double>::IsIdentity(r->xform->t, r->xform->v));
+
+    // Within an aligned matching phi-wedged lhs, subtracting (rhs AND phi) is
+    // equivalent to subtracting rhs. Keeping the wedge on both leaves creates
+    // coincident radial-wall intersections, so retain it only on the lhs.
+    if (op == CSG_DIFFERENCE && right_is_identity &&
+        l->num_child() == 0 && r->num_child() == 0 &&
+        l->typecode == r->typecode &&
+        (l->typecode == CSG_ZSPHERE || l->typecode == CSG_CYLINDER))
+    {
+        const double* l_param = l->getParam();
+        const double* r_param = r->getParam();
+        const double  phi_epsilon = 1.e-12;
+        bool          matching_phi_wedge =
+            l_param != nullptr && r_param != nullptr &&
+            l_param[1] > 0. && l_param[1] < 2. * CLHEP::pi &&
+            std::abs(l_param[0] - r_param[0]) < phi_epsilon &&
+            std::abs(l_param[1] - r_param[1]) < phi_epsilon;
+
+        if (matching_phi_wedge)
+        {
+            r->param->set_value(0, 0.);
+            r->param->set_value(1, 0.);
+        }
+    }
 
     if(l->xform && level > 0) std::cout
         << "U4Solid::init_BooleanSolid "
