@@ -38,7 +38,7 @@ struct qbnd
 #if defined(__CUDACC__) || defined(__CUDABE__) || defined(MOCK_TEXTURE) || defined(MOCK_CUDA)
     QBND_METHOD float4 boundary_lookup(unsigned ix, unsigned iy);
     QBND_METHOD float4 boundary_lookup(float nm, unsigned line, unsigned k);
-    QBND_METHOD void fill_state(sstate& s, unsigned boundary, float wavelength, float cosTheta, unsigned long long idx, unsigned long long base_pidx, unsigned carried_matline = 0u);
+    QBND_METHOD void fill_state(sstate& s, unsigned boundary, float wavelength, float cosTheta, unsigned long long idx, unsigned long long base_pidx, unsigned carried_matline = 0xFFFFFFFFu);
 #endif
 };
 
@@ -207,11 +207,15 @@ inline QBND_METHOD void qbnd::fill_state(sstate& s, unsigned boundary, float wav
     // genstep, updated each propagate_at_boundary); when it is valid we use it
     // directly as m1 so absorption/scattering sample the true current medium.
     // (material2 is left as the boundary's other side.)
-    // Guards: 0 = "no carry" (legacy callers); 0xFFFFFFFF = the lookup_mtline=-1
-    // sentinel from SEvt::setGenstep, not a valid table row; and the carried
-    // slot must be a material row (OMAT/IMAT), not a surface row (OSUR/ISUR).
+    // UINT_MAX means that no source material is available. Line zero remains a
+    // valid OMAT row. Also reject surface rows and values beyond the boundary
+    // texture before using the carry for texture or optical-buffer indexing.
+    const unsigned num_matline = boundary_meta->q0.u.y / _BOUNDARY_NUM_FLOAT4;
     const unsigned matline_slot = carried_matline & 0x3u;
-    if (carried_matline != 0u && carried_matline != 0xFFFFFFFFu && (matline_slot == unsigned(OMAT) || matline_slot == unsigned(IMAT)))
+    const bool     carried_matline_valid =
+        carried_matline < num_matline &&
+        (matline_slot == unsigned(OMAT) || matline_slot == unsigned(IMAT));
+    if (carried_matline_valid)
     {
         m1_line = int(carried_matline);
     }

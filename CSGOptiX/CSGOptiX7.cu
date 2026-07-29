@@ -439,14 +439,10 @@ static __forceinline__ __device__ void simulate( const uint3& launch_idx, const 
 #endif
 
     sim->generate_photon(ctx.p, rng, gs, photon_idx, genstep_idx );
-    // F7: seed carried matline from the genstep's source-medium bnd row
-    // (gs.q0.u.z == scerenkov/sscint matline). Updated through
-    // propagate_at_boundary. Guard the -1 sentinel (0xFFFFFFFF) that
-    // SEvt::setGenstep emits for bad_ck/unmapped mtindex.
-    {
-        const unsigned gm = gs.q0.u.z;
-        ctx.current_matline = (gm == 0xFFFFFFFFu) ? 0u : gm;
-    }
+    // Only Cerenkov and scintillation gensteps store a source-material line in
+    // q0.u.z. TORCH/FRAME use that slot for a genstep id, so leave the carry
+    // invalid for all genstep types without the material-line contract.
+    ctx.current_matline = OpticksGenstep_UsesMaterialLine(gs.q0.u.x) ? gs.q0.u.z : 0xFFFFFFFFu;
 
     FlowAction command = FlowAction::Start;
     int bounce = 0 ;
@@ -910,16 +906,14 @@ extern "C" __global__ void __intersection__is()
         const unsigned boundary = node->boundary() ;  // all CSGNode in the tree for one CSGPrim tree have same boundary
         const unsigned globalPrimIdx_boundary = (( globalPrimIdx & 0xffffu ) << 16 ) | ( boundary & 0xffffu ) ;
 
-        // Sibling-touching coincident-face fix: at a face shared by two sibling primitives OptiX
-        // sorts the two coplanar intersections inconsistently; the exiting hit (cosI>0) carries the
-        // parent medium as m2, wrong for a sibling crossing. Bias the t REPORTED to OptiX's closest-
-        // hit sort by +10 um on the exit side so the entering sibling wins; the real unbiased isect.w
-        // still goes to the PRD/attributes so position advancement is unperturbed. Gated per boundary
-        // by index contrast (params.boundary_face_bias from CSGOptiX::initSimulate): high-contrast
-        // faces (quartz/air ~0.47) need it; low-contrast thin gaps gate off; nullptr => always-on.
+        // Coincident sibling faces can produce equal entering and exiting hits.
+        // Move only the reported exiting distance to the next representable float
+        // during photon simulation so the entering sibling wins an exact tie.
+        // This one-ULP ordering change cannot overstep a representable physical
+        // gap. Keep the unbiased isect.w in the PRD for position advancement.
         const float cosI = dot(ray_direction, make_float3(isect.x, isect.y, isect.z));
-        const bool  face_bias_on = (params.boundary_face_bias == nullptr) || (params.boundary_face_bias[boundary] != 0u);
-        const float t_report = (cosI > 0.f && face_bias_on) ? isect.w + 1.e-2f : isect.w;
+        const bool  break_exit_tie = params.raygenmode == SRG_SIMULATE && cosI > 0.f;
+        const float t_report = break_exit_tie ? nextafterf(isect.w, CUDART_INF_F) : isect.w;
 
 #ifdef WITH_PRD
         if (optixReportIntersection(t_report, hitKind))

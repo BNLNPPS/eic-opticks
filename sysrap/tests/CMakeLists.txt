@@ -85,6 +85,7 @@ set(TEST_SOURCES
    SFrameGenstep_MakeCenterExtentGensteps_Test.cc
 
    SEventTest.cc
+   OpticksGenstepTest.cc
    SThetaCutTest.cc
    SPhiCutTest.cc
    scanvasTest.cc 

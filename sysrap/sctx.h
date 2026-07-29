@@ -79,7 +79,7 @@ struct sctx
     sstate   s;
     float    current_group_velocity = 0.f;
     unsigned current_material_index = 0u;
-    unsigned current_matline = 0u; // F7 sibling-pair: photon's authoritative current-medium matline, seeded at birth, updated on transmit/reflect
+    unsigned current_matline = 0xFFFFFFFFu; // sibling-pair current-medium line; UINT_MAX means unavailable
 
 #ifndef PRODUCTION
     srec  rec;

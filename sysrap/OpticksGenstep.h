@@ -38,6 +38,36 @@ enum
     OpticksGenstep_NumType                  = 21
 };
 
+#if defined(__CUDACC__) || defined(__CUDABE__)
+#define OPTICKS_GENSTEP_METHOD __forceinline__ __device__
+#else
+#define OPTICKS_GENSTEP_METHOD inline
+#endif
+
+/**
+ * Only Cerenkov and scintillation gensteps use q0.u.z for the source material
+ * line. Other gensteps reuse the slot for unrelated data, such as the packed
+ * genstep id used by TORCH and FRAME.
+ */
+OPTICKS_GENSTEP_METHOD bool OpticksGenstep_UsesMaterialLine(unsigned gentype)
+{
+    switch (gentype)
+    {
+    case OpticksGenstep_G4Cerenkov_1042:
+    case OpticksGenstep_G4Scintillation_1042:
+    case OpticksGenstep_DsG4Cerenkov_r3971:
+    case OpticksGenstep_DsG4Scintillation_r3971:
+    case OpticksGenstep_DsG4Scintillation_r4695:
+    case OpticksGenstep_CERENKOV:
+    case OpticksGenstep_SCINTILLATION:
+    case OpticksGenstep_G4Cerenkov_modified:
+        return true;
+    default:
+        return false;
+    }
+}
+
+#undef OPTICKS_GENSTEP_METHOD
 
 #if defined(__CUDACC__) || defined(__CUDABE__)
 #else
