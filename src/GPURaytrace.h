@@ -601,7 +601,7 @@ struct SteppingAction : G4UserSteppingAction
                             nRemaining -= nPhotComp;
 
                             if (nPhotComp > 0)
-                                U4::CollectGenstep_DsG4Scintillation_r4695(aTrack, aStep, nPhotComp, c + 1, tc[c]);
+                                U4::CollectGenstep_Scintillation(aTrack, aStep, nPhotComp, c + 1, tc[c]);
                         }
                     }
                 }

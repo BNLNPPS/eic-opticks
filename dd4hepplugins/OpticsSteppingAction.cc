@@ -128,8 +128,7 @@ void OpticsSteppingAction::operator()(const G4Step *step, G4SteppingManager *mgr
 
             {
                 G4AutoLock lock(&genstep_mutex);
-                U4::CollectGenstep_DsG4Scintillation_r4695(track, step, numPhotons,
-                                                           /*scnt=*/1, scintTime);
+                U4::CollectGenstep_Scintillation(track, step, numPhotons, /*scnt=*/1, scintTime);
             }
 
             if (verbose_ > 0)

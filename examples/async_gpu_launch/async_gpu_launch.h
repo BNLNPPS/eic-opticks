@@ -449,7 +449,7 @@ static quad6 MakeGenstep_Scintillation(const G4Track* aTrack, const G4Step* aSte
     gs.zero();
     sscint* sc = (sscint*)(&gs);
 
-    sc->gentype = OpticksGenstep_DsG4Scintillation_r4695;
+    sc->gentype = OpticksGenstep_SCINTILLATION;
     sc->trackid = aTrack->GetTrackID();
     sc->matline = aMaterial->GetIndex() + SEvt::G4_INDEX_OFFSET;
     sc->numphoton = numPhotons;
@@ -953,7 +953,7 @@ struct SteppingAction : G4UserSteppingAction
                             nRemaining -= nPhotComp;
 
                             if (nPhotComp > 0)
-                                U4::CollectGenstep_DsG4Scintillation_r4695(aTrack, aStep, nPhotComp, c + 1, tc[c]);
+                                U4::CollectGenstep_Scintillation(aTrack, aStep, nPhotComp, c + 1, tc[c]);
                         }
                     }
                 }

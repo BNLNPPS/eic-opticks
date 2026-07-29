@@ -584,7 +584,7 @@ Local_DsG4Scintillation::PostStepDoIt(const G4Track& aTrack, const G4Step& aStep
         if(is_opticks_genstep && (m_opticksMode & 1))
         {
             NumPhoton = std::min( NumPhoton, 3 );  // for debugging purposes it helps to have less photons
-            U4::CollectGenstep_DsG4Scintillation_r4695( &aTrack, &aStep, NumPhoton, scnt, ScintillationTime); 
+            U4::CollectGenstep_Scintillation(&aTrack, &aStep, NumPhoton, scnt, ScintillationTime);
         }
 
          if( m_opticksMode == 0 || (m_opticksMode & 2) )
