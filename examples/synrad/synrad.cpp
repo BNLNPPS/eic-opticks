@@ -78,6 +78,16 @@ static int RunGPU(const std::string& gdml, NP* ip, int argc, char** argv,
     // otherwise sizes the photon buffers to ~87% of total VRAM.
     if( getenv("OPTICKS_MAX_BOUNCE") == nullptr ) SEventConfig::SetMaxBounce(100);
     if( getenv("OPTICKS_MAX_SLOT")   == nullptr ) SEventConfig::SetMaxSlot(n);
+    // Post-reflection rays restart qgxs::PUSH (10 um) off the wall along the
+    // facet normal, which already prevents self-intersection.  The default
+    // 0.05 mm propagate epsilon (ray tmin) then only serves to blind the
+    // trace to the ADJACENT facet across a dihedral edge: a grazing photon
+    // reflecting within tens of um of an edge skips the neighbour contact,
+    // steps through the wall, and is scored on the world box as a fake cap
+    // absorb (23/500k pencil photons at z up to 55 m, inflating the
+    // z-marginal chi2/ndf from 0.84 to 1.36).  1 um keeps every
+    // neighbour-facet contact while PUSH keeps guarding the restart facet.
+    if( getenv("OPTICKS_PROPAGATE_EPSILON") == nullptr ) SEventConfig::SetPropagateEpsilon(0.001f);
 
     // instanciating an SEvt runs SEventConfig::Initialize (CUDA device probe);
     // without it G4CXOpticks::SetGeometry sees HasDevice()==false and silently
