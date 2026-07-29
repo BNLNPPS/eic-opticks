@@ -8472,6 +8472,7 @@
     <volume name="DRICH_pss_sec0">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d16722e890"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec0">
       <materialref ref="Epoxy"/>
@@ -8594,6 +8595,7 @@
     <volume name="DRICH_pss_sec00x1">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b107f0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x1">
       <materialref ref="Epoxy"/>
@@ -8716,6 +8718,7 @@
     <volume name="DRICH_pss_sec00x2">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b17a70"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x2">
       <materialref ref="Epoxy"/>
@@ -8838,6 +8841,7 @@
     <volume name="DRICH_pss_sec00x3">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b1efb0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x3">
       <materialref ref="Epoxy"/>
@@ -8960,6 +8964,7 @@
     <volume name="DRICH_pss_sec00x4">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b46c20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x4">
       <materialref ref="Epoxy"/>
@@ -9082,6 +9087,7 @@
     <volume name="DRICH_pss_sec00x5">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b4e1a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x5">
       <materialref ref="Epoxy"/>
@@ -9204,6 +9210,7 @@
     <volume name="DRICH_pss_sec00x6">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b55720"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x6">
       <materialref ref="Epoxy"/>
@@ -9326,6 +9333,7 @@
     <volume name="DRICH_pss_sec00x7">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b5cca0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x7">
       <materialref ref="Epoxy"/>
@@ -9448,6 +9456,7 @@
     <volume name="DRICH_pss_sec00x8">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b64220"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x8">
       <materialref ref="Epoxy"/>
@@ -9570,6 +9579,7 @@
     <volume name="DRICH_pss_sec00x9">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b6b7a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x9">
       <materialref ref="Epoxy"/>
@@ -9692,6 +9702,7 @@
     <volume name="DRICH_pss_sec00x10">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b72d20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x10">
       <materialref ref="Epoxy"/>
@@ -9814,6 +9825,7 @@
     <volume name="DRICH_pss_sec00x11">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b7aaa0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x11">
       <materialref ref="Epoxy"/>
@@ -9936,6 +9948,7 @@
     <volume name="DRICH_pss_sec00x12">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b82020"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x12">
       <materialref ref="Epoxy"/>
@@ -10058,6 +10071,7 @@
     <volume name="DRICH_pss_sec00x13">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b89510"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x13">
       <materialref ref="Epoxy"/>
@@ -10180,6 +10194,7 @@
     <volume name="DRICH_pss_sec00x14">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b90a90"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x14">
       <materialref ref="Epoxy"/>
@@ -10302,6 +10317,7 @@
     <volume name="DRICH_pss_sec00x15">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b98010"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x15">
       <materialref ref="Epoxy"/>
@@ -10424,6 +10440,7 @@
     <volume name="DRICH_pss_sec00x16">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167b9f590"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x16">
       <materialref ref="Epoxy"/>
@@ -10546,6 +10563,7 @@
     <volume name="DRICH_pss_sec00x17">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ba6b10"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x17">
       <materialref ref="Epoxy"/>
@@ -10668,6 +10686,7 @@
     <volume name="DRICH_pss_sec00x18">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167bae8a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x18">
       <materialref ref="Epoxy"/>
@@ -10790,6 +10809,7 @@
     <volume name="DRICH_pss_sec00x19">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167bb5e20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x19">
       <materialref ref="Epoxy"/>
@@ -10912,6 +10932,7 @@
     <volume name="DRICH_pss_sec00x20">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167bbd3a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x20">
       <materialref ref="Epoxy"/>
@@ -11034,6 +11055,7 @@
     <volume name="DRICH_pss_sec00x21">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167bc4920"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x21">
       <materialref ref="Epoxy"/>
@@ -11156,6 +11178,7 @@
     <volume name="DRICH_pss_sec00x22">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167bcbea0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x22">
       <materialref ref="Epoxy"/>
@@ -11278,6 +11301,7 @@
     <volume name="DRICH_pss_sec00x23">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167bd4c20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x23">
       <materialref ref="Epoxy"/>
@@ -11400,6 +11424,7 @@
     <volume name="DRICH_pss_sec00x24">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167bdc1a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x24">
       <materialref ref="Epoxy"/>
@@ -11522,6 +11547,7 @@
     <volume name="DRICH_pss_sec00x25">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167be3720"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x25">
       <materialref ref="Epoxy"/>
@@ -11644,6 +11670,7 @@
     <volume name="DRICH_pss_sec00x26">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167beaca0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x26">
       <materialref ref="Epoxy"/>
@@ -11766,6 +11793,7 @@
     <volume name="DRICH_pss_sec00x27">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167bf2220"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x27">
       <materialref ref="Epoxy"/>
@@ -11888,6 +11916,7 @@
     <volume name="DRICH_pss_sec00x28">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167bf97a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x28">
       <materialref ref="Epoxy"/>
@@ -12010,6 +12039,7 @@
     <volume name="DRICH_pss_sec00x29">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c00d20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x29">
       <materialref ref="Epoxy"/>
@@ -12132,6 +12162,7 @@
     <volume name="DRICH_pss_sec00x30">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c082a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x30">
       <materialref ref="Epoxy"/>
@@ -12254,6 +12285,7 @@
     <volume name="DRICH_pss_sec00x31">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c0f820"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x31">
       <materialref ref="Epoxy"/>
@@ -12376,6 +12408,7 @@
     <volume name="DRICH_pss_sec00x32">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c16da0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x32">
       <materialref ref="Epoxy"/>
@@ -12498,6 +12531,7 @@
     <volume name="DRICH_pss_sec00x33">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c1e320"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x33">
       <materialref ref="Epoxy"/>
@@ -12620,6 +12654,7 @@
     <volume name="DRICH_pss_sec00x34">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c258a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x34">
       <materialref ref="Epoxy"/>
@@ -12742,6 +12777,7 @@
     <volume name="DRICH_pss_sec00x35">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c2ce20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x35">
       <materialref ref="Epoxy"/>
@@ -12864,6 +12900,7 @@
     <volume name="DRICH_pss_sec00x36">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c343a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x36">
       <materialref ref="Epoxy"/>
@@ -12986,6 +13023,7 @@
     <volume name="DRICH_pss_sec00x37">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c3c920"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x37">
       <materialref ref="Epoxy"/>
@@ -13108,6 +13146,7 @@
     <volume name="DRICH_pss_sec00x38">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c43ea0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x38">
       <materialref ref="Epoxy"/>
@@ -13230,6 +13269,7 @@
     <volume name="DRICH_pss_sec00x39">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c4b420"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x39">
       <materialref ref="Epoxy"/>
@@ -13352,6 +13392,7 @@
     <volume name="DRICH_pss_sec00x40">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c529a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x40">
       <materialref ref="Epoxy"/>
@@ -13474,6 +13515,7 @@
     <volume name="DRICH_pss_sec00x41">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c59f20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x41">
       <materialref ref="Epoxy"/>
@@ -13596,6 +13638,7 @@
     <volume name="DRICH_pss_sec00x42">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c614a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x42">
       <materialref ref="Epoxy"/>
@@ -13718,6 +13761,7 @@
     <volume name="DRICH_pss_sec00x43">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c68a20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x43">
       <materialref ref="Epoxy"/>
@@ -13840,6 +13884,7 @@
     <volume name="DRICH_pss_sec00x44">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c6ffa0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x44">
       <materialref ref="Epoxy"/>
@@ -13962,6 +14007,7 @@
     <volume name="DRICH_pss_sec00x45">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c77520"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x45">
       <materialref ref="Epoxy"/>
@@ -14084,6 +14130,7 @@
     <volume name="DRICH_pss_sec00x46">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c80aa0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x46">
       <materialref ref="Epoxy"/>
@@ -14206,6 +14253,7 @@
     <volume name="DRICH_pss_sec00x47">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c88020"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x47">
       <materialref ref="Epoxy"/>
@@ -14328,6 +14376,7 @@
     <volume name="DRICH_pss_sec00x48">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c8f5a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x48">
       <materialref ref="Epoxy"/>
@@ -14450,6 +14499,7 @@
     <volume name="DRICH_pss_sec00x49">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c97b20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x49">
       <materialref ref="Epoxy"/>
@@ -14572,6 +14622,7 @@
     <volume name="DRICH_pss_sec00x50">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c9f0a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x50">
       <materialref ref="Epoxy"/>
@@ -14694,6 +14745,7 @@
     <volume name="DRICH_pss_sec00x51">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ca6620"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x51">
       <materialref ref="Epoxy"/>
@@ -14816,6 +14868,7 @@
     <volume name="DRICH_pss_sec00x52">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167cadba0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x52">
       <materialref ref="Epoxy"/>
@@ -14938,6 +14991,7 @@
     <volume name="DRICH_pss_sec00x53">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167cb5120"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x53">
       <materialref ref="Epoxy"/>
@@ -15060,6 +15114,7 @@
     <volume name="DRICH_pss_sec00x54">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167cbc6a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x54">
       <materialref ref="Epoxy"/>
@@ -15182,6 +15237,7 @@
     <volume name="DRICH_pss_sec00x55">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167cc3c20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x55">
       <materialref ref="Epoxy"/>
@@ -15304,6 +15360,7 @@
     <volume name="DRICH_pss_sec00x56">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ccb1a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x56">
       <materialref ref="Epoxy"/>
@@ -15426,6 +15483,7 @@
     <volume name="DRICH_pss_sec00x57">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167cd2720"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x57">
       <materialref ref="Epoxy"/>
@@ -15548,6 +15606,7 @@
     <volume name="DRICH_pss_sec00x58">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167cd9ca0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x58">
       <materialref ref="Epoxy"/>
@@ -15670,6 +15729,7 @@
     <volume name="DRICH_pss_sec00x59">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ce1220"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x59">
       <materialref ref="Epoxy"/>
@@ -15792,6 +15852,7 @@
     <volume name="DRICH_pss_sec00x60">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ce87a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x60">
       <materialref ref="Epoxy"/>
@@ -15914,6 +15975,7 @@
     <volume name="DRICH_pss_sec00x61">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167cefd20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x61">
       <materialref ref="Epoxy"/>
@@ -16036,6 +16098,7 @@
     <volume name="DRICH_pss_sec00x62">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167cf72a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x62">
       <materialref ref="Epoxy"/>
@@ -16158,6 +16221,7 @@
     <volume name="DRICH_pss_sec00x63">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167cfe820"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x63">
       <materialref ref="Epoxy"/>
@@ -16280,6 +16344,7 @@
     <volume name="DRICH_pss_sec00x64">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d05da0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x64">
       <materialref ref="Epoxy"/>
@@ -16402,6 +16467,7 @@
     <volume name="DRICH_pss_sec00x65">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d0d320"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x65">
       <materialref ref="Epoxy"/>
@@ -16524,6 +16590,7 @@
     <volume name="DRICH_pss_sec00x66">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d148a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x66">
       <materialref ref="Epoxy"/>
@@ -16646,6 +16713,7 @@
     <volume name="DRICH_pss_sec00x67">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d1be20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x67">
       <materialref ref="Epoxy"/>
@@ -16768,6 +16836,7 @@
     <volume name="DRICH_pss_sec00x68">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d233a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x68">
       <materialref ref="Epoxy"/>
@@ -16890,6 +16959,7 @@
     <volume name="DRICH_pss_sec00x69">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d2a920"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x69">
       <materialref ref="Epoxy"/>
@@ -17012,6 +17082,7 @@
     <volume name="DRICH_pss_sec00x70">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d31ea0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x70">
       <materialref ref="Epoxy"/>
@@ -17134,6 +17205,7 @@
     <volume name="DRICH_pss_sec00x71">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d39420"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x71">
       <materialref ref="Epoxy"/>
@@ -17256,6 +17328,7 @@
     <volume name="DRICH_pss_sec00x72">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d409a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x72">
       <materialref ref="Epoxy"/>
@@ -17378,6 +17451,7 @@
     <volume name="DRICH_pss_sec00x73">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c36110"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x73">
       <materialref ref="Epoxy"/>
@@ -17500,6 +17574,7 @@
     <volume name="DRICH_pss_sec00x74">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d514a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x74">
       <materialref ref="Epoxy"/>
@@ -17622,6 +17697,7 @@
     <volume name="DRICH_pss_sec00x75">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d58a20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x75">
       <materialref ref="Epoxy"/>
@@ -17744,6 +17820,7 @@
     <volume name="DRICH_pss_sec00x76">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d5ffa0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x76">
       <materialref ref="Epoxy"/>
@@ -17866,6 +17943,7 @@
     <volume name="DRICH_pss_sec00x77">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d67520"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x77">
       <materialref ref="Epoxy"/>
@@ -17988,6 +18066,7 @@
     <volume name="DRICH_pss_sec00x78">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d6eaa0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x78">
       <materialref ref="Epoxy"/>
@@ -18110,6 +18189,7 @@
     <volume name="DRICH_pss_sec00x79">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d76020"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x79">
       <materialref ref="Epoxy"/>
@@ -18232,6 +18312,7 @@
     <volume name="DRICH_pss_sec00x80">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d7d5a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x80">
       <materialref ref="Epoxy"/>
@@ -18354,6 +18435,7 @@
     <volume name="DRICH_pss_sec00x81">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d84b20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x81">
       <materialref ref="Epoxy"/>
@@ -18476,6 +18558,7 @@
     <volume name="DRICH_pss_sec00x82">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d8c0a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x82">
       <materialref ref="Epoxy"/>
@@ -18598,6 +18681,7 @@
     <volume name="DRICH_pss_sec00x83">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d93620"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x83">
       <materialref ref="Epoxy"/>
@@ -18720,6 +18804,7 @@
     <volume name="DRICH_pss_sec00x84">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d9aba0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x84">
       <materialref ref="Epoxy"/>
@@ -18842,6 +18927,7 @@
     <volume name="DRICH_pss_sec00x85">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167da2120"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x85">
       <materialref ref="Epoxy"/>
@@ -18964,6 +19050,7 @@
     <volume name="DRICH_pss_sec00x86">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167da96a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x86">
       <materialref ref="Epoxy"/>
@@ -19086,6 +19173,7 @@
     <volume name="DRICH_pss_sec00x87">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167db0c20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x87">
       <materialref ref="Epoxy"/>
@@ -19208,6 +19296,7 @@
     <volume name="DRICH_pss_sec00x88">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167db81a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x88">
       <materialref ref="Epoxy"/>
@@ -19330,6 +19419,7 @@
     <volume name="DRICH_pss_sec00x89">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167dbf720"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x89">
       <materialref ref="Epoxy"/>
@@ -19452,6 +19542,7 @@
     <volume name="DRICH_pss_sec00x90">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167dc6ca0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x90">
       <materialref ref="Epoxy"/>
@@ -19574,6 +19665,7 @@
     <volume name="DRICH_pss_sec00x91">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167dce220"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x91">
       <materialref ref="Epoxy"/>
@@ -19696,6 +19788,7 @@
     <volume name="DRICH_pss_sec00x92">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c7ae40"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x92">
       <materialref ref="Epoxy"/>
@@ -19818,6 +19911,7 @@
     <volume name="DRICH_pss_sec00x93">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167de0d20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x93">
       <materialref ref="Epoxy"/>
@@ -19940,6 +20034,7 @@
     <volume name="DRICH_pss_sec00x94">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167de82a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x94">
       <materialref ref="Epoxy"/>
@@ -20062,6 +20157,7 @@
     <volume name="DRICH_pss_sec00x95">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167def820"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x95">
       <materialref ref="Epoxy"/>
@@ -20184,6 +20280,7 @@
     <volume name="DRICH_pss_sec00x96">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167df6da0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x96">
       <materialref ref="Epoxy"/>
@@ -20306,6 +20403,7 @@
     <volume name="DRICH_pss_sec00x97">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167dfe320"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x97">
       <materialref ref="Epoxy"/>
@@ -20428,6 +20526,7 @@
     <volume name="DRICH_pss_sec00x98">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e058a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x98">
       <materialref ref="Epoxy"/>
@@ -20550,6 +20649,7 @@
     <volume name="DRICH_pss_sec00x99">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e0ce20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x99">
       <materialref ref="Epoxy"/>
@@ -20672,6 +20772,7 @@
     <volume name="DRICH_pss_sec00x100">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167c96350"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x100">
       <materialref ref="Epoxy"/>
@@ -20794,6 +20895,7 @@
     <volume name="DRICH_pss_sec00x101">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e1d960"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x101">
       <materialref ref="Epoxy"/>
@@ -20916,6 +21018,7 @@
     <volume name="DRICH_pss_sec00x102">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e24f20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x102">
       <materialref ref="Epoxy"/>
@@ -21038,6 +21141,7 @@
     <volume name="DRICH_pss_sec00x103">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e2c4e0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x103">
       <materialref ref="Epoxy"/>
@@ -21160,6 +21264,7 @@
     <volume name="DRICH_pss_sec00x104">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e33aa0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x104">
       <materialref ref="Epoxy"/>
@@ -21282,6 +21387,7 @@
     <volume name="DRICH_pss_sec00x105">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e3b060"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x105">
       <materialref ref="Epoxy"/>
@@ -21404,6 +21510,7 @@
     <volume name="DRICH_pss_sec00x106">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e42620"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x106">
       <materialref ref="Epoxy"/>
@@ -21526,6 +21633,7 @@
     <volume name="DRICH_pss_sec00x107">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e49be0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x107">
       <materialref ref="Epoxy"/>
@@ -21648,6 +21756,7 @@
     <volume name="DRICH_pss_sec00x108">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e511a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x108">
       <materialref ref="Epoxy"/>
@@ -21770,6 +21879,7 @@
     <volume name="DRICH_pss_sec00x109">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e58760"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x109">
       <materialref ref="Epoxy"/>
@@ -21892,6 +22002,7 @@
     <volume name="DRICH_pss_sec00x110">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e5fd20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x110">
       <materialref ref="Epoxy"/>
@@ -22014,6 +22125,7 @@
     <volume name="DRICH_pss_sec00x111">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e672e0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x111">
       <materialref ref="Epoxy"/>
@@ -22136,6 +22248,7 @@
     <volume name="DRICH_pss_sec00x112">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e6e8a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x112">
       <materialref ref="Epoxy"/>
@@ -22258,6 +22371,7 @@
     <volume name="DRICH_pss_sec00x113">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e75e60"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x113">
       <materialref ref="Epoxy"/>
@@ -22380,6 +22494,7 @@
     <volume name="DRICH_pss_sec00x114">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e7d420"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x114">
       <materialref ref="Epoxy"/>
@@ -22502,6 +22617,7 @@
     <volume name="DRICH_pss_sec00x115">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e849e0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x115">
       <materialref ref="Epoxy"/>
@@ -22624,6 +22740,7 @@
     <volume name="DRICH_pss_sec00x116">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e8bfa0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x116">
       <materialref ref="Epoxy"/>
@@ -22746,6 +22863,7 @@
     <volume name="DRICH_pss_sec00x117">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e93560"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x117">
       <materialref ref="Epoxy"/>
@@ -22868,6 +22986,7 @@
     <volume name="DRICH_pss_sec00x118">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e9ab20"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x118">
       <materialref ref="Epoxy"/>
@@ -22990,6 +23109,7 @@
     <volume name="DRICH_pss_sec00x119">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ea20e0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x119">
       <materialref ref="Epoxy"/>
@@ -23112,6 +23232,7 @@
     <volume name="DRICH_pss_sec00x120">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ea96a0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x120">
       <materialref ref="Epoxy"/>
@@ -23234,6 +23355,7 @@
     <volume name="DRICH_pss_sec00x121">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167eb0c60"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x121">
       <materialref ref="Epoxy"/>
@@ -23356,6 +23478,7 @@
     <volume name="DRICH_pss_sec00x122">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167eb8220"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x122">
       <materialref ref="Epoxy"/>
@@ -23478,6 +23601,7 @@
     <volume name="DRICH_pss_sec00x123">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ebf7e0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x123">
       <materialref ref="Epoxy"/>
@@ -23600,6 +23724,7 @@
     <volume name="DRICH_pss_sec00x124">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ec6da0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x124">
       <materialref ref="Epoxy"/>
@@ -23722,6 +23847,7 @@
     <volume name="DRICH_pss_sec00x125">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167eceb70"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x125">
       <materialref ref="Epoxy"/>
@@ -23844,6 +23970,7 @@
     <volume name="DRICH_pss_sec00x126">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ed6130"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x126">
       <materialref ref="Epoxy"/>
@@ -23966,6 +24093,7 @@
     <volume name="DRICH_pss_sec00x127">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167edd6f0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x127">
       <materialref ref="Epoxy"/>
@@ -24088,6 +24216,7 @@
     <volume name="DRICH_pss_sec00x128">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ee4cb0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x128">
       <materialref ref="Epoxy"/>
@@ -24210,6 +24339,7 @@
     <volume name="DRICH_pss_sec00x129">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167eec270"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x129">
       <materialref ref="Epoxy"/>
@@ -24332,6 +24462,7 @@
     <volume name="DRICH_pss_sec00x130">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ef3830"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x130">
       <materialref ref="Epoxy"/>
@@ -24454,6 +24585,7 @@
     <volume name="DRICH_pss_sec00x131">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167efadf0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x131">
       <materialref ref="Epoxy"/>
@@ -24576,6 +24708,7 @@
     <volume name="DRICH_pss_sec00x132">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f023b0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x132">
       <materialref ref="Epoxy"/>
@@ -24698,6 +24831,7 @@
     <volume name="DRICH_pss_sec00x133">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f09970"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x133">
       <materialref ref="Epoxy"/>
@@ -24820,6 +24954,7 @@
     <volume name="DRICH_pss_sec00x134">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f10f30"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x134">
       <materialref ref="Epoxy"/>
@@ -24942,6 +25077,7 @@
     <volume name="DRICH_pss_sec00x135">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f184f0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x135">
       <materialref ref="Epoxy"/>
@@ -25064,6 +25200,7 @@
     <volume name="DRICH_pss_sec00x136">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f1fab0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x136">
       <materialref ref="Epoxy"/>
@@ -25186,6 +25323,7 @@
     <volume name="DRICH_pss_sec00x137">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f27070"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x137">
       <materialref ref="Epoxy"/>
@@ -25308,6 +25446,7 @@
     <volume name="DRICH_pss_sec00x138">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f2e630"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x138">
       <materialref ref="Epoxy"/>
@@ -25430,6 +25569,7 @@
     <volume name="DRICH_pss_sec00x139">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f35bf0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x139">
       <materialref ref="Epoxy"/>
@@ -25552,6 +25692,7 @@
     <volume name="DRICH_pss_sec00x140">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f3d1b0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x140">
       <materialref ref="Epoxy"/>
@@ -25674,6 +25815,7 @@
     <volume name="DRICH_pss_sec00x141">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f44770"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x141">
       <materialref ref="Epoxy"/>
@@ -25796,6 +25938,7 @@
     <volume name="DRICH_pss_sec00x142">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f4bd30"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x142">
       <materialref ref="Epoxy"/>
@@ -25918,6 +26061,7 @@
     <volume name="DRICH_pss_sec00x143">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f532f0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x143">
       <materialref ref="Epoxy"/>
@@ -26040,6 +26184,7 @@
     <volume name="DRICH_pss_sec00x144">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f5a8b0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x144">
       <materialref ref="Epoxy"/>
@@ -26162,6 +26307,7 @@
     <volume name="DRICH_pss_sec00x145">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f61e70"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x145">
       <materialref ref="Epoxy"/>
@@ -26284,6 +26430,7 @@
     <volume name="DRICH_pss_sec00x146">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167d47660"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x146">
       <materialref ref="Epoxy"/>
@@ -26406,6 +26553,7 @@
     <volume name="DRICH_pss_sec00x147">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f749f0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x147">
       <materialref ref="Epoxy"/>
@@ -26528,6 +26676,7 @@
     <volume name="DRICH_pss_sec00x148">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f7bfb0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x148">
       <materialref ref="Epoxy"/>
@@ -26650,6 +26799,7 @@
     <volume name="DRICH_pss_sec00x149">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f83570"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x149">
       <materialref ref="Epoxy"/>
@@ -26772,6 +26922,7 @@
     <volume name="DRICH_pss_sec00x150">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f8ab30"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x150">
       <materialref ref="Epoxy"/>
@@ -26894,6 +27045,7 @@
     <volume name="DRICH_pss_sec00x151">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f920f0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x151">
       <materialref ref="Epoxy"/>
@@ -27016,6 +27168,7 @@
     <volume name="DRICH_pss_sec00x152">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167f996b0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x152">
       <materialref ref="Epoxy"/>
@@ -27138,6 +27291,7 @@
     <volume name="DRICH_pss_sec00x153">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167fa0c70"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x153">
       <materialref ref="Epoxy"/>
@@ -27260,6 +27414,7 @@
     <volume name="DRICH_pss_sec00x154">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167fa8230"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x154">
       <materialref ref="Epoxy"/>
@@ -27382,6 +27537,7 @@
     <volume name="DRICH_pss_sec00x155">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167faf7f0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x155">
       <materialref ref="Epoxy"/>
@@ -27504,6 +27660,7 @@
     <volume name="DRICH_pss_sec00x156">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167fb6db0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x156">
       <materialref ref="Epoxy"/>
@@ -27626,6 +27783,7 @@
     <volume name="DRICH_pss_sec00x157">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167fbe370"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x157">
       <materialref ref="Epoxy"/>
@@ -27748,6 +27906,7 @@
     <volume name="DRICH_pss_sec00x158">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167fc5930"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x158">
       <materialref ref="Epoxy"/>
@@ -27870,6 +28029,7 @@
     <volume name="DRICH_pss_sec00x159">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167fccef0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x159">
       <materialref ref="Epoxy"/>
@@ -27992,6 +28152,7 @@
     <volume name="DRICH_pss_sec00x160">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167fd44b0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x160">
       <materialref ref="Epoxy"/>
@@ -28114,6 +28275,7 @@
     <volume name="DRICH_pss_sec00x161">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167fdba70"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x161">
       <materialref ref="Epoxy"/>
@@ -28236,6 +28398,7 @@
     <volume name="DRICH_pss_sec00x162">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167fe3030"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x162">
       <materialref ref="Epoxy"/>
@@ -28358,6 +28521,7 @@
     <volume name="DRICH_pss_sec00x163">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167fea5f0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x163">
       <materialref ref="Epoxy"/>
@@ -28480,6 +28644,7 @@
     <volume name="DRICH_pss_sec00x164">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ff1bb0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x164">
       <materialref ref="Epoxy"/>
@@ -28602,6 +28767,7 @@
     <volume name="DRICH_pss_sec00x165">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ff9170"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x165">
       <materialref ref="Epoxy"/>
@@ -28724,6 +28890,7 @@
     <volume name="DRICH_pss_sec00x166">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d168000730"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x166">
       <materialref ref="Epoxy"/>
@@ -28846,6 +29013,7 @@
     <volume name="DRICH_pss_sec00x167">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d168007cf0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x167">
       <materialref ref="Epoxy"/>
@@ -28968,6 +29136,7 @@
     <volume name="DRICH_pss_sec00x168">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d16800f2b0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x168">
       <materialref ref="Epoxy"/>
@@ -29090,6 +29259,7 @@
     <volume name="DRICH_pss_sec00x169">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d168016870"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x169">
       <materialref ref="Epoxy"/>
@@ -29212,6 +29382,7 @@
     <volume name="DRICH_pss_sec00x170">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d16801de30"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x170">
       <materialref ref="Epoxy"/>
@@ -29334,6 +29505,7 @@
     <volume name="DRICH_pss_sec00x171">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680253f0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x171">
       <materialref ref="Epoxy"/>
@@ -29456,6 +29628,7 @@
     <volume name="DRICH_pss_sec00x172">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d16802c9b0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x172">
       <materialref ref="Epoxy"/>
@@ -29578,6 +29751,7 @@
     <volume name="DRICH_pss_sec00x173">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d168033f70"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x173">
       <materialref ref="Epoxy"/>
@@ -29700,6 +29874,7 @@
     <volume name="DRICH_pss_sec00x174">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d16803b530"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x174">
       <materialref ref="Epoxy"/>
@@ -29822,6 +29997,7 @@
     <volume name="DRICH_pss_sec00x175">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d168042af0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x175">
       <materialref ref="Epoxy"/>
@@ -29944,6 +30120,7 @@
     <volume name="DRICH_pss_sec00x176">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d16804a0b0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x176">
       <materialref ref="Epoxy"/>
@@ -30066,6 +30243,7 @@
     <volume name="DRICH_pss_sec00x177">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d168051670"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x177">
       <materialref ref="Epoxy"/>
@@ -30188,6 +30366,7 @@
     <volume name="DRICH_pss_sec00x178">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d168058c30"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x178">
       <materialref ref="Epoxy"/>
@@ -30310,6 +30489,7 @@
     <volume name="DRICH_pss_sec00x179">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680601f0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x179">
       <materialref ref="Epoxy"/>
@@ -30432,6 +30612,7 @@
     <volume name="DRICH_pss_sec00x180">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680677b0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x180">
       <materialref ref="Epoxy"/>
@@ -30554,6 +30735,7 @@
     <volume name="DRICH_pss_sec00x181">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d16806ed70"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x181">
       <materialref ref="Epoxy"/>
@@ -30676,6 +30858,7 @@
     <volume name="DRICH_pss_sec00x182">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d168076330"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x182">
       <materialref ref="Epoxy"/>
@@ -30798,6 +30981,7 @@
     <volume name="DRICH_pss_sec00x183">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d16807d8f0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x183">
       <materialref ref="Epoxy"/>
@@ -30920,6 +31104,7 @@
     <volume name="DRICH_pss_sec00x184">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d168084eb0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x184">
       <materialref ref="Epoxy"/>
@@ -31042,6 +31227,7 @@
     <volume name="DRICH_pss_sec00x185">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d16808c470"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x185">
       <materialref ref="Epoxy"/>
@@ -31164,6 +31350,7 @@
     <volume name="DRICH_pss_sec00x186">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167ddbe40"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x186">
       <materialref ref="Epoxy"/>
@@ -31286,6 +31473,7 @@
     <volume name="DRICH_pss_sec00x187">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680a3000"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x187">
       <materialref ref="Epoxy"/>
@@ -31408,6 +31596,7 @@
     <volume name="DRICH_pss_sec00x188">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680aa5c0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x188">
       <materialref ref="Epoxy"/>
@@ -31530,6 +31719,7 @@
     <volume name="DRICH_pss_sec00x189">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680b1b80"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x189">
       <materialref ref="Epoxy"/>
@@ -31652,6 +31842,7 @@
     <volume name="DRICH_pss_sec00x190">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680b9140"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x190">
       <materialref ref="Epoxy"/>
@@ -31774,6 +31965,7 @@
     <volume name="DRICH_pss_sec00x191">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680c0700"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x191">
       <materialref ref="Epoxy"/>
@@ -31896,6 +32088,7 @@
     <volume name="DRICH_pss_sec00x192">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680c7cc0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x192">
       <materialref ref="Epoxy"/>
@@ -32018,6 +32211,7 @@
     <volume name="DRICH_pss_sec00x193">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680cf280"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x193">
       <materialref ref="Epoxy"/>
@@ -32140,6 +32334,7 @@
     <volume name="DRICH_pss_sec00x194">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680d6840"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x194">
       <materialref ref="Epoxy"/>
@@ -32262,6 +32457,7 @@
     <volume name="DRICH_pss_sec00x195">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680dde00"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x195">
       <materialref ref="Epoxy"/>
@@ -32384,6 +32580,7 @@
     <volume name="DRICH_pss_sec00x196">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680e53c0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x196">
       <materialref ref="Epoxy"/>
@@ -32506,6 +32703,7 @@
     <volume name="DRICH_pss_sec00x197">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680ec980"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x197">
       <materialref ref="Epoxy"/>
@@ -32628,6 +32826,7 @@
     <volume name="DRICH_pss_sec00x198">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680f3f40"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x198">
       <materialref ref="Epoxy"/>
@@ -32750,6 +32949,7 @@
     <volume name="DRICH_pss_sec00x199">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1680fb500"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x199">
       <materialref ref="Epoxy"/>
@@ -32872,6 +33072,7 @@
     <volume name="DRICH_pss_sec00x200">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d168102ac0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x200">
       <materialref ref="Epoxy"/>
@@ -32994,6 +33195,7 @@
     <volume name="DRICH_pss_sec00x201">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d16810a080"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x201">
       <materialref ref="Epoxy"/>
@@ -33116,6 +33318,7 @@
     <volume name="DRICH_pss_sec00x202">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d167e13180"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x202">
       <materialref ref="Epoxy"/>
@@ -33238,6 +33441,7 @@
     <volume name="DRICH_pss_sec00x203">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d16811cc00"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x203">
       <materialref ref="Epoxy"/>
@@ -33360,6 +33564,7 @@
     <volume name="DRICH_pss_sec00x204">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1681241c0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x204">
       <materialref ref="Epoxy"/>
@@ -33482,6 +33687,7 @@
     <volume name="DRICH_pss_sec00x205">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d16812b780"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x205">
       <materialref ref="Epoxy"/>
@@ -33604,6 +33810,7 @@
     <volume name="DRICH_pss_sec00x206">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d168132d40"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x206">
       <materialref ref="Epoxy"/>
@@ -33726,6 +33933,7 @@
     <volume name="DRICH_pss_sec00x207">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d16813a300"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x207">
       <materialref ref="Epoxy"/>
@@ -33848,6 +34056,7 @@
     <volume name="DRICH_pss_sec00x208">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d1681418c0"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x208">
       <materialref ref="Epoxy"/>
@@ -33970,6 +34179,7 @@
     <volume name="DRICH_pss_sec00x209">
       <materialref ref="AirOptical"/>
       <solidref ref="DRICH_pss_sec0_shape_0x55d168148e80"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
     </volume>
     <volume name="DRICH_resin_sec00x209">
       <materialref ref="Epoxy"/>
