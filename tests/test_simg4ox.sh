@@ -21,6 +21,7 @@ usage() {
     echo "  dune_mock_wls_detector_box" >&2
     echo "  8x8SiPM_w_CSI_optial_grease" >&2
     echo "  opticks_two_spheres" >&2
+    echo "  drich" >&2
 }
 
 if [[ $# -gt 1 ]]; then
@@ -50,6 +51,7 @@ run_record_validation() {
 run_hit_validation() {
     local geometry=$1
     local config_name=$2
+    local macro_file=${3:-${MAC_FILE}}
     local run_log="${PWD}/simg4ox.log"
 
     rm -f "${PWD}/g_hits.npy" "${PWD}/s_hits.npy" "${run_log}"
@@ -58,7 +60,7 @@ run_hit_validation() {
     "${SIMG4OX_BIN}" \
         -g "${REPO_DIR}/tests/geom/${geometry}.gdml" \
         -c "${config_name}" \
-        -m "${MAC_FILE}" \
+        -m "${macro_file}" \
         -s "${SEED}" > "${run_log}" 2>&1
 
     "${PYTHON}" "${COMPARE_AB}" hits "${PWD}/g_hits.npy" "${PWD}/s_hits.npy" \
@@ -81,6 +83,13 @@ case "${TEST_CASE}" in
         # This geometry has two distinct SensDet logical volumes. It catches a
         # regression where each PhotonSD overwrites g_hits.npy with its own collection.
         run_hit_validation opticks_two_spheres dev
+        ;;
+    drich)
+        # Loading the full geometry exercises conversion of its partial-phi
+        # sphere and tube solids. The torch aims identical optical photons at
+        # a SiPM patch for a stable, nonzero CPU/GPU hit comparison.
+        # Invoke Geant4 SDs for the EFFICIENCY=1 SiPM skin surfaces.
+        run_hit_validation drich drich "${REPO_DIR}/tests/run_validate.mac"
         ;;
     *)
         echo "Unknown simg4ox test case: ${TEST_CASE}" >&2

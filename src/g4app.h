@@ -1,5 +1,6 @@
 #include <cstring>
 #include <filesystem>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -150,6 +151,7 @@ struct DetectorConstruction : G4VUserDetectorConstruction
     void ConstructSDandField() override
     {
         G4SDManager* SDman = G4SDManager::GetSDMpointer();
+        size_t       sensitive_index = 0;
 
         const G4GDMLAuxMapType* auxmap = parser_.GetAuxMap();
         for (auto const& [logVol, listType] : *auxmap)
@@ -159,7 +161,7 @@ struct DetectorConstruction : G4VUserDetectorConstruction
                 if (auxtype.type == "SensDet")
                 {
                     G4cout << "DetectorConstruction::ConstructSDandField: Attach sensitive detector to logical volume: " << logVol->GetName() << G4endl;
-                    G4String  name = logVol->GetName() + "_PhotonDetector";
+                    G4String  name = logVol->GetName() + "_" + std::to_string(sensitive_index++) + "_PhotonDetector";
                     PhotonSD* aPhotonSD = new PhotonSD(name);
                     SDman->AddNewDetector(aPhotonSD);
                     logVol->SetSensitiveDetector(aPhotonSD);
