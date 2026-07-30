@@ -27,7 +27,8 @@ If Node.js and npm are not installed, use the [standalone
 installer](https://github.com/devcontainers/cli#install-script). You only need
 a CUDA-capable NVIDIA GPU and the [NVIDIA Container
 Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
-when you are ready to run GPU-backed code.
+when you are ready to run GPU-backed code. The Dev Container CLI detects the
+NVIDIA runtime and requests GPU access automatically.
 
 ### Get the source
 

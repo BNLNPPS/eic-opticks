@@ -54,9 +54,10 @@ The root `.env` selects the OS and toolchain versions. See [Choose dependency
 versions](docs/getting-started.md#choose-dependency-versions) before changing
 them.
 
-If you plan to run GPU-backed code, install the [NVIDIA Container
+To run GPU-backed code, install the [NVIDIA Container
 Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
-on the host.
+on the host. The Dev Container CLI detects the NVIDIA runtime and requests GPU
+access automatically.
 
 ### Try a published image
 
