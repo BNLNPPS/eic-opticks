@@ -16,15 +16,16 @@ the host.
 
 ### Install the host tools
 
-Before you begin, install [Docker
-Engine](https://docs.docker.com/engine/install/) if it is not available. Then install [Dev Container CLI](https://github.com/devcontainers/cli) 0.82 or newer with npm:
+Before you begin, make sure [Docker
+Engine](https://docs.docker.com/engine/install/) is installed. Then install [Dev
+Container CLI](https://github.com/devcontainers/cli) 0.82 or newer with npm:
 
 ```shell
 npm install -g @devcontainers/cli
 ```
 
 If Node.js and npm are not installed, use the [standalone
-installer](https://github.com/devcontainers/cli#install-script). You only need
+installer](https://github.com/devcontainers/cli). You only need
 a CUDA-capable NVIDIA GPU and the [NVIDIA Container
 Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 when you are ready to run GPU-backed code. The Dev Container CLI detects the
