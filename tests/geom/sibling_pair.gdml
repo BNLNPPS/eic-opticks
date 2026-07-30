@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="">
+  <!--
+    Two daughter boxes share the x=0 face exactly. The photon beam enters the
+    left box, reaches the shared face at a steep angle, crosses the right box,
+    and is detected by the nested sensor.
+
+    The short absorption length belongs only to the common parent. If the
+    entering sibling is not selected, the beam is totally internally reflected.
+    If the left sibling's carried material is not used for the segment ending at
+    the shared face, almost all photons are incorrectly absorbed as parent
+    material before reaching the sensor.
+  -->
+  <define>
+    <matrix name="RINDEX_PARENT" coldim="2" values="1.0*eV 1.0 4.0*eV 1.0"/>
+    <matrix name="ABSLENGTH_PARENT" coldim="2" values="1.0*eV 10.0 4.0*eV 10.0"/>
+    <matrix name="RINDEX_SIBLING" coldim="2" values="1.0*eV 1.5 4.0*eV 1.5"/>
+    <matrix name="ABSLENGTH_SIBLING" coldim="2" values="1.0*eV 1000000.0 4.0*eV 1000000.0"/>
+    <matrix name="EFFICIENCY_SENSOR" coldim="2" values="1.0*eV 1.0 4.0*eV 1.0"/>
+    <matrix name="REFLECTIVITY_SENSOR" coldim="2" values="1.0*eV 0.0 4.0*eV 0.0"/>
+  </define>
+
+  <materials>
+    <element name="Hydrogen" formula="H" Z="1">
+      <atom unit="g/mole" value="1.00794"/>
+    </element>
+
+    <material name="ParentMedium" state="gas">
+      <D unit="g/cm3" value="0.001"/>
+      <fraction n="1.0" ref="Hydrogen"/>
+      <property name="RINDEX" ref="RINDEX_PARENT"/>
+      <property name="ABSLENGTH" ref="ABSLENGTH_PARENT"/>
+    </material>
+
+    <material name="SiblingMedium" state="solid">
+      <D unit="g/cm3" value="1.0"/>
+      <fraction n="1.0" ref="Hydrogen"/>
+      <property name="RINDEX" ref="RINDEX_SIBLING"/>
+      <property name="ABSLENGTH" ref="ABSLENGTH_SIBLING"/>
+    </material>
+  </materials>
+
+  <solids>
+    <box name="WorldBox" x="100" y="100" z="140" lunit="mm"/>
+    <box name="SiblingBox" x="20" y="40" z="100" lunit="mm"/>
+    <box name="SensorBox" x="4" y="20" z="4" lunit="mm"/>
+
+    <opticalsurface name="SensorSurface" model="unified" finish="polished" type="dielectric_metal" value="1">
+      <property name="EFFICIENCY" ref="EFFICIENCY_SENSOR"/>
+      <property name="REFLECTIVITY" ref="REFLECTIVITY_SENSOR"/>
+    </opticalsurface>
+  </solids>
+
+  <structure>
+    <volume name="SensorLV">
+      <materialref ref="SiblingMedium"/>
+      <solidref ref="SensorBox"/>
+      <auxiliary auxtype="SensDet" auxvalue="PhotonDetector"/>
+    </volume>
+
+    <volume name="LeftSiblingLV">
+      <materialref ref="SiblingMedium"/>
+      <solidref ref="SiblingBox"/>
+    </volume>
+
+    <volume name="RightSiblingLV">
+      <materialref ref="SiblingMedium"/>
+      <solidref ref="SiblingBox"/>
+      <physvol name="SensorPV">
+        <volumeref ref="SensorLV"/>
+        <position name="SensorPosition" x="-2" y="0" z="40" unit="mm"/>
+        <rotation name="SensorRotation" x="5" y="0" z="0" unit="deg"/>
+      </physvol>
+    </volume>
+
+    <volume name="WorldLV">
+      <materialref ref="ParentMedium"/>
+      <solidref ref="WorldBox"/>
+      <physvol name="LeftSiblingPV">
+        <volumeref ref="LeftSiblingLV"/>
+        <position name="LeftSiblingPosition" x="-10" y="0" z="0" unit="mm"/>
+      </physvol>
+      <physvol name="RightSiblingPV">
+        <volumeref ref="RightSiblingLV"/>
+        <position name="RightSiblingPosition" x="10" y="0" z="0" unit="mm"/>
+      </physvol>
+    </volume>
+
+    <skinsurface name="SensorSkin" surfaceproperty="SensorSurface">
+      <volumeref ref="SensorLV"/>
+    </skinsurface>
+  </structure>
+
+  <setup name="Default" version="1.0">
+    <world ref="WorldLV"/>
+  </setup>
+</gdml>

@@ -35,15 +35,12 @@ struct qbnd
     unsigned            boundary_tex_MaterialLine_LS ;
     quad*               optical ;
 
-#if defined(__CUDACC__) || defined(__CUDABE__) || defined( MOCK_TEXTURE) || defined(MOCK_CUDA)
-    QBND_METHOD float4  boundary_lookup( unsigned ix, unsigned iy );
-    QBND_METHOD float4  boundary_lookup( float nm, unsigned line, unsigned k );
-    QBND_METHOD void    fill_state(sstate& s, unsigned boundary, float wavelength, float cosTheta, unsigned long long idx, unsigned long long base_pidx );
+#if defined(__CUDACC__) || defined(__CUDABE__) || defined(MOCK_TEXTURE) || defined(MOCK_CUDA)
+    QBND_METHOD float4 boundary_lookup(unsigned ix, unsigned iy);
+    QBND_METHOD float4 boundary_lookup(float nm, unsigned line, unsigned k);
+    QBND_METHOD void fill_state(sstate& s, unsigned boundary, float wavelength, float cosTheta, unsigned long long idx, unsigned long long base_pidx, unsigned carried_matline = 0xFFFFFFFFu);
 #endif
-
 };
-
-
 
 #if defined( MOCK_TEXTURE) || defined(MOCK_CUDA)
 #include "stexture.h"
@@ -194,30 +191,51 @@ s.optical.x
 
 **/
 
-inline QBND_METHOD void qbnd::fill_state(sstate& s, unsigned boundary, float wavelength, float cosTheta, unsigned long long idx, unsigned long long base_pidx  )
+inline QBND_METHOD void qbnd::fill_state(sstate& s, unsigned boundary, float wavelength, float cosTheta, unsigned long long idx, unsigned long long base_pidx, unsigned carried_matline)
 {
-    const int line = boundary*_BOUNDARY_NUM_MATSUR ;      // now that are not signing boundary use 0-based
+    const int line = boundary * _BOUNDARY_NUM_MATSUR; // now that are not signing boundary use 0-based
 
-    const int m1_line = cosTheta > 0.f ? line + IMAT : line + OMAT ;
-    const int m2_line = cosTheta > 0.f ? line + OMAT : line + IMAT ;
-    const int su_line = cosTheta > 0.f ? line + ISUR : line + OSUR ;
+    int       m1_line = cosTheta > 0.f ? line + IMAT : line + OMAT;
+    const int m2_line = cosTheta > 0.f ? line + OMAT : line + IMAT;
+    const int su_line = cosTheta > 0.f ? line + ISUR : line + OSUR;
 
+    // A boundary normally describes a daughter volume relative to its parent.
+    // When two daughter volumes touch, however, a photon can move directly from
+    // one sibling to the other. The boundary selected by OptiX may then name the
+    // common parent instead of the material the photon is actually leaving.
+    //
+    // qsim carries the material-table row for the photon's current volume across
+    // interactions. Use that row as material1 when it is valid so absorption and
+    // scattering are sampled from the correct medium. Material2 and the surface
+    // still come from the selected boundary.
+    //
+    // UINT_MAX means that no current-material row is available. Line zero is a
+    // valid material row. Surface rows and rows beyond the uploaded boundary
+    // table must not be used for property or optical-buffer lookups.
+    const unsigned num_matline = boundary_meta->q0.u.y / _BOUNDARY_NUM_FLOAT4;
+    const unsigned matline_slot = carried_matline & 0x3u;
+    const bool     carried_matline_valid = carried_matline < num_matline && (matline_slot == unsigned(OMAT) || matline_slot == unsigned(IMAT));
 
-    s.material1 = boundary_lookup( wavelength, m1_line, 0);   // refractive_index, absorption_length, scattering_length, reemission_prob
-    s.m1group2  = boundary_lookup( wavelength, m1_line, 1);   // x: material1 group_velocity, y: material2 group_velocity, z/w unused
-    s.material2 = boundary_lookup( wavelength, m2_line, 0);   // refractive_index, (absorption_length, scattering_length, reemission_prob) only m2:refractive index actually used
-    s.surface   = boundary_lookup( wavelength, su_line, 0);   // detect,         , absorb            , (reflect_specular), reflect_diffuse     [they add to 1. so one not used]
+    if (carried_matline_valid)
+    {
+        m1_line = int(carried_matline);
+    }
+
+    s.material1 = boundary_lookup(wavelength, m1_line, 0); // refractive_index, absorption_length, scattering_length, reemission_prob
+    s.m1group2 = boundary_lookup(wavelength, m1_line, 1);  // x: material1 group_velocity, y: material2 group_velocity, z/w unused
+    s.material2 = boundary_lookup(wavelength, m2_line, 0); // refractive_index, (absorption_length, scattering_length, reemission_prob) only m2:refractive index actually used
+    s.surface = boundary_lookup(wavelength, su_line, 0);   // detect,         , absorb            , (reflect_specular), reflect_diffuse     [they add to 1. so one not used]
     s.set_material2_group_velocity(boundary_lookup(wavelength, m2_line, 1).x);
 
-    s.optical = optical[su_line].u ;   // 1-based-surface-index-0-meaning-boundary/type/finish/value  (type,finish,value not used currently)
+    s.optical = optical[su_line].u; // 1-based-surface-index-0-meaning-boundary/type/finish/value  (type,finish,value not used currently)
 
-    s.index.x = optical[m1_line].u.x ; // m1 index (1-based, see sstandard::make_optical)
-    s.index.y = optical[m2_line].u.x ; // m2 index (1-based, see sstandard::make_optical)
-    s.index.z = optical[su_line].u.x ; // su index (1-based, see sstandard::make_optical)
-    s.index.w = 0u ;                   // avoid undefined memory comparison issues
+    s.index.x = optical[m1_line].u.x; // m1 index (1-based, see sstandard::make_optical) -- reflects override if any
+    s.index.y = optical[m2_line].u.x; // m2 index (1-based, see sstandard::make_optical)
+    s.index.z = optical[su_line].u.x; // su index (1-based, see sstandard::make_optical)
+    s.index.w = 0u;                   // avoid undefined memory comparison issues
 
 #if !defined(PRODUCTION) && defined(DEBUG_PIDX)
-    if( idx == base_pidx )
+    if (idx == base_pidx)
     {
         printf("//qbnd.fill_state idx %7lld boundary %d line %d wavelength %10.4f m1_line %d m2_line %d su_line %d s.optical.x %d  \n", idx, boundary, line, wavelength, m1_line, m2_line, su_line, s.optical.x );
         printf("//qbnd.fill_state idx %7lld boundary %d [s.index.x-1](m1_index) %d [s.index.y-1](m2_index) %d [s.index.z-1](su_index) %d \n", idx, boundary, s.index.x-1u, s.index.y-1u, s.index.z-1u );

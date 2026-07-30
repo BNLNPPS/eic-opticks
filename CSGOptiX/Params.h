@@ -61,12 +61,12 @@ struct Params
     float3     V ;
     float3     W ;
     float3     WNORM ;
-    float      tmin ;
+    float      tmin;
 
-    float      tmin0 ;
-    unsigned   PropagateEpsilon0Mask ;   // default from SEventConfig TO,CK,SI,SC,RE
-    float      PropagateRefineDistance ;
-    bool       PropagateRefine ;
+    float    tmin0;
+    unsigned PropagateEpsilon0Mask; // default from SEventConfig TO,CK,SI,SC,RE
+    float    PropagateRefineDistance;
+    bool     PropagateRefine;
 
     float      tmax ;
     float4     ZPROJ ;

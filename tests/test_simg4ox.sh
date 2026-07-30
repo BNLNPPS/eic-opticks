@@ -22,6 +22,7 @@ usage() {
     echo "  8x8SiPM_w_CSI_optial_grease" >&2
     echo "  opticks_two_spheres" >&2
     echo "  drich" >&2
+    echo "  sibling_pair" >&2
 }
 
 if [[ $# -gt 1 ]]; then
@@ -90,6 +91,12 @@ case "${TEST_CASE}" in
         # a SiPM patch for a stable, nonzero CPU/GPU hit comparison.
         # Invoke Geant4 SDs for the EFFICIENCY=1 SiPM skin surfaces.
         run_hit_validation drich drich "${REPO_DIR}/tests/run_validate.mac"
+        ;;
+    sibling_pair)
+        # The beam can reach the sensor only by crossing the exact shared face
+        # from the left sibling into the right sibling while retaining the
+        # correct current-medium properties for the segment ending at that face.
+        run_hit_validation sibling_pair sibling_pair "${REPO_DIR}/tests/run_validate.mac"
         ;;
     *)
         echo "Unknown simg4ox test case: ${TEST_CASE}" >&2

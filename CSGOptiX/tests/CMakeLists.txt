@@ -10,6 +10,7 @@ or doing geometry specific things.
 
 set(SINGLE_SOURCES
 
+    CSGOptiXHelpersTest.cu
     CSGOptiXDescTest.cc
     CSGOptiXSimtraceTest.cc
     CSGOptiXSimulateTest.cc
@@ -48,5 +49,7 @@ foreach(SRC ${TEST_SOURCES})
        COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/CXTestRunner.sh ${CMAKE_CURRENT_BINARY_DIR}/${TGT}
     )
 endforeach()
+
+add_test(NAME ${name}.CSGOptiXHelpersTest COMMAND $<TARGET_FILE:CSGOptiXHelpersTest>)
 
 set_tests_properties(${name}.CSGOptiXRenderTest PROPERTIES DISABLED TRUE)

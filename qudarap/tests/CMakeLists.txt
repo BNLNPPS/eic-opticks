@@ -18,6 +18,7 @@ set(TEST_SOURCES
    QTexMakerTest.cc
    QTexLookupTest.cc
    qbnd_boundary_lookup_test.cc
+   QSim_MaterialCarryTest.cc
    QMultiFilmTest.cc
 
 
@@ -90,6 +91,10 @@ foreach(SRC ${TEST_SOURCES})
     get_filename_component(TGT ${SRC} NAME_WE)
     add_executable(${TGT} ${SRC})
     target_link_libraries(${TGT} QUDARap CUDA::cudart)
+
+    if(TGT STREQUAL QSim_MaterialCarryTest)
+        target_compile_definitions(${TGT} PRIVATE MOCK_CUDA MOCK_CURAND)
+    endif()
 
     if(TGT STREQUAL QEvt_Lifecycle_Test)
         foreach(INPUT_PHOTON_NAME ${QUDARAP_INPUT_PHOTON_NAMES})

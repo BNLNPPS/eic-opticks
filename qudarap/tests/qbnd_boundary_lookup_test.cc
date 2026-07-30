@@ -102,6 +102,10 @@ int main()
     qbnd qb;
     qb.boundary_tex = texObj;
     qb.boundary_meta = &meta;
+    quad optical[ni * nj] = {};
+    for (unsigned line = 0; line < ni * nj; line++)
+        optical[line].u.x = 1000u + line;
+    qb.optical = optical;
 
     printf("qbnd_boundary_lookup_test\n");
 
@@ -158,6 +162,34 @@ int main()
     {
         float4 p = qb.boundary_lookup(500.f, 0, 0);
         check("row0 clamp above: .x == 30 (bin 3)", feq(p.x, 30.f));
+    }
+
+    // --- Test 4: Carried material-line validation ---
+    // Boundary 1 entered from outside normally uses line 4 (OMAT).
+    // A valid carry overrides only material1; invalid, surface, and out-of-range
+    // rows must fall back to line 4 without indexing outside the buffers.
+    {
+        const unsigned boundary = 1u;
+        const float    cosTheta = -1.f;
+        sstate         s = {};
+
+        qb.fill_state(s, boundary, 100.f, cosTheta, 0u, 0u, 0u);
+        check("carried line 0 remains a valid OMAT override", feq(s.material1.x, 0.f));
+        check("carried line 0 selects optical material index", s.index.x == 1000u);
+
+        qb.fill_state(s, boundary, 100.f, cosTheta, 0u, 0u, 7u);
+        check("carried line 7 remains a valid IMAT override", feq(s.material1.x, 1400.f));
+        check("carried line 7 selects optical material index", s.index.x == 1007u);
+
+        qb.fill_state(s, boundary, 100.f, cosTheta, 0u, 0u, 0xFFFFFFFFu);
+        check("invalid sentinel falls back to boundary OMAT", feq(s.material1.x, 800.f));
+        check("invalid sentinel keeps boundary material index", s.index.x == 1004u);
+
+        qb.fill_state(s, boundary, 100.f, cosTheta, 0u, 0u, 5u);
+        check("surface row carry falls back to boundary OMAT", feq(s.material1.x, 800.f));
+
+        qb.fill_state(s, boundary, 100.f, cosTheta, 0u, 0u, ni * nj);
+        check("out-of-range carry falls back to boundary OMAT", feq(s.material1.x, 800.f));
     }
 
     printf("qbnd_boundary_lookup_test: %s (%d failure%s)\n",

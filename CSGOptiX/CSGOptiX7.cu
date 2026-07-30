@@ -77,6 +77,7 @@ __intersection__is
 
 #include "Binding.h"
 #include "Params.h"
+#include "CSGOptiXHelpers.h"
 
 #ifdef WITH_PRD
 #include "scuda_pointer.h"
@@ -439,6 +440,12 @@ static __forceinline__ __device__ void simulate( const uint3& launch_idx, const 
 #endif
 
     sim->generate_photon(ctx.p, rng, gs, photon_idx, genstep_idx );
+    // Only Cerenkov and scintillation gensteps store a source-material line in
+    // q0.u.z. TORCH and FRAME use that slot for a genstep id, so leave the
+    // carried line invalid for all other genstep types.
+    const unsigned gentype = gs.q0.u.x;
+    const bool carries_matline = CSGOptiX7_GenstepCarriesMaterialLine(gentype);
+    ctx.current_matline = carries_matline ? gs.q0.u.z : 0xFFFFFFFFu;
 
     FlowAction command = FlowAction::Start;
     int bounce = 0 ;
@@ -902,8 +909,16 @@ extern "C" __global__ void __intersection__is()
         const unsigned boundary = node->boundary() ;  // all CSGNode in the tree for one CSGPrim tree have same boundary
         const unsigned globalPrimIdx_boundary = (( globalPrimIdx & 0xffffu ) << 16 ) | ( boundary & 0xffffu ) ;
 
+        // Coincident sibling faces can produce equal entering and exiting hits.
+        // Move only the reported exiting distance to the next representable float
+        // during photon simulation so the entering sibling wins an exact tie.
+        // This one-ULP ordering change cannot overstep a representable physical
+        // gap. Keep the unbiased isect.w in the PRD for position advancement.
+        const float cosI = dot(ray_direction, make_float3(isect.x, isect.y, isect.z));
+        const float t_report = CSGOptiX7_ReportedIntersectionDistance(isect.w, params.raygenmode, cosI);
+
 #ifdef WITH_PRD
-        if(optixReportIntersection( isect.w, hitKind))
+        if (optixReportIntersection(t_report, hitKind))
         {
             quad2* prd = SOPTIX_getPRD<quad2>(); // access prd addr from RG program
             prd->q0.f = isect ;  // .w:distance and .xyz:normal which starts as the local frame one
@@ -919,7 +934,7 @@ extern "C" __global__ void __intersection__is()
         a3 = __float_as_uint( isect.w ) ;
         a4 = globalPrimIdx_boundary ;
         a5 = __float_as_uint( lposcost );
-        optixReportIntersection( isect.w, hitKind, a0, a1, a2, a3, a4, a5 );
+        optixReportIntersection(t_report, hitKind, a0, a1, a2, a3, a4, a5);
 
         // IS:optixReportIntersection writes the attributes that can be read in CH and AH programs
         // max 8 attribute registers, see PIP::PIP, communicate to __closesthit__ch

@@ -22,6 +22,7 @@ list(APPEND SOURCES
 list(APPEND HEADERS
     CSGOptiX.h
     CSGOptiXService.h
+    CSGOptiXHelpers.h
     CSGOPTIX_API_EXPORT.hh
     CSGOPTIX_LOG.hh
 )
