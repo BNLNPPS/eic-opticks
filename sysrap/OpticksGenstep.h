@@ -19,11 +19,7 @@ See also: npy/G4StepNPY.cpp  (TODO: consolidate these?)
 enum
 {
     OpticksGenstep_INVALID                  = 0,
-    OpticksGenstep_G4Cerenkov_1042          = 1,
-    OpticksGenstep_G4Scintillation_1042     = 2,
-    OpticksGenstep_DsG4Cerenkov_r3971       = 3,
-    OpticksGenstep_DsG4Scintillation_r3971  = 4,
-    OpticksGenstep_DsG4Scintillation_r4695  = 5,
+    // Values 1-5 are intentionally unused after retiring their legacy encodings.
     OpticksGenstep_TORCH                    = 6,
     OpticksGenstep_FABRICATED               = 7,
     OpticksGenstep_EMITSOURCE               = 8,
@@ -52,11 +48,6 @@ enum
 struct OpticksGenstep_
 {
     static constexpr const char* INVALID_                 = "INVALID" ;
-    static constexpr const char* G4Cerenkov_1042_         = "G4Cerenkov_1042" ;
-    static constexpr const char* G4Scintillation_1042_    = "G4Scintillation_1042" ;
-    static constexpr const char* DsG4Cerenkov_r3971_      = "DsG4Cerenkov_r3971" ;
-    static constexpr const char* DsG4Scintillation_r3971_ = "DsG4Scintillation_r3971" ;
-    static constexpr const char* DsG4Scintillation_r4695_ = "DsG4Scintillation_r4695" ;
     static constexpr const char* TORCH_                   = "TORCH" ;
     static constexpr const char* FABRICATED_              = "FABRICATED" ;
     static constexpr const char* EMITSOURCE_              = "EMITSOURCE" ;
@@ -97,12 +88,7 @@ struct OpticksGenstep_
 inline unsigned OpticksGenstep_::Type(const char* name)
 {
     unsigned type = OpticksGenstep_INVALID  ;
-    if(strcmp(name,G4Cerenkov_1042_ )==0)         type = OpticksGenstep_G4Cerenkov_1042 ;
-    if(strcmp(name,G4Scintillation_1042_ )==0)    type = OpticksGenstep_G4Scintillation_1042 ;
-    if(strcmp(name,DsG4Cerenkov_r3971_ )==0)      type = OpticksGenstep_DsG4Cerenkov_r3971 ;
     if(strcmp(name,G4Cerenkov_modified_ )==0)     type = OpticksGenstep_G4Cerenkov_modified ;
-    if(strcmp(name,DsG4Scintillation_r3971_ )==0) type = OpticksGenstep_DsG4Scintillation_r3971 ;
-    if(strcmp(name,DsG4Scintillation_r4695_ )==0) type = OpticksGenstep_DsG4Scintillation_r4695 ;
     if(strcmp(name,TORCH_)==0)                    type = OpticksGenstep_TORCH ;
     if(strcmp(name,FABRICATED_)==0)               type = OpticksGenstep_FABRICATED ;
     if(strcmp(name,EMITSOURCE_)==0)               type = OpticksGenstep_EMITSOURCE ;
@@ -131,12 +117,7 @@ inline const char* OpticksGenstep_::Name(unsigned type)
     switch(type)
     {
         case OpticksGenstep_INVALID:                 n = INVALID_                 ; break ;
-        case OpticksGenstep_G4Cerenkov_1042:         n = G4Cerenkov_1042_         ; break ;
-        case OpticksGenstep_G4Scintillation_1042:    n = G4Scintillation_1042_    ; break ;
-        case OpticksGenstep_DsG4Cerenkov_r3971:      n = DsG4Cerenkov_r3971_      ; break ;
         case OpticksGenstep_G4Cerenkov_modified:     n = G4Cerenkov_modified_     ; break ;
-        case OpticksGenstep_DsG4Scintillation_r3971: n = DsG4Scintillation_r3971_ ; break ;
-        case OpticksGenstep_DsG4Scintillation_r4695: n = DsG4Scintillation_r4695_ ; break ;
         case OpticksGenstep_TORCH:                   n = TORCH_                   ; break ;
         case OpticksGenstep_FABRICATED:              n = FABRICATED_              ; break ;
         case OpticksGenstep_EMITSOURCE:              n = EMITSOURCE_              ; break ;
@@ -167,19 +148,11 @@ inline bool OpticksGenstep_::IsValid(int gentype)   // static
 
 inline bool OpticksGenstep_::IsCerenkov(int gentype)  // static
 {
-   return gentype == OpticksGenstep_G4Cerenkov_1042  ||
-          gentype == OpticksGenstep_DsG4Cerenkov_r3971 ||
-          gentype == OpticksGenstep_CERENKOV ||
-          gentype == OpticksGenstep_G4Cerenkov_modified
-          ;
+    return gentype == OpticksGenstep_CERENKOV || gentype == OpticksGenstep_G4Cerenkov_modified;
 }
 inline bool OpticksGenstep_::IsScintillation(int gentype)  // static
 {
-   return gentype == OpticksGenstep_G4Scintillation_1042 ||
-          gentype == OpticksGenstep_DsG4Scintillation_r3971 ||
-          gentype == OpticksGenstep_DsG4Scintillation_r4695 ||
-          gentype == OpticksGenstep_SCINTILLATION
-         ;
+    return gentype == OpticksGenstep_SCINTILLATION;
 }
 inline bool OpticksGenstep_::IsTorchLike(int gentype)   // static
 {
@@ -263,5 +236,3 @@ inline unsigned OpticksGenstep_::GentypeToPhotonFlag(char gentype)  // static
 
 
 #endif
-
-

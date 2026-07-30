@@ -90,6 +90,7 @@ set(TEST_SOURCES
    scanvasTest.cc 
 
    OpticksPhotonTest.cc
+   GenstepTest.cc
    SUTest.cc
    SEventConfigTest.cc
    SFrameConfigTest.cc

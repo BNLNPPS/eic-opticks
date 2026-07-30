@@ -100,15 +100,14 @@ struct U4_API U4
     static const plog::Severity LEVEL ;
 
     // genstep collection
-    static const char* CollectGenstep_DsG4Scintillation_r4695_DISABLE ; 
-    static const char* CollectGenstep_DsG4Scintillation_r4695_ZEROPHO ; 
-    static void CollectGenstep_DsG4Scintillation_r4695( 
-         const G4Track* aTrack,
-         const G4Step* aStep,
-         G4int    numPhotons,
-         G4int    scnt,        
-         G4double ScintillationTime
-    ); 
+    static const char* CollectGenstep_Scintillation_DISABLE;
+    static const char* CollectGenstep_Scintillation_ZEROPHO;
+    static void CollectGenstep_Scintillation(
+        const G4Track* aTrack,
+        const G4Step*  aStep,
+        G4int          numPhotons,
+        G4int          scnt,
+        G4double       ScintillationTime);
 
     static const char* CollectGenstep_G4Cerenkov_modified_DISABLE ; 
     static const char* CollectGenstep_G4Cerenkov_modified_ZEROPHO ; 
@@ -138,5 +137,3 @@ struct U4_API U4
 
 
 };
-
-

@@ -6,32 +6,31 @@
 
 void test_assign()
 {
-    sgs gs ; 
+    sgs gs;
 
-    gs = {} ; 
-    std::cout << gs.desc() << std::endl ; 
+    gs = {};
+    std::cout << gs.desc() << std::endl;
 
-    gs = { 101, 10000, 5000, OpticksGenstep_TORCH } ; 
-    std::cout << gs.desc() << std::endl ; 
+    gs = {101, 10000, 5000, OpticksGenstep_TORCH};
+    std::cout << gs.desc() << std::endl;
 
-    gs = { 202, 20000, 4000, OpticksGenstep_CERENKOV } ; 
-    std::cout << gs.desc() << std::endl ; 
+    gs = {202, 20000, 4000, OpticksGenstep_CERENKOV};
+    std::cout << gs.desc() << std::endl;
 
-    gs = { 303, 30000, 3000, OpticksGenstep_SCINTILLATION } ; 
-    std::cout << gs.desc() << std::endl ; 
+    gs = {303, 30000, 3000, OpticksGenstep_SCINTILLATION};
+    std::cout << gs.desc() << std::endl;
 
-    gs = { 303, 30000, 3000, OpticksGenstep_G4Cerenkov_1042 } ; 
+    gs = {303, 30000, 3000, OpticksGenstep_G4Cerenkov_modified};
     std::cout << gs.desc() << std::endl ; 
 }
 
 void test_array()
 {
-    sgs gs[] = { 
-        { 101, 10000, 5000, OpticksGenstep_TORCH },
-        { 202, 20000, 4000, OpticksGenstep_CERENKOV },
-        { 303, 30000, 3000, OpticksGenstep_SCINTILLATION },
-        { 303, 30000, 3000, OpticksGenstep_G4Cerenkov_1042 } 
-        }; 
+    sgs gs[] = {
+        {101, 10000, 5000, OpticksGenstep_TORCH},
+        {202, 20000, 4000, OpticksGenstep_CERENKOV},
+        {303, 30000, 3000, OpticksGenstep_SCINTILLATION},
+        {303, 30000, 3000, OpticksGenstep_G4Cerenkov_modified}};
 
     std::cout 
          << " sizeof(sgs) " << sizeof(sgs) 

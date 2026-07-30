@@ -2424,7 +2424,6 @@ inline QSIM_METHOD void qsim::generate_photon(sphoton& p, RNG& rng, const quad6&
         case OpticksGenstep_CERENKOV:
                                               cerenkov->generate(    p, rng, gs, photon_id, genstep_id ) ; break ;
 
-        case OpticksGenstep_DsG4Scintillation_r4695:
         case OpticksGenstep_SCINTILLATION:
             if (scint != nullptr)
                 scint->generate(p, rng, gs, photon_id, genstep_id);

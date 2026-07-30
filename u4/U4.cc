@@ -49,8 +49,7 @@ HMM: perhapa this state belongs better within SEvt together with the full genste
 
 **/
 
-
-static sgs gs = {} ;            // updated by eg U4::CollectGenstep_DsG4Scintillation_r4695 prior to each photon generation loop
+static sgs  gs = {};            // updated by eg U4::CollectGenstep_Scintillation prior to each photon generation loop
 static spho ancestor = {} ;     // updated by U4::GenPhotonAncestor prior to the photon generation loop(s)
 static spho pho = {} ;          // updated by U4::GenPhotonBegin at start of photon generation loop
 static spho secondary = {} ;    // updated by U4::GenPhotonEnd   at end of photon generation loop
@@ -65,13 +64,12 @@ Using hidden static non-member functions allows keeping Opticks types like quad6
 
 **/
 
-static quad6 MakeGenstep_DsG4Scintillation_r4695(
-     const G4Track* aTrack,
-     const G4Step* aStep,
-     G4int    numPhotons,
-     G4int    scnt,
-     G4double ScintillationTime
-    )
+static quad6 MakeGenstep_Scintillation(
+    const G4Track* aTrack,
+    const G4Step*  aStep,
+    G4int          numPhotons,
+    G4int          scnt,
+    G4double       ScintillationTime)
 {
     G4StepPoint* pPreStepPoint  = aStep->GetPreStepPoint();
     G4StepPoint* pPostStepPoint = aStep->GetPostStepPoint();
@@ -89,7 +87,7 @@ static quad6 MakeGenstep_DsG4Scintillation_r4695(
 
     sscint* gs = (sscint*)(&_gs) ;   // warning: dereferencing type-punned pointer will break strict-aliasing rules
 
-    gs->gentype = OpticksGenstep_DsG4Scintillation_r4695 ;
+    gs->gentype = OpticksGenstep_SCINTILLATION;
     gs->trackid = aTrack->GetTrackID() ;
     gs->matline = aMaterial->GetIndex() + SEvt::G4_INDEX_OFFSET ;  // offset signals that a mapping must be done in SEvt::setGenstep
     gs->numphoton = numPhotons ;
@@ -125,15 +123,13 @@ static quad6 MakeGenstep_DsG4Scintillation_r4695(
     return _gs ;
 }
 
-
-const char* U4::CollectGenstep_DsG4Scintillation_r4695_DISABLE = "U4__CollectGenstep_DsG4Scintillation_r4695_DISABLE" ;
-const char* U4::CollectGenstep_DsG4Scintillation_r4695_ZEROPHO = "U4__CollectGenstep_DsG4Scintillation_r4695_ZEROPHO" ;
-
+const char* U4::CollectGenstep_Scintillation_DISABLE = "U4__CollectGenstep_Scintillation_DISABLE";
+const char* U4::CollectGenstep_Scintillation_ZEROPHO = "U4__CollectGenstep_Scintillation_ZEROPHO";
 
 /**
 
-U4::CollectGenstep_DsG4Scintillation_r4695
--------------------------------------------
+U4::CollectGenstep_Scintillation
+--------------------------------
 
 1. makes quad6 gs_ collecting parameters needed to generate photons on GPU
 2. adds gs_ to SEvt using SEvt::AddGenstep which collects into a vectors of quad6 for each SEvt
@@ -142,33 +138,30 @@ U4::CollectGenstep_DsG4Scintillation_r4695
 
 **/
 
-void U4::CollectGenstep_DsG4Scintillation_r4695(
-         const G4Track* aTrack,
-         const G4Step* aStep,
-         G4int    numPhotons,
-         G4int    scnt,
-         G4double ScintillationTime
-    )
+void U4::CollectGenstep_Scintillation(
+    const G4Track* aTrack,
+    const G4Step*  aStep,
+    G4int          numPhotons,
+    G4int          scnt,
+    G4double       ScintillationTime)
 {
-    if(getenv(CollectGenstep_DsG4Scintillation_r4695_DISABLE))
+    if (getenv(CollectGenstep_Scintillation_DISABLE))
     {
-        LOG(error) << CollectGenstep_DsG4Scintillation_r4695_DISABLE ;
+        LOG(error) << CollectGenstep_Scintillation_DISABLE;
         return ;
     }
-    if(getenv(CollectGenstep_DsG4Scintillation_r4695_ZEROPHO))
+    if (getenv(CollectGenstep_Scintillation_ZEROPHO))
     {
-        LOG(error) << CollectGenstep_DsG4Scintillation_r4695_ZEROPHO ;
+        LOG(error) << CollectGenstep_Scintillation_ZEROPHO;
         numPhotons = 0 ;
     }
 
-
-
-    quad6 gs_ = MakeGenstep_DsG4Scintillation_r4695( aTrack, aStep, numPhotons, scnt, ScintillationTime);
+    quad6 gs_ = MakeGenstep_Scintillation(aTrack, aStep, numPhotons, scnt, ScintillationTime);
 
     gs = SEvt::AddGenstep(gs_);    // returns sgs struct which is a simple 4 int label
     // gs is private static genstep label
 
-    //if(dump) std::cout << "U4::CollectGenstep_DsG4Scintillation_r4695 " << gs.desc() << std::endl ;
+    // if(dump) std::cout << "U4::CollectGenstep_Scintillation " << gs.desc() << std::endl ;
     LOG(LEVEL) << gs.desc();
 }
 

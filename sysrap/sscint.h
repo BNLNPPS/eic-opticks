@@ -5,11 +5,9 @@ sscint.h : scintillation genstep helpers
 ========================================
 
 * FOLLOWING PATTERN OF storch.h and scerenkov.h
-
-For now just implemnet for JUNO specific variant : collectGenstep_DsG4Scintillation_r4695
+* shared by collected and fabricated scintillation gensteps
 
 **/
-
 
 #if defined(__CUDACC__) || defined(__CUDABE__)
    #define SSCINT_METHOD __device__
