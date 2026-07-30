@@ -1261,19 +1261,21 @@ inline QSIM_METHOD FlowAction qsim::propagate_at_boundary(unsigned& flag, RNG& r
     ctx.current_material_index = reflect ? s.index.x : s.index.y;
     ctx.current_group_velocity = reflect ? s.material1_group_velocity() : s.material2_group_velocity();
 
-    // F7 SIBLING-PAIR carry: update current_matline so propagate() at the NEXT
-    // boundary knows the photon's actual medium even when that boundary doesn't
-    // reference it (the sibling-pair case). _c1 = -dot(p.mom,normal) here, so
-    // _c1 < 0 maps to cosTheta > 0 in qbnd::fill_state (m1=IMAT, m2=OMAT).
-    // Only transmit changes medium: on reflect the carry is left untouched,
-    // preserving any sibling override fill_state applied (recomputing m1 from
-    // this boundary's own lines would clobber it with the wrong medium).
+    // Remember the material entered by a transmitted photon so the next
+    // boundary lookup knows the photon's actual current medium. This matters
+    // when touching sibling volumes share a face because the selected boundary
+    // may describe one sibling relative to their common parent and omit the
+    // material the photon is leaving.
+    //
+    // Reflection does not change the current medium, so preserve the existing
+    // material row in that case. For transmission, _c1 identifies which side of
+    // the selected boundary is the material the photon enters.
     if (!reflect)
     {
         const unsigned bnd_idx = ctx.prd->boundary();
         const unsigned imat_line = bnd_idx * _BOUNDARY_NUM_MATSUR + IMAT;
         const unsigned omat_line = bnd_idx * _BOUNDARY_NUM_MATSUR + OMAT;
-        ctx.current_matline = (_c1 < 0.f) ? omat_line : imat_line; // the m2 (entered-medium) line
+        ctx.current_matline = (_c1 < 0.f) ? omat_line : imat_line; // material entered by this transmission
     }
 
 #if !defined(PRODUCTION) && defined(DEBUG_TAG)
@@ -2164,7 +2166,9 @@ QSIM_FORCEINLINE_METHOD FlowAction qsim::propagate(const int bounce, RNG& rng, s
     // copy geometry info into the sphoton struct
     ctx.p.set_prd(boundary, identity, cosTheta, iindex); // HMM: lposcost not passed along
 
-    bnd->fill_state(ctx.s, boundary, ctx.p.wavelength, cosTheta, ctx.pidx, base->pidx, ctx.current_matline); // F7: pass carried matline for sibling-pair override
+    // Supply the current-material row so fill_state can correct material1 when
+    // the selected boundary does not describe the photon's actual current medium.
+    bnd->fill_state(ctx.s, boundary, ctx.p.wavelength, cosTheta, ctx.pidx, base->pidx, ctx.current_matline);
 
     if (ctx.current_material_index == 0u)
     {

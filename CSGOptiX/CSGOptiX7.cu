@@ -440,9 +440,14 @@ static __forceinline__ __device__ void simulate( const uint3& launch_idx, const 
 
     sim->generate_photon(ctx.p, rng, gs, photon_idx, genstep_idx );
     // Only Cerenkov and scintillation gensteps store a source-material line in
-    // q0.u.z. TORCH/FRAME use that slot for a genstep id, so leave the carry
-    // invalid for all genstep types without the material-line contract.
-    ctx.current_matline = OpticksGenstep_UsesMaterialLine(gs.q0.u.x) ? gs.q0.u.z : 0xFFFFFFFFu;
+    // q0.u.z. TORCH and FRAME use that slot for a genstep id, so leave the
+    // carried line invalid for all other genstep types.
+    const unsigned gentype = gs.q0.u.x;
+    const bool     carries_matline =
+        gentype == OpticksGenstep_CERENKOV ||
+        gentype == OpticksGenstep_SCINTILLATION ||
+        gentype == OpticksGenstep_G4Cerenkov_modified;
+    ctx.current_matline = carries_matline ? gs.q0.u.z : 0xFFFFFFFFu;
 
     FlowAction command = FlowAction::Start;
     int bounce = 0 ;

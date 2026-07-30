@@ -199,22 +199,23 @@ inline QBND_METHOD void qbnd::fill_state(sstate& s, unsigned boundary, float wav
     const int m2_line = cosTheta > 0.f ? line + OMAT : line + IMAT;
     const int su_line = cosTheta > 0.f ? line + ISUR : line + OSUR;
 
-    // F7 sibling-pair material override.
-    // GBndLib does not enumerate boundary entries for CSG sibling-pair faces
-    // (two daughters of one parent sharing a face), so OptiX may pick a boundary
-    // whose m1/m2 do not reference the photon's actual medium -> wrong material1.
-    // qsim::propagate passes the photon's carried matline (seeded from the
-    // genstep, updated each propagate_at_boundary); when it is valid we use it
-    // directly as m1 so absorption/scattering sample the true current medium.
-    // (material2 is left as the boundary's other side.)
-    // UINT_MAX means that no source material is available. Line zero remains a
-    // valid OMAT row. Also reject surface rows and values beyond the boundary
-    // texture before using the carry for texture or optical-buffer indexing.
+    // A boundary normally describes a daughter volume relative to its parent.
+    // When two daughter volumes touch, however, a photon can move directly from
+    // one sibling to the other. The boundary selected by OptiX may then name the
+    // common parent instead of the material the photon is actually leaving.
+    //
+    // qsim carries the material-table row for the photon's current volume across
+    // interactions. Use that row as material1 when it is valid so absorption and
+    // scattering are sampled from the correct medium. Material2 and the surface
+    // still come from the selected boundary.
+    //
+    // UINT_MAX means that no current-material row is available. Line zero is a
+    // valid material row. Surface rows and rows beyond the uploaded boundary
+    // table must not be used for property or optical-buffer lookups.
     const unsigned num_matline = boundary_meta->q0.u.y / _BOUNDARY_NUM_FLOAT4;
     const unsigned matline_slot = carried_matline & 0x3u;
-    const bool     carried_matline_valid =
-        carried_matline < num_matline &&
-        (matline_slot == unsigned(OMAT) || matline_slot == unsigned(IMAT));
+    const bool     carried_matline_valid = carried_matline < num_matline && (matline_slot == unsigned(OMAT) || matline_slot == unsigned(IMAT));
+
     if (carried_matline_valid)
     {
         m1_line = int(carried_matline);
