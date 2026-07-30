@@ -6,7 +6,7 @@ if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
     set(CMAKE_CUDA_ARCHITECTURES 75)
 endif()
 
-project(simphony VERSION 0.7.0 LANGUAGES CXX CUDA)
+project(simphony VERSION 0.8.0 LANGUAGES CXX CUDA)
 
 # Use CMake's standard testing option, but avoid enabling this project's tests
 # by default when Simphony is pulled in as a subproject.
