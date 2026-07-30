@@ -22,6 +22,8 @@ int main()
     check("input photons do not carry a material line", false, OpticksGenstep_UsesMaterialLine(OpticksGenstep_INPUT_PHOTON));
     check("carrier gensteps do not carry a material line", false, OpticksGenstep_UsesMaterialLine(OpticksGenstep_CARRIER));
 
+    for (unsigned type = 1; type <= 5; type++)
+        check("retired genstep does not carry a material line", false, OpticksGenstep_UsesMaterialLine(type));
     std::printf("OpticksGenstepTest: %s (%d failure%s)\n",
                 fail == 0 ? "PASS" : "FAIL", fail, fail == 1 ? "" : "s");
     return fail == 0 ? 0 : 1;

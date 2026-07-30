@@ -53,11 +53,6 @@ OPTICKS_GENSTEP_METHOD bool OpticksGenstep_UsesMaterialLine(unsigned gentype)
 {
     switch (gentype)
     {
-    case OpticksGenstep_G4Cerenkov_1042:
-    case OpticksGenstep_G4Scintillation_1042:
-    case OpticksGenstep_DsG4Cerenkov_r3971:
-    case OpticksGenstep_DsG4Scintillation_r3971:
-    case OpticksGenstep_DsG4Scintillation_r4695:
     case OpticksGenstep_CERENKOV:
     case OpticksGenstep_SCINTILLATION:
     case OpticksGenstep_G4Cerenkov_modified:
