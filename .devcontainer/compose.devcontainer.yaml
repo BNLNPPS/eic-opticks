@@ -1,4 +1,4 @@
-name: simphony-${USER}
+name: simphony-${USER:-dev}
 
 services:
   simphony:
