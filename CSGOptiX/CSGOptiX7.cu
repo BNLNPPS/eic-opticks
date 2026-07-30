@@ -77,6 +77,7 @@ __intersection__is
 
 #include "Binding.h"
 #include "Params.h"
+#include "CSGOptiXHelpers.h"
 
 #ifdef WITH_PRD
 #include "scuda_pointer.h"
@@ -443,10 +444,7 @@ static __forceinline__ __device__ void simulate( const uint3& launch_idx, const 
     // q0.u.z. TORCH and FRAME use that slot for a genstep id, so leave the
     // carried line invalid for all other genstep types.
     const unsigned gentype = gs.q0.u.x;
-    const bool     carries_matline =
-        gentype == OpticksGenstep_CERENKOV ||
-        gentype == OpticksGenstep_SCINTILLATION ||
-        gentype == OpticksGenstep_G4Cerenkov_modified;
+    const bool carries_matline = CSGOptiX7_GenstepCarriesMaterialLine(gentype);
     ctx.current_matline = carries_matline ? gs.q0.u.z : 0xFFFFFFFFu;
 
     FlowAction command = FlowAction::Start;
@@ -917,8 +915,7 @@ extern "C" __global__ void __intersection__is()
         // This one-ULP ordering change cannot overstep a representable physical
         // gap. Keep the unbiased isect.w in the PRD for position advancement.
         const float cosI = dot(ray_direction, make_float3(isect.x, isect.y, isect.z));
-        const bool  break_exit_tie = params.raygenmode == SRG_SIMULATE && cosI > 0.f;
-        const float t_report = break_exit_tie ? nextafterf(isect.w, CUDART_INF_F) : isect.w;
+        const float t_report = CSGOptiX7_ReportedIntersectionDistance(isect.w, params.raygenmode, cosI);
 
 #ifdef WITH_PRD
         if (optixReportIntersection(t_report, hitKind))
