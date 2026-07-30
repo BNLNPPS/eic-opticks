@@ -1,3 +1,5 @@
+name: simphony-${USER:-dev}
+
 services:
   simphony:
     build:

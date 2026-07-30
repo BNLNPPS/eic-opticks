@@ -6,6 +6,9 @@
   "containerUser": "dev",
   "remoteUser": "dev",
   "updateRemoteUserUID": true,
+  "hostRequirements": {
+    "gpu": "optional"
+  },
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "./features/llvm": {
