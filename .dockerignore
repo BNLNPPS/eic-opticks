@@ -2,5 +2,6 @@
 .github/
 .devcontainer/
 .env
+.env.*
 .venv
 __pycache__/
