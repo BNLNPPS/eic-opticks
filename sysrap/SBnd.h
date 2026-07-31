@@ -123,7 +123,7 @@ inline SBnd::SBnd(const NP* bnd_)
 
 inline std::string SBnd::getItemDigest( int i, int j, int w ) const 
 {
-    return sdigest::Item(bnd, i, j, w);
+    return sdigest::Item(bnd, i, j).substr(0, w);
 }
 inline std::string SBnd::descBoundary() const
 {
