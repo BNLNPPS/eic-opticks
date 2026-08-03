@@ -45,17 +45,21 @@ create one with `git switch -c new-branch`.
 
 ### Choose dependency versions
 
-Skip this section if the default dependency versions meet your needs. The root
-`.env` file selects the OS and toolchain used to build the Dev Container.
-`.devcontainer/.env` links to it so Compose can discover the same settings.
-Edit `.env` when you want to use another supported combination or experiment
-with a new dependency version.
+If the default dependency versions meet your needs, skip this section and
+continue to [Start the environment](#start-the-environment).
+
+The `.devcontainer/.env.defaults` file contains the default OS and toolchain
+used to build the Dev Container. To use another supported combination or
+experiment with a new dependency version, put your overrides in the `.env.local`
+file at the repository root. During `devcontainer up`, the initialization step
+combines the defaults and local overrides into the `.env.compose` file that
+Compose reads.
 
 The defaults match the `base` alias in the [published container
 matrix](../README.md#published-container-images). Start with another `base`
 combination from this matrix when possible.
 
-After editing `.env`, recreate the container so it uses the new values:
+After editing `.env.local`, recreate the container so it uses the new values:
 
 ```shell
 devcontainer up --remove-existing-container
@@ -89,15 +93,20 @@ devcontainer up --remove-existing-container
 You do not need to recreate the container after switching source branches. The
 checkout remains mounted directly into the environment.
 
-The default Compose project name keeps different system users from colliding,
-even when they share a Docker daemon. If one account uses multiple checkouts or
-runs concurrent jobs, set a unique project name before starting the container:
+The default Compose project name includes the system user and checkout
+directory name, keeping users and checkouts from colliding when they share a
+Docker daemon. To use a different name, append it to `.env.local` before
+starting the container:
 
 ```shell
-export COMPOSE_PROJECT_NAME="simphony-${USER}-my_cool_feature"
+echo "COMPOSE_PROJECT_NAME=simphony-${USER}-my_cool_feature" >> .env.local
 ```
 
-The same configuration also works with the VS Code Dev Containers extension.
+Replace `my_cool_feature` with a short unique name for that checkout.
+
+This configuration also works with IDEs and tools that support the [Development
+Container Specification](https://containers.dev/). When using VS Code, its Dev
+Containers extension also installs the recommended extensions.
 
 ### Build and test
 

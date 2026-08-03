@@ -50,9 +50,10 @@ devcontainer exec bash
 The source tree is mounted into the container. Once inside, use the same CMake
 commands above and rerun only the relevant build and tests as you work.
 
-The root `.env` selects the OS and toolchain versions. See [Choose dependency
-versions](docs/getting-started.md#choose-dependency-versions) before changing
-them.
+The `.devcontainer/.env.defaults` file selects the default OS and toolchain
+versions. See [Choose dependency
+versions](docs/getting-started.md#choose-dependency-versions) to override them
+locally.
 
 To run GPU-backed code, install the [NVIDIA Container
 Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
