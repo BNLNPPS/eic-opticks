@@ -23,7 +23,6 @@ set(TEST_SOURCES
    SSortKVTest.cc
    SPairVecTest.cc
    SDigestTest.cc
-   SDigestNPTest.cc
 
    SCFTest.cc
 
@@ -59,7 +58,6 @@ set(TEST_SOURCES
    SSetTest.cc
    STimeTest.cc
    SColorTest.cc
-   SPackTest.cc 
    SBitTest.cc
    SBitSetTest.cc
    SEnabledTest.cc
@@ -70,8 +68,6 @@ set(TEST_SOURCES
    SGLMTest.cc
 
    SConstantTest.cc
-   SLabelCacheTest.cc
-
    CastTest.cc
 
    SRngTest.cc 

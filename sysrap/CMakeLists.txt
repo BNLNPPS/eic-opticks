@@ -30,7 +30,6 @@ set(SOURCES
     SMap.cc
     SCount.cc
     SDigest.cc
-    SDigestNP.cc
     SDirect.cc
     SArrayDigest.cc
 
@@ -50,14 +49,11 @@ set(SOURCES
     SGDML.cc
     S_get_option.cc
     STime.cc
-    SPack.cc
     SBit.cc
     SEnabled.cc
     SRand.cc
 
     CheckGeo.cc
-
-    SLabelCache.cc
 
     SMath.cc
 
@@ -120,7 +116,6 @@ set(HEADERS
 
     SBacktrace.h
     SStackFrame.h
-    SProfile.h 
 
     ssys.h
     SSys.hh
@@ -196,7 +191,6 @@ set(HEADERS
 
     
 
-    SDigestNP.hh
     SDirect.hh
     sdirect.h
     SArrayDigest.hh
@@ -231,15 +225,12 @@ set(HEADERS
     SColor.hh
     SId.hh
     SGDML.hh
-    SPack.hh
     SBit.hh
     SBitSet.h
     SEnabled.hh
     SRand.hh
 
     CheckGeo.hh
-    SLabelCache.hh
-
     SRng.hh
 
     SName.h 

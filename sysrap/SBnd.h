@@ -123,7 +123,7 @@ inline SBnd::SBnd(const NP* bnd_)
 
 inline std::string SBnd::getItemDigest( int i, int j, int w ) const 
 {
-    return sdigest::Item(bnd, i, j, w );   // formerly SSim::GetItemDigest 
+    return sdigest::Item(bnd, i, j).substr(0, w);
 }
 inline std::string SBnd::descBoundary() const
 {
@@ -354,7 +354,7 @@ inline std::string SBnd::DescDigest(const NP* bnd, int w )  // static
         ss << std::setw(3) << i << " " ; 
         for(int j=0 ; j < nj ; j++) 
         {
-            std::string dig = sdigest::Item(bnd, i, j ) ;    // formerly SDigestNP::Item
+            std::string dig = sdigest::Item(bnd, i, j);
             std::string sdig = dig.substr(0, w); 
             ss << std::setw(w) << sdig << " " ; 
         }
@@ -732,4 +732,3 @@ inline NP* SBnd::reconstruct_sur() const
 {
     return nullptr ; 
 }
-
