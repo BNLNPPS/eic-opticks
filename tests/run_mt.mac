@@ -1,0 +1,7 @@
+# Multi-event batch run for the simg4ox Geant4 MT example.
+# Select the worker count before this macro is read with:
+#   simg4ox --threads N ... -m tests/run_mt.mac
+/run/verbose 1
+/process/optical/boundary/setInvokeSD true
+/run/initialize
+/run/beamOn 5

@@ -126,7 +126,13 @@ only the target you are changing, and run a relevant test:
 ctest --test-dir build -N
 cmake --build build --target simg4ox
 ctest --test-dir build -R raindrop
+ctest --test-dir build -R '^Integration\.simg4ox_multithread$'
 ```
+
+The `simg4ox_multithread` integration test runs five optical-photon events
+with two Geant4 CPU workers and validates the merged CPU/GPU hit arrays. See
+[the simg4ox example](../examples/README.md#example-4-simg4ox-g4--gpu-validation)
+for serial and MT command lines and the supplied `tests/run_mt.mac` macro.
 
 The full suite includes GPU-backed tests. You can build without a GPU, but
 running those tests requires a compatible NVIDIA driver and GPU access from the

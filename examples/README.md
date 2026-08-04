@@ -109,8 +109,8 @@ grep -c "CreationProcessID=1" opticks_hits_output.txt  # Scintillation
 
 ### Example 4: simg4ox (G4 + GPU Validation)
 
-`simg4ox` generates optical photons from a configurable torch source and runs
-both Geant4 and Simphony GPU simulation in parallel on the same input photons. This
+`simg4ox` generates optical photons from a configurable torch source and
+tracks the same input with Geant4 on the CPU and Simphony on the GPU. This
 enables direct comparison of hit counts and positions between the two engines.
 
 Both engines detect photons using the same mechanism: border surface physics. On the G4
@@ -124,12 +124,32 @@ the optical surface, matching how Simphony detects photons on the GPU.
 | `-m, --macro` | Path to G4 macro | `run.mac` |
 | `-i, --interactive` | Open interactive viewer | off |
 | `-s, --seed` | Fixed random seed | Geant4 default |
+| `-t, --threads` | Geant4 CPU threads; `1` selects the serial run manager | `1` |
+
+The same executable supports serial and multi-threaded Geant4 runs:
 
 ```bash
-simg4ox -g tests/geom/opticks_raindrop.gdml -c dev -m run.mac -s 42
+# Serial Geant4 (default)
+simg4ox -g tests/geom/opticks_raindrop.gdml -c dev -m tests/run_5evt.mac -s 42
+
+# Geant4 MT with four CPU workers
+simg4ox -g tests/geom/opticks_raindrop.gdml -c dev -m tests/run_mt.mac -s 42 --threads 4
 ```
 
+The thread count is a command-line option because the executable must select
+the serial or MT run-manager type before Geant4 reads a macro. The example
+`tests/run_mt.mac` contains the remaining run initialization and event-count
+commands.
+
+In MT mode, Geant4 actions and sensitive detectors are worker-local and the
+run-wide results are merged in event-ID order. Opticks currently exposes one
+process-wide GPU event context, so GPU launches are serialized in that same
+order while Geant4 CPU tracking remains multi-threaded. Full CPU-side Opticks
+photon-history recording remains available in serial mode; both modes write
+the run-wide hit arrays below.
+
 **Output:**
+
 - `s_hits.npy` — Simphony GPU hits
 - `g_hits.npy` — Geant4 hits
 

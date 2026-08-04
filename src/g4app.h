@@ -1,9 +1,17 @@
+#pragma once
+
+#include <condition_variable>
 #include <cstring>
 #include <filesystem>
+#include <map>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#include <cuda_runtime_api.h>
 
 #include "G4BooleanSolid.hh"
 #include "G4Event.hh"
@@ -14,9 +22,12 @@
 #include "G4PhysicalConstants.hh"
 #include "G4PrimaryParticle.hh"
 #include "G4PrimaryVertex.hh"
+#include "G4Run.hh"
+#include "G4RunManager.hh"
 #include "G4SDManager.hh"
 #include "G4SubtractionSolid.hh"
 #include "G4SystemOfUnits.hh"
+#include "G4Threading.hh"
 #include "G4ThreeVector.hh"
 #include "G4Track.hh"
 #include "G4TrackStatus.hh"
@@ -28,7 +39,9 @@
 #include "G4UserTrackingAction.hh"
 #include "G4VPhysicalVolume.hh"
 #include "G4VProcess.hh"
+#include "G4VUserActionInitialization.hh"
 #include "G4VUserDetectorConstruction.hh"
+#include "G4VUserEventInformation.hh"
 #include "G4VUserPrimaryGeneratorAction.hh"
 
 #include "g4cx/G4CXOpticks.hh"
@@ -76,6 +89,15 @@ using PhotonHitsCollection = G4THitsCollection<PhotonHit>;
 // NumPy hit arrays use the sphoton (4, 4) float layout.
 static_assert(sizeof(sphoton) == 16 * sizeof(float));
 static_assert(std::is_trivially_copyable_v<sphoton>);
+
+inline NP* MakePhotonArray(const std::vector<sphoton>& photons)
+{
+    const size_t num_floats = photons.size() * 4 * 4;
+    const float* data = reinterpret_cast<const float*>(photons.data());
+    NP*          array = NP::MakeFromValues<float>(data, num_floats);
+    array->reshape({static_cast<int64_t>(photons.size()), 4, 4});
+    return array;
+}
 
 struct PhotonSD : public G4VSensitiveDetector
 {
@@ -171,6 +193,20 @@ struct DetectorConstruction : G4VUserDetectorConstruction
     }
 };
 
+struct PrimaryPhotonInfo : G4VUserEventInformation
+{
+    explicit PrimaryPhotonInfo(std::vector<sphoton> photons) :
+        photons(std::move(photons))
+    {
+    }
+
+    void Print() const override
+    {
+    }
+
+    std::vector<sphoton> photons;
+};
+
 struct PrimaryGenerator : G4VUserPrimaryGeneratorAction
 {
     simphony::Config cfg;
@@ -185,12 +221,6 @@ struct PrimaryGenerator : G4VUserPrimaryGeneratorAction
     void GeneratePrimaries(G4Event* event) override
     {
         std::vector<sphoton> sphotons = generate_photons(cfg.torch);
-
-        size_t num_floats = sphotons.size() * 4 * 4;
-        float* data = reinterpret_cast<float*>(sphotons.data());
-        NP*    photons = NP::MakeFromValues<float>(data, num_floats);
-
-        photons->reshape({static_cast<int64_t>(sphotons.size()), 4, 4});
 
         for (const sphoton& p : sphotons)
         {
@@ -212,47 +242,117 @@ struct PrimaryGenerator : G4VUserPrimaryGeneratorAction
             event->AddPrimaryVertex(vertex);
         }
 
-        sev->SetInputPhoton(photons);
+        // The Opticks CPU recorder is intentionally used only by the serial
+        // run manager. Its event instance is process-global and cannot be
+        // shared safely by Geant4 worker threads. Preserve MT event input on
+        // the G4Event until the event reaches the serialized GPU section.
+        if (sev)
+            SEvt::SetInputPhoton(MakePhotonArray(sphotons));
+        else
+            event->SetUserInformation(new PrimaryPhotonInfo(std::move(sphotons)));
+    }
+};
+
+struct Simg4oxRun : G4Run
+{
+    struct EventHits
+    {
+        std::vector<sphoton> gpu;
+        std::vector<sphoton> g4;
+    };
+
+    std::map<G4int, EventHits> hits_by_event;
+
+    void AddEvent(G4int event_id, std::vector<sphoton> gpu_hits, std::vector<sphoton> g4_hits)
+    {
+        hits_by_event.insert_or_assign(event_id, EventHits{std::move(gpu_hits), std::move(g4_hits)});
+    }
+
+    void Merge(const G4Run* run) override
+    {
+        const auto* local_run = static_cast<const Simg4oxRun*>(run);
+        for (const auto& [event_id, hits] : local_run->hits_by_event)
+            hits_by_event.emplace(event_id, hits);
+
+        G4Run::Merge(run);
+    }
+
+    static std::vector<sphoton> Flatten(
+        const std::map<G4int, EventHits>& events,
+        const std::vector<sphoton> EventHits::* member)
+    {
+        size_t total = 0;
+        for (const auto& [event_id, hits] : events)
+        {
+            (void)event_id;
+            total += (hits.*member).size();
+        }
+
+        std::vector<sphoton> flattened;
+        flattened.reserve(total);
+        for (const auto& [event_id, hits] : events)
+        {
+            (void)event_id;
+            const auto& event_hits = hits.*member;
+            flattened.insert(flattened.end(), event_hits.begin(), event_hits.end());
+        }
+        return flattened;
+    }
+
+    std::vector<sphoton> GPUHits() const
+    {
+        return Flatten(hits_by_event, &EventHits::gpu);
+    }
+    std::vector<sphoton> G4Hits() const
+    {
+        return Flatten(hits_by_event, &EventHits::g4);
+    }
+};
+
+struct Simg4oxSharedState
+{
+    std::mutex              gpu_mutex;
+    std::condition_variable gpu_turn;
+    G4int                   next_gpu_event{0};
+
+    void BeginRun()
+    {
+        std::lock_guard lock(gpu_mutex);
+        next_gpu_event = 0;
     }
 };
 
 struct EventAction : G4UserEventAction
 {
-    simphony::Config     cfg;
-    SEvt*                sev;
-    std::vector<sphoton> g4_hits;
-    std::vector<sphoton> gpu_hits;
+    SEvt*                               sev;
+    std::shared_ptr<Simg4oxSharedState> shared_state;
+    bool                                order_gpu_events;
 
-    EventAction(const simphony::Config& cfg, SEvt* sev) :
-        cfg(cfg),
-        sev(sev)
+    EventAction(SEvt* sev, std::shared_ptr<Simg4oxSharedState> shared_state, bool order_gpu_events) :
+        sev(sev),
+        shared_state(std::move(shared_state)),
+        order_gpu_events(order_gpu_events)
     {
     }
 
     void BeginOfEventAction(const G4Event* event) override
     {
-        sev->beginOfEvent(event->GetEventID());
+        if (sev)
+            sev->beginOfEvent(event->GetEventID());
     }
 
-    void ClearHits()
+    static std::vector<sphoton> CollectGPUHits(SEvt* sev_gpu)
     {
-        g4_hits.clear();
-        gpu_hits.clear();
-    }
-
-    size_t CollectGPUHits(SEvt* sev_gpu)
-    {
-        const size_t num_gpu_hits = sev_gpu->getNumHit();
-        const size_t offset = gpu_hits.size();
-        gpu_hits.resize(offset + num_gpu_hits);
+        const size_t         num_gpu_hits = sev_gpu->getNumHit();
+        std::vector<sphoton> gpu_hits(num_gpu_hits);
 
         for (size_t idx = 0; idx < num_gpu_hits; idx++)
-            sev_gpu->getHit(gpu_hits[offset + idx], idx);
+            sev_gpu->getHit(gpu_hits[idx], idx);
 
-        return num_gpu_hits;
+        return gpu_hits;
     }
 
-    size_t CollectG4Hits(const G4Event* event)
+    static std::vector<sphoton> CollectG4Hits(const G4Event* event)
     {
         G4HCofThisEvent* hce = event->GetHCofThisEvent();
         size_t           num_g4_hits = 0;
@@ -267,7 +367,8 @@ struct EventAction : G4UserEventAction
             }
         }
 
-        g4_hits.reserve(g4_hits.size() + num_g4_hits);
+        std::vector<sphoton> g4_hits;
+        g4_hits.reserve(num_g4_hits);
 
         if (hce)
         {
@@ -282,53 +383,62 @@ struct EventAction : G4UserEventAction
             }
         }
 
-        return num_g4_hits;
+        return g4_hits;
     }
 
-    void SaveHits(const std::vector<sphoton>& source, const char* name) const
+    std::vector<sphoton> SimulateOnGPU(const G4Event* event)
     {
-        NP* hits = NP::Make<float>(source.size(), 4, 4);
-        if (!source.empty())
-            std::memcpy(hits->bytes(), source.data(), source.size() * sizeof(sphoton));
+        const G4int      event_id = event->GetEventID();
+        std::unique_lock lock(shared_state->gpu_mutex);
+        if (order_gpu_events)
+            shared_state->gpu_turn.wait(lock, [&] { return event_id == shared_state->next_gpu_event; });
 
-        hits->save(cfg.output_dir.string().c_str(), name);
-        delete hits;
-    }
+        if (order_gpu_events)
+        {
+            const auto* primary_info = dynamic_cast<const PrimaryPhotonInfo*>(event->GetUserInformation());
+            assert(primary_info && "MT events must retain their generated photons for GPU processing");
+            SEvt::SetInputPhoton(MakePhotonArray(primary_info->photons));
+        }
 
-    void SaveRunHits() const
-    {
-        SaveHits(gpu_hits, "s_hits.npy");
-        SaveHits(g4_hits, "g_hits.npy");
+        G4CXOpticks* gx = G4CXOpticks::Get();
+        gx->simulate(event_id, false);
+        cudaDeviceSynchronize();
+
+        SEvt* sev_gpu = SEvt::Get_EGPU();
+        auto  gpu_hits = CollectGPUHits(sev_gpu);
+        gx->reset(event_id);
+
+        if (order_gpu_events)
+        {
+            ++shared_state->next_gpu_event;
+            lock.unlock();
+            shared_state->gpu_turn.notify_all();
+        }
+
+        return gpu_hits;
     }
 
     void EndOfEventAction(const G4Event* event) override
     {
-        int eventID = event->GetEventID();
-        sev->addEventConfigArray();
-        sev->gather();
-        sev->endOfEvent(eventID);
+        const G4int event_id = event->GetEventID();
+        if (sev)
+        {
+            sev->addEventConfigArray();
+            sev->gather();
+            sev->endOfEvent(event_id);
+            G4cout << "EventAction::EndOfEventAction: CPU hits:  " << sev->getNumHit() << G4endl;
+        }
 
-        // GPU-based simulation
-        G4CXOpticks* gx = G4CXOpticks::Get();
+        auto g4_hits = CollectG4Hits(event);
+        auto gpu_hits = SimulateOnGPU(event);
 
-        gx->simulate(eventID, false);
-        cudaDeviceSynchronize();
+        G4cout << "EventAction::EndOfEventAction: Event " << event_id
+               << ": Collected GPU hits: " << gpu_hits.size() << G4endl;
+        G4cout << "EventAction::EndOfEventAction: Event " << event_id
+               << ": Collected G4  hits: " << g4_hits.size() << G4endl;
 
-        SEvt*  sev_gpu = SEvt::Get_EGPU();
-        size_t num_hits_gpu = sev_gpu->getNumHit();
-        size_t num_hits_cpu = sev->getNumHit();
-
-        G4cout << "EventAction::EndOfEventAction: GPU hits:  " << num_hits_gpu << G4endl;
-        G4cout << "EventAction::EndOfEventAction: CPU hits:  " << num_hits_cpu << G4endl;
-
-        // Append the event-wide GPU buffer and all Geant4 hit collections to
-        // run-scoped buffers before the event data is reset by either backend.
-        size_t collected_gpu_hits = CollectGPUHits(sev_gpu);
-        size_t collected_g4_hits = CollectG4Hits(event);
-        G4cout << "EventAction::EndOfEventAction: Collected GPU hits: " << collected_gpu_hits << G4endl;
-        G4cout << "EventAction::EndOfEventAction: Collected G4  hits: " << collected_g4_hits << G4endl;
-
-        gx->reset(eventID);
+        auto* run = static_cast<Simg4oxRun*>(G4RunManager::GetRunManager()->GetNonConstCurrentRun());
+        run->AddEvent(event_id, std::move(gpu_hits), std::move(g4_hits));
     }
 };
 
@@ -453,6 +563,9 @@ struct TrackingAction : G4UserTrackingAction
             mutable_track->UseGivenVelocity(true);
         }
 
+        if (!sev)
+            return;
+
         if (!STrackInfo::Exists(track))
             PreUserTrackingAction_Optical_FabricateLabel(track);
 
@@ -482,6 +595,9 @@ struct TrackingAction : G4UserTrackingAction
 
     void PostUserTrackingAction(const G4Track* track) override
     {
+        if (!sev)
+            return;
+
         G4TrackStatus tstat = track->GetTrackStatus();
 
         bool is_stop_and_kill = tstat == fStopAndKill;
@@ -511,45 +627,88 @@ struct TrackingAction : G4UserTrackingAction
 
 struct RunAction : G4UserRunAction
 {
-    EventAction* event_action;
+    simphony::Config                    cfg;
+    std::shared_ptr<Simg4oxSharedState> shared_state;
 
-    RunAction(EventAction* eventAction) :
-        event_action(eventAction)
+    RunAction(const simphony::Config& cfg, std::shared_ptr<Simg4oxSharedState> shared_state) :
+        cfg(cfg),
+        shared_state(std::move(shared_state))
     {
+    }
+
+    G4Run* GenerateRun() override
+    {
+        return new Simg4oxRun;
     }
 
     void BeginOfRunAction(const G4Run*) override
     {
-        event_action->ClearHits();
+        if (!G4Threading::IsWorkerThread())
+            shared_state->BeginRun();
     }
 
-    void EndOfRunAction(const G4Run*) override
+    void SaveHits(const std::vector<sphoton>& source, const char* name) const
     {
-        event_action->SaveRunHits();
-        G4cout << "RunAction::EndOfRunAction: Total GPU hits: " << event_action->gpu_hits.size() << G4endl;
-        G4cout << "RunAction::EndOfRunAction: Total G4  hits: " << event_action->g4_hits.size() << G4endl;
+        NP* hits = NP::Make<float>(source.size(), 4, 4);
+        if (!source.empty())
+            std::memcpy(hits->bytes(), source.data(), source.size() * sizeof(sphoton));
+
+        hits->save(cfg.output_dir.string().c_str(), name);
+        delete hits;
+    }
+
+    void EndOfRunAction(const G4Run* run) override
+    {
+        // Worker runs are merged by G4MTRunManager after their EndOfRunAction.
+        // Only the serial/master run owns the complete result.
+        if (G4Threading::IsWorkerThread())
+            return;
+
+        const auto* simg4ox_run = static_cast<const Simg4oxRun*>(run);
+        auto        gpu_hits = simg4ox_run->GPUHits();
+        auto        g4_hits = simg4ox_run->G4Hits();
+
+        SaveHits(gpu_hits, "s_hits.npy");
+        SaveHits(g4_hits, "g_hits.npy");
+        G4cout << "RunAction::EndOfRunAction: Total GPU hits: " << gpu_hits.size() << G4endl;
+        G4cout << "RunAction::EndOfRunAction: Total G4  hits: " << g4_hits.size() << G4endl;
     }
 };
 
-struct G4App
+struct ActionInitialization : G4VUserActionInitialization
 {
-    G4App(const simphony::Config& cfg, std::filesystem::path gdml_file) :
-        sev(SEvt::CreateOrReuse_ECPU()),
-        det_cons_(new DetectorConstruction(gdml_file)),
-        prim_gen_(new PrimaryGenerator(cfg, sev)),
-        event_act_(new EventAction(cfg, sev)),
-        run_act_(new RunAction(event_act_)),
-        stepping_(new SteppingAction(sev)),
-        tracking_(new TrackingAction(sev))
+    simphony::Config                    cfg;
+    std::shared_ptr<Simg4oxSharedState> shared_state;
+    bool                                multithreaded;
+
+    ActionInitialization(
+        const simphony::Config&             cfg,
+        std::shared_ptr<Simg4oxSharedState> shared_state,
+        bool                                multithreaded) :
+        cfg(cfg),
+        shared_state(std::move(shared_state)),
+        multithreaded(multithreaded)
     {
     }
 
-    SEvt* sev;
+    void BuildForMaster() const override
+    {
+        SetUserAction(new RunAction(cfg, shared_state));
+    }
 
-    G4VUserDetectorConstruction*   det_cons_;
-    G4VUserPrimaryGeneratorAction* prim_gen_;
-    EventAction*                   event_act_;
-    RunAction*                     run_act_;
-    SteppingAction*                stepping_;
-    TrackingAction*                tracking_;
+    void Build() const override
+    {
+        // SEvt's CPU instance and its profiling/persistence helpers are
+        // process-global. Keep the full CPU history recorder in serial mode;
+        // MT workers still perform normal Geant4 tracking and collect SD hits.
+        SEvt* sev = multithreaded ? nullptr : SEvt::CreateOrReuse_ECPU();
+
+        SetUserAction(new PrimaryGenerator(cfg, sev));
+        SetUserAction(new RunAction(cfg, shared_state));
+        SetUserAction(new EventAction(sev, shared_state, multithreaded));
+        SetUserAction(new TrackingAction(sev));
+
+        if (sev)
+            SetUserAction(new SteppingAction(sev));
+    }
 };
