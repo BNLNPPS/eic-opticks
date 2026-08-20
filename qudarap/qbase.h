@@ -17,6 +17,7 @@ struct qbase
 {
     unsigned long long pidx ;
     unsigned cathode_m2 ;
+    float cathode_exit_mm ;
 #if defined(__CUDACC__) || defined(__CUDABE__)
 #else
     QBASE_METHOD std::string desc() const ;

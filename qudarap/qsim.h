@@ -2207,6 +2207,12 @@ QSIM_FORCEINLINE_METHOD FlowAction qsim::propagate(const int bounce, RNG& rng, s
         if( base->cathode_m2 != 0u && identity > 0u && cosTheta < 0.f && ctx.s.index.y == base->cathode_m2 )
         {
             command = propagate_at_surface_Detect( flag, rng, ctx ) ;
+            if( base->cathode_exit_mm > 0.f )
+            {
+                const float traversal = base->cathode_exit_mm / fmaxf( fabsf(cosTheta), 0.1f ) ;
+                ctx.p.pos = ctx.p.pos + ctx.p.mom * traversal ;
+                if( ctx.current_group_velocity > 0.f ) ctx.p.time += traversal / ctx.current_group_velocity ;
+            }
         }
         else if( ems == smatsur_NoSurface )
         {

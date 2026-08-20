@@ -26,6 +26,7 @@ qbase* QBase::MakeInstance() // static
     qbase* base = new qbase ;
     base->pidx = ssys::getenvuint64spec("PIDX", "X40") ;  // X40 sentinel  0xffffffffff  (0x1<<40)-1
     base->cathode_m2 = ssys::getenvint("OPTICKS_CATHODE_M2", 0) ;
+    base->cathode_exit_mm = ssys::getenvfloat("OPTICKS_CATHODE_EXIT_MM", 0.f) ;
     return base ;
 }
 
