@@ -473,6 +473,19 @@ when the sn::postconvert is called
 
 **/
 
+static int U4Solid_ShrinkHugeClipBoxes_r(sn* n, double thr)
+{
+    if(!n) return 0 ;
+    int cnt = 0 ;
+    if( n->typecode == CSG_BOX3 && n->complement == 1 && n->param )
+    {
+        double fx = n->param->x0, fy = n->param->y0, fz = n->param->z0 ;
+        if( fx > thr || fy > thr || fz > thr ){ n->setPA( 1e-3, 1e-3, 1e-3, 0., 0., 0. ) ; cnt++ ; }
+    }
+    for(sn* ch : n->child) cnt += U4Solid_ShrinkHugeClipBoxes_r(ch, thr) ;
+    return cnt ;
+}
+
 inline void U4Solid::init_Tree()
 {
     if( depth != 0 )  return ;
@@ -480,6 +493,14 @@ inline void U4Solid::init_Tree()
     init_Tree_Shrink();
 
     root->postconvert(lvid);
+
+    static const char* PRUNE_LV = getenv("U4Solid__PRUNE_HUGE_CLIP_BOXES_LV") ;
+    if( PRUNE_LV && solid )
+    {
+        G4String sname = solid->GetName() ;
+        if( strstr(sname.c_str(), PRUNE_LV) != nullptr )
+            U4Solid_ShrinkHugeClipBoxes_r(root, 10000.) ;
+    }
 }
 
 /**
