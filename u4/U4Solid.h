@@ -440,7 +440,23 @@ inline void U4Solid::init_Constituents()
             break;
         }
 
-    if(!root) std::cerr << "U4Solid::init_Constituents UNHANDLED SOLID TYPE " << type << "\n" << desc() << "\n" ;
+    if(!root)
+    {
+        static const bool PERMISSIVE = ssys::getenvbool("U4Solid__PERMISSIVE") ;
+        std::cerr << "U4Solid::init_Constituents UNHANDLED SOLID TYPE " << type
+                  << " entityType " << ( entityType ? entityType : "-" )
+                  << " solid " << solid->GetName()
+                  << ( PERMISSIVE ? " : U4Solid__PERMISSIVE bbox-box placeholder" : "" )
+                  << "\n" << desc() << "\n" ;
+        if(PERMISSIVE)
+        {
+            G4ThreeVector pMin, pMax ;
+            solid->BoundingLimits(pMin, pMax) ;
+            root = sn::Box3( (pMax.x()-pMin.x())/CLHEP::mm,
+                             (pMax.y()-pMin.y())/CLHEP::mm,
+                             (pMax.z()-pMin.z())/CLHEP::mm ) ;
+        }
+    }
     assert( root);
     root->set_hint_note(hint);
 }
@@ -1031,8 +1047,28 @@ inline void U4Solid::init_CutTubs()
     double nz_nrm_z = lo.z();
     assert( nz_nrm_z < 0. );  // expect outward normal away from nz bot edge
 
-    assert( pz_nrm_y == 0. );
-    assert( nz_nrm_y == 0. );
+    bool tilted_y = pz_nrm_y != 0. || nz_nrm_y != 0. ;
+    if(tilted_y)
+    {
+        static const bool PERMISSIVE = ssys::getenvbool("U4Solid__PERMISSIVE") ;
+        std::cerr << "U4Solid::init_CutTubs Y-tilted cut (ny!=0) solid " << tubs->GetName()
+                  << ( PERMISSIVE ? " : U4Solid__PERMISSIVE approximating as plain Tubs (dropping tilt)"
+                                  : " : UNSUPPORTED (set U4Solid__PERMISSIVE=1 to approximate as plain Tubs)" )
+                  << "\n" ;
+        assert( PERMISSIVE ) ;
+        sn* outer_t = sn::Cylinder(rmax, -hz, hz );
+        if(has_inner == false)
+        {
+            root = outer_t ;
+        }
+        else
+        {
+            double dz = hz*0.01 ;
+            sn* inner_t = sn::Cylinder(rmin, -(hz+dz), hz+dz );
+            root = sn::Boolean( CSG_DIFFERENCE, outer_t, inner_t );
+        }
+        return ;
+    }
 
     sn* outer = sn::CutCylinder(rmax, hz,
           pz_nrm_x, pz_nrm_y, pz_nrm_z,
