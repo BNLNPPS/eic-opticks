@@ -448,6 +448,7 @@ inline void U4Solid::init_Constituents()
                   << " solid " << solid->GetName()
                   << ( PERMISSIVE ? " : U4Solid__PERMISSIVE bbox-box placeholder" : "" )
                   << "\n" << desc() << "\n" ;
+        if(!PERMISSIVE) std::raise(SIGINT) ;
         if(PERMISSIVE)
         {
             G4ThreeVector pMin, pMax ;
@@ -499,7 +500,10 @@ inline void U4Solid::init_Tree()
     {
         G4String sname = solid->GetName() ;
         if( strstr(sname.c_str(), PRUNE_LV) != nullptr )
-            U4Solid_ShrinkHugeClipBoxes_r(root, 10000.) ;
+        {
+            int shrunk = U4Solid_ShrinkHugeClipBoxes_r(root, 10000.) ;
+            std::cerr << "U4Solid::init_Tree PRUNE_HUGE_CLIP_BOXES " << sname << " shrunk " << shrunk << "\n" ;
+        }
     }
 }
 
@@ -1080,6 +1084,7 @@ inline void U4Solid::init_CutTubs()
                                   : " : UNSUPPORTED (set U4Solid__PERMISSIVE=1 to approximate as plain Tubs)" )
                   << "\n" ;
         assert( PERMISSIVE ) ;
+        if(!PERMISSIVE) std::raise(SIGINT) ;
         sn* outer_t = sn::Cylinder(rmax, -hz, hz );
         if(has_inner == false)
         {

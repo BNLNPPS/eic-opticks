@@ -421,11 +421,11 @@ inline NP* sstandard::make_optical(
                 {
                     const NP* refl = surf->get("REFLECTIVITY") ;
                     const NP* effi = surf->get("EFFICIENCY") ;
-                    bool refl_dominant = refl != nullptr && refl->ebyte == 8 && refl->shape.size() == 2 && refl->shape[1] == 2 ;
-                    if( refl_dominant )
+                    bool refl_unity = refl != nullptr && refl->ebyte == 8 && refl->shape.size() == 2 && refl->shape[1] == 2 ;
+                    if( refl_unity )
                     {
                         const double* rv = refl->cvalues<double>() ;
-                        for(int k=0 ; k < refl->shape[0] ; k++) if( rv[2*k+1] < 0.5 ) { refl_dominant = false ; break ; }
+                        for(int k=0 ; k < refl->shape[0] ; k++) if( rv[2*k+1] != 1.0 ) { refl_unity = false ; break ; }
                     }
                     bool no_detect = true ;
                     if( effi != nullptr && effi->ebyte == 8 && effi->shape.size() == 2 && effi->shape[1] == 2 )
@@ -433,7 +433,7 @@ inline NP* sstandard::make_optical(
                         const double* ev = effi->cvalues<double>() ;
                         for(int k=0 ; k < effi->shape[0] ; k++) if( ev[2*k+1] > 0.01 ) { no_detect = false ; break ; }
                     }
-                    if( refl_dominant && no_detect ) ems = smatsur_NoSurface ;
+                    if( refl_unity && no_detect ) ems = smatsur_NoSurface ;
                 }
 
                 int Payload_Y = ems ;

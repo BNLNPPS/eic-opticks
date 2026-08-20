@@ -608,8 +608,11 @@ inline void U4Tree::initSurfaces()
 
 inline int U4Tree::GetDedupSurfaceIndex(const G4LogicalSurface* ls) const
 {
+    if( ls == nullptr ) return -1 ;
     std::map<const G4LogicalSurface*, int>::const_iterator it = lsurf2idx.find(ls) ;
-    return it == lsurf2idx.end() ? -1 : it->second ;
+    assert( it != lsurf2idx.end() );
+    if( it == lsurf2idx.end() ) std::raise(SIGINT) ;
+    return it->second ;
 }
 
 /**
