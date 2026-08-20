@@ -232,8 +232,8 @@ struct DetectorConstruction : G4VUserDetectorConstruction
     {
         parser_.Read(gdml_file_.string(), false);
         G4VPhysicalVolume *world = parser_.GetWorldVolume();
+        world_ = world;
 
-        G4CXOpticks::SetGeometry(world);
         G4LogicalVolumeStore *lvStore = G4LogicalVolumeStore::GetInstance();
 
         static G4VisAttributes invisibleVisAttr(false);
@@ -282,11 +282,22 @@ struct DetectorConstruction : G4VUserDetectorConstruction
                 }
             }
         }
+
+        static bool geometry_set = false;
+        {
+            G4AutoLock lock(&genstep_mutex);
+            if (world_ && !geometry_set)
+            {
+                geometry_set = true;
+                G4CXOpticks::SetGeometry(world_);
+            }
+        }
     }
 
   private:
     std::filesystem::path gdml_file_;
     G4GDMLParser parser_;
+    G4VPhysicalVolume *world_ = nullptr;
 };
 
 struct PrimaryGenerator : G4VUserPrimaryGeneratorAction

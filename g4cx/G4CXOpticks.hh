@@ -91,6 +91,12 @@ private:
     void setGeometry(CSGFoundry* fd);
     void setGeometry_(CSGFoundry* fd);
 public:
+    static G4CXOpticks* SetGeometry(CSGFoundry* fd)
+    {
+        G4CXOpticks* gx = new G4CXOpticks ;
+        gx->setGeometry(fd);
+        return gx ;
+    }
     std::string descSimulate() const ;
 
     void simulate( int eventID, bool reset );
