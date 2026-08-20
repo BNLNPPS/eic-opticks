@@ -110,6 +110,7 @@ struct U4Tree
     std::vector<const G4Material*>              materials ;
     std::vector<const G4LogicalSurface*>        surfaces ;   // both skin and border
     int                                         num_surface_standard ;  // not including implicits
+    std::map<const G4LogicalSurface*, int>      lsurf2idx ;
     std::vector<const G4VSolid*>                solids ;
     U4PhysicsTable<G4OpRayleigh>*               rayleigh_table ;
     U4Scint*                                    scint ;
@@ -120,10 +121,12 @@ struct U4Tree
     static constexpr const char* __DISABLE_ISUR_IMPLICIT = "U4Tree__DISABLE_ISUR_IMPLICIT" ;
     static constexpr const char* __MATERIAL_DEBUG = "U4Tree__MATERIAL_DEBUG" ;
     static constexpr const char* __SOLID_DEBUG = "U4Tree__SOLID_DEBUG" ;
+    static constexpr const char* __DEDUP_SURFACES = "U4Tree__DEDUP_SURFACES" ;
     bool                                        enable_osur ;
     bool                                        enable_isur ;
     int                                         material_debug ;
     int                                         solid_debug ;
+    bool                                        dedup_surfaces ;
 
     static U4Tree* Create(
         stree* st,
@@ -156,6 +159,7 @@ private:
     void initScint();
     void initWLS();
     void initSurfaces();
+    int  GetDedupSurfaceIndex(const G4LogicalSurface* ls) const ;
 
     void initSolids();
     void initSolids_Keys();
@@ -264,7 +268,8 @@ inline U4Tree::U4Tree(stree *st_, const G4VPhysicalVolume *const top_, U4SensorI
     enable_osur(!ssys::getenvbool(__DISABLE_OSUR_IMPLICIT)),
     enable_isur(!ssys::getenvbool(__DISABLE_ISUR_IMPLICIT)),
     material_debug(ssys::getenvint(__MATERIAL_DEBUG, 0)),
-    solid_debug(ssys::getenvint(__SOLID_DEBUG, 0))
+    solid_debug(ssys::getenvint(__SOLID_DEBUG, 0)),
+    dedup_surfaces(ssys::getenvbool(__DEDUP_SURFACES))
 {
     init();
 }
@@ -533,11 +538,50 @@ U4Tree::initSurfaces
 
 inline void U4Tree::initSurfaces()
 {
-    U4Surface::Collect(surfaces);
+    if(dedup_surfaces)
+    {
+        std::vector<const G4LogicalSurface*> surfaces_all ;
+        U4Surface::Collect(surfaces_all);
 
-    U4Surface::CollectRawNames(st->suname_raw, surfaces);
+        std::map<const G4SurfaceProperty*, int> op2idx ;
+        for(unsigned i=0 ; i < surfaces_all.size() ; i++)
+        {
+            const G4LogicalSurface* ls = surfaces_all[i] ;
+            const G4SurfaceProperty* op = ls->GetSurfaceProperty() ;
+            std::map<const G4SurfaceProperty*, int>::const_iterator it = op2idx.find(op) ;
+            int idx ;
+            if( it == op2idx.end() )
+            {
+                idx = int(surfaces.size()) ;
+                surfaces.push_back(ls) ;
+                op2idx[op] = idx ;
+            }
+            else
+            {
+                idx = it->second ;
+            }
+            lsurf2idx[ls] = idx ;
+        }
 
-    sstr::StripTail_Unique( st->suname, st->suname_raw, "0x" );
+        st->suname_raw.clear();
+        for(unsigned i=0 ; i < surfaces.size() ; i++)
+            st->suname_raw.push_back( surfaces[i]->GetSurfaceProperty()->GetName().c_str() );
+        sstr::StripTail_Unique( st->suname, st->suname_raw, "0x" );
+
+        std::cerr
+            << "U4Tree::initSurfaces U4Tree__DEDUP_SURFACES"
+            << " surfaces_all " << surfaces_all.size()
+            << " deduped " << surfaces.size()
+            << std::endl ;
+    }
+    else
+    {
+        U4Surface::Collect(surfaces);
+
+        U4Surface::CollectRawNames(st->suname_raw, surfaces);
+
+        sstr::StripTail_Unique( st->suname, st->suname_raw, "0x" );
+    }
 
     assert( st->suname.size() == st->suname_raw.size() );
 
@@ -560,6 +604,12 @@ inline void U4Tree::initSurfaces()
     }
     */
 
+}
+
+inline int U4Tree::GetDedupSurfaceIndex(const G4LogicalSurface* ls) const
+{
+    std::map<const G4LogicalSurface*, int>::const_iterator it = lsurf2idx.find(ls) ;
+    return it == lsurf2idx.end() ? -1 : it->second ;
 }
 
 /**
@@ -832,8 +882,8 @@ inline int U4Tree::initNodes_r(
     U4TreeBorder border(st, pv, pv_p) ;
 
     int omat = stree::GetPointerIndex<G4Material>(      materials, border.omat_);
-    int osur = stree::GetPointerIndex<G4LogicalSurface>(surfaces,  border.osur_);
-    int isur = stree::GetPointerIndex<G4LogicalSurface>(surfaces,  border.isur_);
+    int osur = dedup_surfaces ? GetDedupSurfaceIndex(border.osur_) : stree::GetPointerIndex<G4LogicalSurface>(surfaces,  border.osur_);
+    int isur = dedup_surfaces ? GetDedupSurfaceIndex(border.isur_) : stree::GetPointerIndex<G4LogicalSurface>(surfaces,  border.isur_);
     int imat = stree::GetPointerIndex<G4Material>(      materials, border.imat_);
 
     int4 bd = {omat, osur, isur, imat } ;
