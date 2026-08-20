@@ -520,6 +520,10 @@ struct SteppingAction : G4UserSteppingAction
                     G4double charge = aParticle->GetDefinition()->GetPDGCharge();
                     const G4Material *aMaterial = aTrack->GetMaterial();
                     G4MaterialPropertiesTable *MPT = aMaterial->GetMaterialPropertiesTable();
+                    if (!MPT)
+                    {
+                        return;
+                    }
 
                     G4MaterialPropertyVector *Rindex = MPT->GetProperty(kRINDEX);
                     if (!Rindex || Rindex->GetVectorLength() == 0)
