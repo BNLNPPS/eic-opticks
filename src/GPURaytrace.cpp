@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <string>
 
 #include <argparse/argparse.hpp>
@@ -104,6 +105,26 @@ int main(int argc, char **argv)
     }
     CLHEP::HepRandom::setTheSeed(seed);
     G4cout << "Random seed set to: " << seed << G4endl;
+
+    if (gdml_file.find("lhcb2024") != string::npos)
+    {
+        setenv("U4Tree__DEDUP_SURFACES", "1", 0);
+        setenv("U4Solid__PERMISSIVE", "1", 0);
+        setenv("U4Polycone__ENABLE_PHICUT", "1", 0);
+        setenv("U4Solid__PRUNE_HUGE_CLIP_BOXES_LV", "Mirror1QuModule", 0);
+        setenv("U4Solid__SPHERE_INNER_GROW_Z_MM", "1", 0);
+        setenv("U4Mesh__BOX_PLACEHOLDER_BOOLEAN", "1", 0);
+        setenv("stree__is_auto_triangulate_NAMES", "notsupported", 0);
+        setenv("OPTICKS_CATHODE_M2", "8", 0);
+        setenv("OPTICKS_CATHODE_EXIT_MM", "0.3", 0);
+    }
+
+    if (!getenv("QRng__SEED_OFFSET"))
+    {
+        string seed_offset = to_string(seed) + ":0";
+        setenv("QRng__SEED_OFFSET", seed_offset.c_str(), 1);
+        G4cout << "Opticks photon RNG QRng__SEED_OFFSET set to: " << seed_offset << G4endl;
+    }
 
     simphony::Config{config_name};
 
