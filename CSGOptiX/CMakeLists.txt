@@ -49,7 +49,7 @@ target_compile_definitions(${OPTIX_PTX_TARGET}
         $<$<CONFIG:Release>:CONFIG_Release>
         $<$<CONFIG:MinSizeRel>:CONFIG_MinSizeRel>
         OPTICKS_SYSRAP
-        PLOG_LOCAL
+        $<$<BOOL:${BUILD_SHARED_LIBS}>:PLOG_LOCAL>
         $<$<CONFIG:Debug>:DEBUG_TAG>
         $<$<CONFIG:Debug>:DEBUG_PIDX>
         $<$<CONFIG:Debug>:DEBUG_PIDXYZ>

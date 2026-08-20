@@ -50,6 +50,8 @@ but the headers are also copied into opticks/sysrap.
 #include <locale>
 #include <optional>
 #include <numeric>   // std::iota; not pulled in transitively by MSVC's headers
+#include <filesystem>
+#include <system_error>
 
 #ifndef M_PI
 // MSVC's <cmath> defines M_PI only under _USE_MATH_DEFINES
@@ -7791,6 +7793,10 @@ inline bool NP::Exists(const char* dir, const char* name) // static
 inline bool NP::Exists(const char* path_) // static
 {
     const char* path = U::Resolve(path_);
+    // directories: ifstream-opening a directory succeeds on Linux (glibc)
+    // but always fails on Windows, so answer for directories directly
+    std::error_code ec ;
+    if( std::filesystem::is_directory(path ? path : "", ec) ) return true ;
     std::ifstream fp(path, std::ios::in|std::ios::binary);
     return fp.fail() ? false : true ;
 }

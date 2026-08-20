@@ -2735,6 +2735,10 @@ inline std::string NPU::_make_other(const char* descr, char other) // static
 
 inline bool NPU::is_readable(const char* path)  // static
 {
+    // directories: ifstream-opening a directory succeeds on Linux (glibc)
+    // but always fails on Windows, so answer for directories directly
+    std::error_code ec ;
+    if( std::filesystem::is_directory(path ? path : "", ec) ) return true ;
     std::ifstream fp(path, std::ios::in|std::ios::binary);
     bool readable = !fp.fail();
     fp.close();

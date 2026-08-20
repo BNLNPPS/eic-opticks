@@ -546,9 +546,12 @@ target_compile_definitions( ${name}
       $<$<CONFIG:Release>:CONFIG_Release>
       $<$<CONFIG:MinSizeRel>:CONFIG_MinSizeRel>
 
-      OPTICKS_SYSRAP 
+      OPTICKS_SYSRAP
       GLM_ENABLE_EXPERIMENTAL
-      PLOG_LOCAL
+      # PLOG_LOCAL gives each shared library its own plog instance; in a
+      # static build it splits the logger between library and executable
+      # translation units, which on Windows produced non-terminating logging
+      $<$<BOOL:${BUILD_SHARED_LIBS}>:PLOG_LOCAL>
 
       $<$<CONFIG:Debug>:DEBUG_TAG>
       $<$<CONFIG:Debug>:DEBUG_PIDX>
