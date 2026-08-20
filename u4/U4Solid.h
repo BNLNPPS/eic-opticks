@@ -602,6 +602,9 @@ inline sn* U4Solid::init_Sphere_(char layer)
     double radius = layer == 'I' ? rmin : rmax ;
     if(radius == 0.) return nullptr ;
 
+    static const double GROW_I = ssys::getenvdouble("U4Solid__SPHERE_INNER_GROW_Z_MM", 0.) ;
+    if( layer == 'I' && GROW_I > 0. ) return sn::Sphere( radius ) ;
+
     double startThetaAngle = sphere->GetStartThetaAngle()/CLHEP::radian ;
     double deltaThetaAngle = sphere->GetDeltaThetaAngle()/CLHEP::radian ;
 
