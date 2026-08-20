@@ -2204,7 +2204,11 @@ QSIM_FORCEINLINE_METHOD FlowAction qsim::propagate(const int bounce, RNG& rng, s
     {
         const int& ems = ctx.s.optical.y ;
 
-        if( ems == smatsur_NoSurface )
+        if( base->cathode_m2 != 0u && identity > 0u && cosTheta < 0.f && ctx.s.index.y == base->cathode_m2 )
+        {
+            command = propagate_at_surface_Detect( flag, rng, ctx ) ;
+        }
+        else if( ems == smatsur_NoSurface )
         {
             command = propagate_at_boundary( flag, rng, ctx ) ;
         }
