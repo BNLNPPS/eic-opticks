@@ -31,9 +31,12 @@
 #include <cstdio>
 #include <errno.h>
 
-// Linux-specific implementation.
 #include <sys/stat.h>
+#if defined(_MSC_VER)
+#include "s_windows.h"    // chdir, getcwd, mkdir
+#else
 #include <unistd.h>    // for chdir
+#endif
 
 #include <iomanip>
 

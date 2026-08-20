@@ -49,6 +49,12 @@ but the headers are also copied into opticks/sysrap.
 #include <functional>
 #include <locale>
 #include <optional>
+#include <numeric>   // std::iota; not pulled in transitively by MSVC's headers
+
+#ifndef M_PI
+// MSVC's <cmath> defines M_PI only under _USE_MATH_DEFINES
+#define M_PI 3.14159265358979323846
+#endif
 
 #include "NPU.hh"
 
