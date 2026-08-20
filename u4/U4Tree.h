@@ -726,6 +726,12 @@ with the results serialized into st->mesh NPFold
 
 inline void U4Tree::initSolids_Mesh()
 {
+    if(ssys::getenvbool("U4Tree__SKIP_MESH"))
+    {
+        std::cerr << "U4Tree::initSolids_Mesh SKIPPED (U4Tree__SKIP_MESH=1)\n" ;
+        st->mesh = new NPFold ;
+        return ;
+    }
     st->mesh = U4Mesh::MakeFold(solids, st->soname ) ;
 }
 

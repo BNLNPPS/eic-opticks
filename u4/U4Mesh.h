@@ -27,6 +27,8 @@ The "vtx" and "tri" arrays provide the conventional indexed-triangle form.
 
 #include <map>
 #include "G4Polyhedron.hh"
+#include "G4BooleanSolid.hh"
+#include "G4Box.hh"
 #include "ssys.h"
 #include "NPX.h"
 #include "NPFold.h"
@@ -134,7 +136,20 @@ inline NPFold* U4Mesh::MakeFold(
         const G4VSolid* so = solids[i];
         const char* _key = keys[i].c_str();
 
-        NPFold* sub = Serialize(so) ;
+        NPFold* sub ;
+        static const bool BOX_PLACEHOLDER_BOOLEAN = ssys::getenvbool("U4Mesh__BOX_PLACEHOLDER_BOOLEAN") ;
+        if( BOX_PLACEHOLDER_BOOLEAN && dynamic_cast<const G4BooleanSolid*>(so) != nullptr )
+        {
+            G4ThreeVector pmin, pmax ;
+            so->BoundingLimits(pmin, pmax) ;
+            G4Box ph_box("u4mesh_placeholder",
+                         0.5*(pmax.x()-pmin.x()), 0.5*(pmax.y()-pmin.y()), 0.5*(pmax.z()-pmin.z())) ;
+            sub = Serialize(&ph_box) ;
+        }
+        else
+        {
+            sub = Serialize(so) ;
+        }
         sub->set_meta<int>("lvid", lvid );
 
         mesh->add_subfold( _key, sub );
