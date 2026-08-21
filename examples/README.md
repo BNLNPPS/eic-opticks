@@ -7,7 +7,7 @@ Simphony provides several examples demonstrating GPU-accelerated optical photon 
 | `simphox` | Optical photons (torch) | None | External project build and CPU/GPU photon generation smoke test |
 | `GPUCerenkov` | Cerenkov only | Simple nested boxes (raindrop) | Basic Cerenkov testing |
 | `GPURaytrace` | Cerenkov + Scintillation | 8x8 CsI crystal + SiPM array | Realistic detector simulation |
-| `simg4ox` | Optical photons (torch) | Any GDML | G4 + GPU side-by-side validation |
+| `simg4ox` | Optical photons (torch) | Any GDML | Serial/MT G4 + GPU side-by-side validation |
 | `GPUPhotonSourceMinimal` | Optical photons (torch) | Any GDML | GPU-only test |
 | `GPUPhotonFileSource` | Optical photons (text file) | Any GDML | GPU-only, user-defined photons from file |
 | WLS test | Wavelength shifting | WLS sphere + detector shell | Validate GPU WLS physics |
@@ -26,7 +26,7 @@ Geant4 optical-photon tracking is also run for validation.
 | Photon input from text file | No | No | No | No | Yes |
 | G4 optical photon tracking | Yes | Yes | Yes | No | No |
 | GPU simulation (Simphony) | Yes | Yes | Yes | Yes | Yes |
-| Multi-threaded | Yes | Yes | No | No | No |
+| Geant4 CPU multithreading | Yes | Yes | Yes | No | No |
 
 `GPUCerenkov` and `GPURaytrace` collect gensteps from charged-particle
 interactions and pass them to Simphony for GPU photon generation and tracing.
@@ -34,6 +34,10 @@ interactions and pass them to Simphony for GPU photon generation and tracing.
 a torch configuration. `simg4ox` runs both G4 and GPU tracking for
 validation, while `GPUPhotonSourceMinimal` keeps only the GPU path.
 `GPUPhotonFileSource` reads user-defined photons from a text file.
+
+For `simg4ox`, multithreading applies to Geant4 CPU tracking. Its process-wide
+Opticks event context is protected by serializing GPU launches in event-ID
+order.
 
 ### Example 1: simphox (External build smoke test)
 
@@ -113,9 +117,10 @@ grep -c "CreationProcessID=1" opticks_hits_output.txt  # Scintillation
 tracks the same input with Geant4 on the CPU and Simphony on the GPU. This
 enables direct comparison of hit counts and positions between the two engines.
 
-Both engines detect photons using the same mechanism: border surface physics. On the G4
-side the `SteppingAction` records a hit when `G4OpBoundaryProcess` reports Detection at
-the optical surface, matching how Simphony detects photons on the GPU.
+Both engines detect photons using border-surface physics. On the Geant4 side,
+the optical boundary process invokes the worker-local `PhotonSD` at configured
+sensitive surfaces; the detector records and terminates the photon. Simphony
+selects GPU hits from the corresponding optical-boundary result.
 
 | Argument | Description | Default |
 |----------|-------------|---------|

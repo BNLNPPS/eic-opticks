@@ -69,6 +69,11 @@ docker run --rm --gpus all ghcr.io/bnlnpps/simphony simg4ox -g tests/geom/raindr
 apptainer exec --nv docker://ghcr.io/bnlnpps/simphony simg4ox -g /workspaces/simphony/tests/geom/raindrop.gdml -m /workspaces/simphony/tests/run.mac
 ```
 
+These commands use `simg4ox`'s default serial Geant4 run manager. The published
+images include multithreaded Geant4; use `tests/run_mt.mac` and add
+`--threads N` to run the same torch photons on `N` Geant4 CPU workers. Opticks
+GPU launches remain serialized because the GPU event context is process-wide.
+
 ### Install with Spack
 
 Simphony is also available through the BNLNPPS Spack repository:

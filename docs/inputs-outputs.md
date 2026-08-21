@@ -57,6 +57,28 @@ tracking is also run for validation.
 | `numphoton` | Number of photons to generate |
 | `wavelength` | Photon wavelength (nm) |
 
+### `simg4ox` execution model
+
+`simg4ox` gives the same generated torch photons to Geant4 CPU tracking and
+Simphony GPU tracking.
+
+Select the Geant4 run manager with `--threads N`. `N=1`, the default, uses the
+serial run manager. `N>1` requires a multithreaded Geant4 build and creates `N`
+CPU workers. This choice must be made before the macro is read, so
+`/run/numberOfThreads` is not the thread-selection interface for `simg4ox`.
+Use a macro such as `tests/run_mt.mac` for run initialization and event count:
+
+```bash
+simg4ox -g tests/geom/opticks_raindrop.gdml -c dev \
+    -m tests/run_mt.mac -s 42 --threads 4
+```
+
+In MT mode, actions and sensitive detectors are worker-local. Completed events
+share one process-wide Opticks GPU context, so GPU launches are serialized in
+event-ID order while Geant4 CPU tracking remains multithreaded. Run-wide CPU
+and GPU hits are merged in event-ID order. Full CPU-side Opticks photon-history
+recording is available only with the serial run manager.
+
 ## Defining primary particles
 
 For charged-particle examples, the user or developer defines the primary
@@ -149,6 +171,13 @@ For run-level metadata, the same base and event relative directory are used
 without the final `A000` or `B000` event-index subdirectory. The app-level
 `Config` interface does not expose a separate save-mode field; prefer
 `Config::output_dir` for controlling where event folders are written.
+
+`simg4ox` also writes application-level run aggregates directly under
+`Config::output_dir`: `s_hits.npy` contains Simphony GPU hits and `g_hits.npy`
+contains Geant4 sensitive-detector hits. Both have shape `(H, 4, 4)`, dtype
+`float32`, and the `sphoton` layout described below. They are written in both
+serial and MT modes. In MT mode, CPU-side history folders are not produced, but
+`g_hits.npy` is still written from the merged Geant4 hit collections.
 
 ### File schemas
 
