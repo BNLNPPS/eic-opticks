@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<!--
+  PbWO4 crystal wrapped in a thin (1 mm) Quartz photodetector shell, with a
+  SkinSurface on the wrapper carrying EFFICIENCY=1.0 — every optical photon
+  reaching the surface is detected. Used for hit-count cross-validation
+  between pure Geant4 (g4-benchmark) and the V1c bridge (Opticks consumer).
+
+  Geometry:
+    World:   100x100x100 mm Vacuum (Galactic-density H + RINDEX=1)
+    Wrapper:  32x32x32  mm Quartz (RINDEX=1.50, ABSLENGTH=1 m)
+    Crystal:  30x30x30  mm PbWO4  (dispersive RINDEX, same as pbwo4.gdml)
+
+  Surface:
+    SkinSurface "WrapperSkin" on lv_wrapper:
+      type = dielectric_metal      (absorb-on-hit semantics)
+      EFFICIENCY = 1.0             (every absorbed photon → hit)
+      REFLECTIVITY = 0.0           (no reflection)
+    With these properties Geant4's G4OpBoundaryProcess returns Detection
+    status when an optical photon crosses PbWO4 → Wrapper. Opticks
+    interprets the same surface as a sensor and increments its hit count.
+
+  Pattern follows dd4hepplugins/examples/geometry/raindrop_dd4hep.xml
+  (the canonical EFFICIENCY=1 sensor-surface example).
+-->
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="">
+
+  <define>
+
+    <matrix coldim="2" name="RINDEX_PbWO4"
+            values="1.5*eV 2.150
+                    2.0*eV 2.200
+                    2.5*eV 2.270
+                    3.0*eV 2.370
+                    3.5*eV 2.470
+                    4.0*eV 2.550"/>
+    <matrix coldim="2" name="ABSLENGTH_PbWO4"
+            values="1.5*eV 1000.
+                    2.0*eV 1000.
+                    2.5*eV 1000.
+                    3.0*eV 1000.
+                    3.5*eV  500.
+                    4.0*eV  100."/>
+
+    <matrix coldim="2" name="RINDEX_Quartz"
+            values="1.5*eV 1.50
+                    4.0*eV 1.50"/>
+    <matrix coldim="2" name="ABSLENGTH_Quartz"
+            values="1.5*eV 1000.
+                    4.0*eV 1000."/>
+
+    <matrix coldim="2" name="RINDEX_VACUUM"
+            values="1.5*eV 1.0
+                    4.0*eV 1.0"/>
+
+    <matrix coldim="2" name="EFFICIENCY_DETECT"
+            values="1.5*eV 1.0
+                    4.0*eV 1.0"/>
+    <matrix coldim="2" name="REFLECTIVITY_DETECT"
+            values="1.5*eV 0.0
+                    4.0*eV 0.0"/>
+
+    <position name="origin" x="0" y="0" z="0" unit="mm"/>
+
+  </define>
+
+  <materials>
+
+    <element name="elPb" formula="Pb" Z="82"> <atom unit="g/mole" value="207.2"/> </element>
+    <element name="elW"  formula="W"  Z="74"> <atom unit="g/mole" value="183.84"/> </element>
+    <element name="elO"  formula="O"  Z="8">  <atom unit="g/mole" value="16.00"/>  </element>
+    <element name="elH"  formula="H"  Z="1">  <atom unit="g/mole" value="1.00794"/> </element>
+    <element name="elSi" formula="Si" Z="14"> <atom unit="g/mole" value="28.0855"/> </element>
+
+    <material name="PbWO4" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="600.7"/>
+      <D unit="g/cm3" value="8.28"/>
+      <composite n="1" ref="elPb"/>
+      <composite n="1" ref="elW"/>
+      <composite n="4" ref="elO"/>
+      <property name="RINDEX"    ref="RINDEX_PbWO4"/>
+      <property name="ABSLENGTH" ref="ABSLENGTH_PbWO4"/>
+    </material>
+
+    <material name="Quartz" state="solid">
+      <T unit="K" value="293.15"/>
+      <MEE unit="eV" value="139.2"/>
+      <D unit="g/cm3" value="2.20"/>
+      <composite n="1" ref="elSi"/>
+      <composite n="2" ref="elO"/>
+      <property name="RINDEX"    ref="RINDEX_Quartz"/>
+      <property name="ABSLENGTH" ref="ABSLENGTH_Quartz"/>
+    </material>
+
+    <material name="Vacuum" state="gas">
+      <T unit="K" value="293.15"/>
+      <P unit="pascal" value="1e-19"/>
+      <MEE unit="eV" value="19.2"/>
+      <D unit="g/cm3" value="1e-25"/>
+      <fraction n="1" ref="elH"/>
+      <property name="RINDEX" ref="RINDEX_VACUUM"/>
+    </material>
+
+  </materials>
+
+  <solids>
+    <box lunit="mm" name="solid_world"   x="100" y="100" z="100"/>
+    <box lunit="mm" name="solid_wrapper" x="32"  y="32"  z="32"/>
+    <box lunit="mm" name="solid_crystal" x="30"  y="30"  z="30"/>
+
+    <opticalsurface name="WrapperSurf" model="glisur" finish="polished"
+                    type="dielectric_metal" value="1.0">
+      <property name="EFFICIENCY"   ref="EFFICIENCY_DETECT"/>
+      <property name="REFLECTIVITY" ref="REFLECTIVITY_DETECT"/>
+    </opticalsurface>
+  </solids>
+
+  <structure>
+    <volume name="lv_crystal">
+      <materialref ref="PbWO4"/>
+      <solidref ref="solid_crystal"/>
+    </volume>
+    <volume name="lv_wrapper">
+      <materialref ref="Quartz"/>
+      <solidref ref="solid_wrapper"/>
+      <physvol name="pv_crystal">
+        <volumeref ref="lv_crystal"/>
+        <positionref ref="origin"/>
+      </physvol>
+    </volume>
+    <volume name="lv_world">
+      <materialref ref="Vacuum"/>
+      <solidref ref="solid_world"/>
+      <physvol name="pv_wrapper">
+        <volumeref ref="lv_wrapper"/>
+        <positionref ref="origin"/>
+      </physvol>
+    </volume>
+
+    <skinsurface name="WrapperSkin" surfaceproperty="WrapperSurf">
+      <volumeref ref="lv_wrapper"/>
+    </skinsurface>
+  </structure>
+
+  <setup name="Default" version="1.0">
+    <world ref="lv_world"/>
+  </setup>
+
+</gdml>
