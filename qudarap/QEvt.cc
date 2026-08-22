@@ -201,7 +201,9 @@ int QEvt::setGenstepUpload_NP(const NP* gs_, const sslice* gss_ )
     LOG_IF( fatal, gs_ == nullptr ) << " gs_ null " ;
     assert( gs_ );
 
+    if( gs && gs != gs_ ) delete gs ;
     gs = gs_ ;
+    delete gss ;
     gss = gss_ ? new sslice(*gss_) : nullptr ;
 
     SGenstep::Check(gs);
