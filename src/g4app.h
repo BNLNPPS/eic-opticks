@@ -7,7 +7,6 @@
 #include <map>
 #include <memory>
 #include <mutex>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -17,6 +16,7 @@
 
 #include "G4BooleanSolid.hh"
 #include "G4Event.hh"
+#include "G4Exception.hh"
 #include "G4GDMLParser.hh"
 #include "G4LogicalVolumeStore.hh"
 #include "G4OpBoundaryProcess.hh"
@@ -400,7 +400,11 @@ struct EventAction : G4UserEventAction
         {
             primary_info = dynamic_cast<const PrimaryPhotonInfo*>(event->GetUserInformation());
             if (!primary_info)
-                throw std::runtime_error("MT event is missing its generated photons for GPU processing");
+            {
+                G4Exception("EventAction::SimulateOnGPU", "MissingPrimaryPhotonInfo", FatalException,
+                            "MT event is missing its generated photons for GPU processing");
+                return {};
+            }
         }
 
         const G4int      event_id = event->GetEventID();
