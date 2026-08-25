@@ -23,11 +23,6 @@ rm -f "${PWD}/g_hits.npy" "${PWD}/s_hits.npy" "${RUN_LOG}"
     -s 42 \
     --threads "${THREADS}" 2>&1 | tee "${RUN_LOG}"
 
-if ! grep -q "simg4ox: Geant4 run manager: MT, CPU threads: ${THREADS}" "${RUN_LOG}"; then
-    echo "simg4ox did not report the requested MT run manager" >&2
-    exit 1
-fi
-
 "${PYTHON}" "${REPO_DIR}/tests/check_simg4ox_multievent.py" \
     --log "${RUN_LOG}" \
     --output-dir "${PWD}" \

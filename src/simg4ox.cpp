@@ -110,8 +110,18 @@ int main(int argc, char** argv)
                                 ? G4RunManagerFactory::CreateRunManager(G4RunManagerType::MTOnly, num_threads)
                                 : G4RunManagerFactory::CreateRunManager(G4RunManagerType::SerialOnly);
 
+    const G4int configured_threads = run_mgr->GetNumberOfThreads();
+    if (configured_threads != num_threads)
+    {
+        cerr << "Requested " << num_threads << " Geant4 CPU threads, but the run manager configured "
+             << configured_threads << endl;
+        delete run_mgr;
+        delete physics;
+        return EXIT_FAILURE;
+    }
+
     G4cout << "simg4ox: Geant4 run manager: " << (multithreaded ? "MT" : "serial")
-           << ", CPU threads: " << num_threads << G4endl;
+           << ", CPU threads: " << configured_threads << G4endl;
 
     run_mgr->SetUserInitialization(physics);
     run_mgr->SetUserInitialization(new DetectorConstruction(gdml_file));
