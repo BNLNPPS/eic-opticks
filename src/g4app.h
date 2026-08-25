@@ -1,11 +1,13 @@
 #pragma once
 
+#include <cassert>
 #include <condition_variable>
 #include <cstring>
 #include <filesystem>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -90,11 +92,11 @@ using PhotonHitsCollection = G4THitsCollection<PhotonHit>;
 static_assert(sizeof(sphoton) == 16 * sizeof(float));
 static_assert(std::is_trivially_copyable_v<sphoton>);
 
-inline NP* MakePhotonArray(const std::vector<sphoton>& photons)
+inline std::unique_ptr<NP> MakePhotonArray(const std::vector<sphoton>& photons)
 {
-    const size_t num_floats = photons.size() * 4 * 4;
-    const float* data = reinterpret_cast<const float*>(photons.data());
-    NP*          array = NP::MakeFromValues<float>(data, num_floats);
+    const size_t        num_floats = photons.size() * 4 * 4;
+    const float*        data = reinterpret_cast<const float*>(photons.data());
+    std::unique_ptr<NP> array(NP::MakeFromValues<float>(data, num_floats));
     array->reshape({static_cast<int64_t>(photons.size()), 4, 4});
     return array;
 }
@@ -209,8 +211,9 @@ struct PrimaryPhotonInfo : G4VUserEventInformation
 
 struct PrimaryGenerator : G4VUserPrimaryGeneratorAction
 {
-    simphony::Config cfg;
-    SEvt*            sev;
+    simphony::Config    cfg;
+    SEvt*               sev;
+    std::unique_ptr<NP> input_photon;
 
     PrimaryGenerator(const simphony::Config& cfg, SEvt* sev) :
         cfg(cfg),
@@ -247,7 +250,10 @@ struct PrimaryGenerator : G4VUserPrimaryGeneratorAction
         // shared safely by Geant4 worker threads. Preserve MT event input on
         // the G4Event until the event reaches the serialized GPU section.
         if (sev)
-            SEvt::SetInputPhoton(MakePhotonArray(sphotons));
+        {
+            input_photon = MakePhotonArray(sphotons);
+            SEvt::SetInputPhoton(input_photon.get());
+        }
         else
             event->SetUserInformation(new PrimaryPhotonInfo(std::move(sphotons)));
     }
@@ -313,6 +319,7 @@ struct Simg4oxSharedState
 {
     std::mutex              gpu_mutex;
     std::condition_variable gpu_turn;
+    std::unique_ptr<NP>     input_photon;
     G4int                   next_gpu_event{0};
 
     void BeginRun()
@@ -388,6 +395,14 @@ struct EventAction : G4UserEventAction
 
     std::vector<sphoton> SimulateOnGPU(const G4Event* event)
     {
+        const PrimaryPhotonInfo* primary_info = nullptr;
+        if (order_gpu_events)
+        {
+            primary_info = dynamic_cast<const PrimaryPhotonInfo*>(event->GetUserInformation());
+            if (!primary_info)
+                throw std::runtime_error("MT event is missing its generated photons for GPU processing");
+        }
+
         const G4int      event_id = event->GetEventID();
         std::unique_lock lock(shared_state->gpu_mutex);
         if (order_gpu_events)
@@ -395,9 +410,8 @@ struct EventAction : G4UserEventAction
 
         if (order_gpu_events)
         {
-            const auto* primary_info = dynamic_cast<const PrimaryPhotonInfo*>(event->GetUserInformation());
-            assert(primary_info && "MT events must retain their generated photons for GPU processing");
-            SEvt::SetInputPhoton(MakePhotonArray(primary_info->photons));
+            shared_state->input_photon = MakePhotonArray(primary_info->photons);
+            SEvt::SetInputPhoton(shared_state->input_photon.get());
         }
 
         G4CXOpticks* gx = G4CXOpticks::Get();
