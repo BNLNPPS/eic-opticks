@@ -1,4 +1,5 @@
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+find_package(Geant4 REQUIRED OPTIONAL_COMPONENTS multithreaded)
 find_program(BASH_EXECUTABLE bash REQUIRED)
 
 set(SIMPHONY_SIMG4OX_TEST_WORKDIR "${CMAKE_CURRENT_BINARY_DIR}/simg4ox")
@@ -49,22 +50,24 @@ set_tests_properties(Integration.simg4ox_multievent PROPERTIES
     TIMEOUT 120
 )
 
-set(SIMPHONY_SIMG4OX_MULTITHREAD_TEST_WORKDIR "${CMAKE_CURRENT_BINARY_DIR}/simg4ox_multithread")
-file(MAKE_DIRECTORY "${SIMPHONY_SIMG4OX_MULTITHREAD_TEST_WORKDIR}")
+if(Geant4_multithreaded_FOUND)
+    set(SIMPHONY_SIMG4OX_MULTITHREAD_TEST_WORKDIR "${CMAKE_CURRENT_BINARY_DIR}/simg4ox_multithread")
+    file(MAKE_DIRECTORY "${SIMPHONY_SIMG4OX_MULTITHREAD_TEST_WORKDIR}")
 
-add_test(
-    NAME Integration.simg4ox_multithread
-    COMMAND ${CMAKE_COMMAND} -E env
-            REPO_DIR=${PROJECT_SOURCE_DIR}
-            PYTHON=${Python3_EXECUTABLE}
-            SIMG4OX_BIN=$<TARGET_FILE:simg4ox>
-            THREADS=2
-            ${BASH_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_simg4ox_multithread.sh
-)
+    add_test(
+        NAME Integration.simg4ox_multithread
+        COMMAND ${CMAKE_COMMAND} -E env
+                REPO_DIR=${PROJECT_SOURCE_DIR}
+                PYTHON=${Python3_EXECUTABLE}
+                SIMG4OX_BIN=$<TARGET_FILE:simg4ox>
+                THREADS=2
+                ${BASH_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_simg4ox_multithread.sh
+    )
 
-set_tests_properties(Integration.simg4ox_multithread PROPERTIES
-    WORKING_DIRECTORY "${SIMPHONY_SIMG4OX_MULTITHREAD_TEST_WORKDIR}"
-    LABELS "integration"
-    PROCESSORS 2
-    TIMEOUT 120
-)
+    set_tests_properties(Integration.simg4ox_multithread PROPERTIES
+        WORKING_DIRECTORY "${SIMPHONY_SIMG4OX_MULTITHREAD_TEST_WORKDIR}"
+        LABELS "integration"
+        PROCESSORS 2
+        TIMEOUT 120
+    )
+endif()
