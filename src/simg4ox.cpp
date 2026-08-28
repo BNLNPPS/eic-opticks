@@ -107,11 +107,11 @@ int main(int argc, char** argv)
 
     const bool    multithreaded = num_threads > 1;
     G4RunManager* run_mgr = multithreaded
-                                ? G4RunManagerFactory::CreateRunManager(G4RunManagerType::MTOnly, num_threads)
+                                ? G4RunManagerFactory::CreateRunManager(G4RunManagerType::MTOnly, true, num_threads)
                                 : G4RunManagerFactory::CreateRunManager(G4RunManagerType::SerialOnly);
 
-    const G4int configured_threads = run_mgr->GetNumberOfThreads();
-    if (configured_threads != num_threads)
+    const G4int configured_threads = multithreaded ? run_mgr->GetNumberOfThreads() : 1;
+    if (multithreaded && configured_threads != num_threads)
     {
         cerr << "Requested " << num_threads << " Geant4 CPU threads, but the run manager configured "
              << configured_threads << endl;
