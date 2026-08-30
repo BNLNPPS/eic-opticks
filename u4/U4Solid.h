@@ -23,9 +23,9 @@ npy/NNodeUncoincide npy/NNodeNudger
 
 **/
 
-
-#include <set>
 #include <csignal>
+#include <plog/Log.h>
+#include <set>
 
 #include "ssys.h"
 #include "scuda.h"
@@ -48,6 +48,7 @@ npy/NNodeUncoincide npy/NNodeNudger
 #include "G4Polycone.hh"
 #include "G4Sphere.hh"
 #include "G4SubtractionSolid.hh"
+#include "G4TessellatedSolid.hh"
 #include "G4Torus.hh"
 #include "G4Trap.hh"
 #include "G4Trd.hh"
@@ -81,7 +82,8 @@ enum {
     _G4DisplacedSolid,
     _G4CutTubs,
     _G4Trap,
-    _G4Trd
+    _G4Trd,
+    _G4TessellatedSolid
  };
 
 struct U4Solid
@@ -103,6 +105,7 @@ struct U4Solid
     static constexpr const char* G4CutTubs_           = "TuC" ;
     static constexpr const char* G4Trap_ = "Tra";
     static constexpr const char* G4Trd_ = "Trd";
+    static constexpr const char* G4TessellatedSolid_ = "Tes";
 
     static constexpr const char* _U4Solid__IsFlaggedLVID = "U4Solid__IsFlaggedLVID" ;
     static const int   IsFlaggedLVID_ ;
@@ -152,6 +155,7 @@ private:
     void init_CutTubs();
     void init_Trap();
     void init_Trd();
+    void init_Tessellated();
     void _setRoot_FromVertices(const double v[8][3]);
 
     sn* init_Sphere_(char layer);
@@ -306,6 +310,8 @@ inline int U4Solid::Type(const char* name)   // static
         type = _G4Trap;
     if (strcmp(name, "G4Trd") == 0)
         type = _G4Trd;
+    if (strcmp(name, "G4TessellatedSolid") == 0)
+        type = _G4TessellatedSolid;
     return type ;
 }
 
@@ -334,6 +340,9 @@ inline const char* U4Solid::Tag(int type)   // static
             break;
         case _G4Trd:
             tag = G4Trd_;
+            break;
+        case _G4TessellatedSolid:
+            tag = G4TessellatedSolid_;
             break;
         }
     return tag ;
@@ -437,6 +446,9 @@ inline void U4Solid::init_Constituents()
             break;
         case _G4Trd:
             init_Trd();
+            break;
+        case _G4TessellatedSolid:
+            init_Tessellated();
             break;
         }
 
@@ -910,6 +922,43 @@ inline void U4Solid::init_Trd()
     v[7][2] = +dz;
 
     _setRoot_FromVertices(v);
+}
+
+/**
+ * Creates an axis-aligned box placeholder for a tessellated solid.
+ *
+ * The placeholder preserves the solid's extent and boundary metadata, but not
+ * its facets. Configure the solid for triangulation with
+ * `stree__force_triangulate_solid`; `U4Mesh` then supplies the exact facets for
+ * GPU intersection.
+ */
+
+inline void U4Solid::init_Tessellated()
+{
+    const G4TessellatedSolid* tess = static_cast<const G4TessellatedSolid*>(solid);
+    assert(tess);
+
+    double x0 = tess->GetMinXExtent() / CLHEP::mm;
+    double x1 = tess->GetMaxXExtent() / CLHEP::mm;
+    double y0 = tess->GetMinYExtent() / CLHEP::mm;
+    double y1 = tess->GetMaxYExtent() / CLHEP::mm;
+    double z0 = tess->GetMinZExtent() / CLHEP::mm;
+    double z1 = tess->GetMaxZExtent() / CLHEP::mm;
+
+    root = sn::Box3(x1 - x0, y1 - y0, z1 - z0);
+
+    glm::tvec3<double> tla((x0 + x1) / 2., (y0 + y1) / 2., (z0 + z1) / 2.);
+    if (glm::length(tla) > 0.)
+    {
+        glm::tmat4x4<double> xf = glm::translate(glm::tmat4x4<double>(1.), tla);
+        root->combineXF(xf);
+    }
+
+    LOG(plog::warning)
+        << "U4Solid::init_Tessellated"
+        << " name " << (name ? name : "-")
+        << " facets " << tess->GetNumberOfFacets()
+        << " : analytic bbox placeholder only, list the solid in stree__force_triangulate_solid";
 }
 
 // Compute 6 outward face planes + AABB from 8 vertices, install as CSG_CONVEXPOLYHEDRON root.
