@@ -737,6 +737,9 @@ inline void U4Tree::initSolid(const G4VSolid* const so, int lvid )
     sn* root = U4Solid::Convert(so, lvid, d );
     assert( root );
 
+    if (U4Solid::ContainsTessellated(so))
+        st->force_triangulate_lvid.push_back(lvid);
+
     solids.push_back(so);
     st->soname_raw.push_back(name);
     st->solids.push_back(root);

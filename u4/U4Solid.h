@@ -24,7 +24,6 @@ npy/NNodeUncoincide npy/NNodeNudger
 **/
 
 #include <csignal>
-#include <plog/Log.h>
 #include <set>
 
 #include "ssys.h"
@@ -56,6 +55,7 @@ npy/NNodeUncoincide npy/NNodeNudger
 #include "G4UnionSolid.hh"
 
 #include "G4BooleanSolid.hh"
+#include "G4DisplacedSolid.hh"
 #include "G4RotationMatrix.hh"
 #include <CLHEP/Units/SystemOfUnits.h>
 
@@ -126,6 +126,7 @@ struct U4Solid
 
     static int          Type(const char* entityType ) ;
     static const char*  Tag( int type ) ;
+    static bool         ContainsTessellated(const G4VSolid* solid) ;
     const char* tag() const ;
 
 
@@ -346,6 +347,35 @@ inline const char* U4Solid::Tag(int type)   // static
             break;
         }
     return tag ;
+}
+
+/**
+ * Returns true when a solid or one of its constituents is tessellated.
+ *
+ * Boolean operands, displaced solids, and multi-union members are searched
+ * recursively. `U4Tree` uses this result to triangulate the enclosing
+ * logical-volume solid.
+ */
+
+inline bool U4Solid::ContainsTessellated(const G4VSolid* solid) // static
+{
+    if (solid == nullptr) return false;
+    if (dynamic_cast<const G4TessellatedSolid*>(solid) != nullptr) return true;
+
+    const G4DisplacedSolid* displaced = dynamic_cast<const G4DisplacedSolid*>(solid);
+    if (displaced != nullptr) return ContainsTessellated(displaced->GetConstituentMovedSolid());
+
+    const G4BooleanSolid* boolean = dynamic_cast<const G4BooleanSolid*>(solid);
+    if (boolean != nullptr)
+        return ContainsTessellated(boolean->GetConstituentSolid(0)) ||
+               ContainsTessellated(boolean->GetConstituentSolid(1));
+
+    const G4MultiUnion* multi_union = dynamic_cast<const G4MultiUnion*>(solid);
+    if (multi_union != nullptr)
+        for (int i = 0; i < multi_union->GetNumberOfSolids(); ++i)
+            if (ContainsTessellated(multi_union->GetSolid(i))) return true;
+
+    return false;
 }
 
 inline const char* U4Solid::tag() const { return Tag(type) ; }
@@ -925,12 +955,11 @@ inline void U4Solid::init_Trd()
 }
 
 /**
- * Creates an axis-aligned box placeholder for a tessellated solid.
+ * Converts a tessellated solid to an axis-aligned box placeholder.
  *
- * The placeholder preserves the solid's extent and boundary metadata, but not
- * its facets. Configure the solid for triangulation with
- * `stree__force_triangulate_solid`; `U4Mesh` then supplies the exact facets for
- * GPU intersection.
+ * The placeholder preserves the extent and boundary metadata. `U4Tree`
+ * detects tessellated constituents and selects the enclosing logical-volume
+ * solid for triangulation, allowing `U4Mesh` to supply the exact facets.
  */
 
 inline void U4Solid::init_Tessellated()
@@ -953,12 +982,6 @@ inline void U4Solid::init_Tessellated()
         glm::tmat4x4<double> xf = glm::translate(glm::tmat4x4<double>(1.), tla);
         root->combineXF(xf);
     }
-
-    LOG(plog::warning)
-        << "U4Solid::init_Tessellated"
-        << " name " << (name ? name : "-")
-        << " facets " << tess->GetNumberOfFacets()
-        << " : analytic bbox placeholder only, list the solid in stree__force_triangulate_solid";
 }
 
 // Compute 6 outward face planes + AABB from 8 vertices, install as CSG_CONVEXPOLYHEDRON root.

@@ -63,6 +63,7 @@ set(TEST_SOURCES
 
    SpherePhiCutQuarterShellTest.cc
    TessellatedSolidTest.cc
+   U4TreeTessellatedTest.cc
    TubePhiCutQuarterShellTest.cc
 )
 

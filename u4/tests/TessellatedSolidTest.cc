@@ -1,11 +1,16 @@
 /**
- * Verifies host-side conversion of a `G4TessellatedSolid` by `U4Solid`.
+ * @file TessellatedSolidTest.cc
+ * @brief Verifies host-side tessellated-solid conversion and detection.
  *
- * This test constructs a closed, offset tetrahedron at runtime. It checks the
- * entity-type and tag dispatch, then verifies that conversion produces a box
+ * The test constructs a closed, offset tetrahedron at runtime. It verifies
+ * entity-type and tag dispatch, then checks that conversion produces a box
  * placeholder with the expected dimensions, local bounds, and translation.
  *
- * This test does not exercise triangulated GPU intersection.
+ * It also verifies recursive detection when the tetrahedron is used directly
+ * or inside Boolean, displaced, and multi-union solids, while confirming that
+ * an ordinary box is not detected as tessellated.
+ *
+ * The test does not exercise triangulated GPU intersection.
  */
 
 #include <cmath>
@@ -13,8 +18,13 @@
 #include <iostream>
 #include <string>
 
+#include "G4Box.hh"
+#include "G4DisplacedSolid.hh"
+#include "G4MultiUnion.hh"
 #include "G4TessellatedSolid.hh"
+#include "G4Transform3D.hh"
 #include "G4TriangularFacet.hh"
+#include "G4UnionSolid.hh"
 
 #include "U4Solid.h"
 
@@ -58,6 +68,26 @@ int main()
         std::string(U4Solid::Tag(_G4TessellatedSolid)) != "Tes")
     {
         std::cerr << "G4TessellatedSolid type or tag dispatch failed" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    G4Box box("Box", 1., 1., 1.);
+    G4UnionSolid boolean("BooleanWithTessellated", &box, &solid);
+    G4DisplacedSolid displaced("DisplacedTessellated", &solid, G4Transform3D());
+    G4MultiUnion multiUnion("MultiUnionWithTessellated");
+    multiUnion.AddNode(box, G4Transform3D());
+    multiUnion.AddNode(solid, G4Transform3D());
+
+    bool containment =
+        U4Solid::ContainsTessellated(&solid) &&
+        U4Solid::ContainsTessellated(&boolean) &&
+        U4Solid::ContainsTessellated(&displaced) &&
+        U4Solid::ContainsTessellated(&multiUnion) &&
+        !U4Solid::ContainsTessellated(&box);
+
+    if (!containment)
+    {
+        std::cerr << "recursive tessellated-solid detection failed" << std::endl;
         return EXIT_FAILURE;
     }
 
