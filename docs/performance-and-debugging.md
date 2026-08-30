@@ -26,6 +26,20 @@ docker run --rm -t -v /tmp/out:/tmp/out simphony:release \
     run-performance -g tests/geom/opticks_raindrop.gdml -o /tmp/out/release
 ```
 
+### Interpreting `simg4ox` MT timings
+
+`simg4ox --threads N` parallelizes Geant4 CPU tracking of its configured torch
+photons. It does not run multiple Opticks launches concurrently: the current
+process-wide GPU event context requires launches to be serialized in event-ID
+order. Consequently, an end-to-end `simg4ox` wall-clock measurement includes
+parallel CPU work plus serialized GPU work and should not be interpreted as a
+pure GPU speed-up measurement.
+
+![Serial and multithreaded simg4ox event-processing timelines](assets/simg4ox-event-processing.svg)
+
+The supplied `tests/run_mt.mac` contains only five low-statistics events and is
+an integration check, not a benchmark.
+
 ## Debug analysis with `optiphy/ana/photon_history_summary.py`
 
 The script analyzes GPU optical photon simulation output to debug where

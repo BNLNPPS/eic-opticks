@@ -126,7 +126,13 @@ only the target you are changing, and run a relevant test:
 ctest --test-dir build -N
 cmake --build build --target simg4ox
 ctest --test-dir build -R raindrop
+ctest --test-dir build -R '^Integration\.simg4ox_multithread$'
 ```
+
+The `simg4ox_multithread` integration test runs five optical-photon events
+with two Geant4 CPU workers and validates the merged CPU/GPU hit arrays. See
+[the simg4ox example](../examples/README.md#example-4-simg4ox-g4--gpu-validation)
+for serial and MT command lines and the supplied `tests/run_mt.mac` macro.
 
 The full suite includes GPU-backed tests. You can build without a GPU, but
 running those tests requires a compatible NVIDIA driver and GPU access from the
@@ -141,6 +147,10 @@ If you prefer to manage the toolchain yourself, install:
 - Geant4 11.3+
 - CMake 3.22+
 - Python 3.10+
+
+Build Geant4 with multithreading enabled to use `simg4ox --threads N` with
+`N>1`. The project container images already use a multithreaded Geant4 build;
+`--threads 1` remains available for serial validation.
 
 With those dependencies available, clone, build, and test the project:
 
@@ -182,12 +192,18 @@ To try the latest published release and confirm that GPU access works:
 docker run --rm --gpus all ghcr.io/bnlnpps/simphony simg4ox -g tests/geom/raindrop.gdml -m tests/run.mac
 ```
 
+This uses the default serial run manager. To exercise Geant4 MT in the
+container, use `tests/run_mt.mac` and append `--threads N`.
+
 To test an image built from your current checkout instead:
 
 ```shell
 docker build -t simphony:develop .
 docker run --rm --gpus all simphony:develop simg4ox -g tests/geom/raindrop.gdml -m tests/run.mac
 ```
+
+As with the published image, select `tests/run_mt.mac` and pass `--threads N`
+for an MT run.
 
 For day-to-day development, the Dev Container is more convenient because source
 edits are available immediately without rebuilding the image.
@@ -199,6 +215,9 @@ On systems that provide Apptainer, run the same published release with:
 ```shell
 apptainer exec --nv docker://ghcr.io/bnlnpps/simphony simg4ox -g /workspaces/simphony/tests/geom/raindrop.gdml -m /workspaces/simphony/tests/run.mac
 ```
+
+For MT, use the absolute macro path
+`/workspaces/simphony/tests/run_mt.mac` and add `--threads N`.
 
 Use `singularity` in place of `apptainer` on systems that provide the older
 command name.
