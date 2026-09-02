@@ -716,7 +716,7 @@ struct stree
     bool        is_triangulate(int lvid) const ;  // OR of the above
 
     void classifySubtrees();
-    bool subtree_contains_triangulated(const char* sub) const ;
+    bool subtree_contains_triangulated(const char* sub) const;
     void disqualifyTriangulatedRepeats();
     bool is_contained_repeat(const char* sub) const ;
     void disqualifyContainedRepeats();
@@ -5218,7 +5218,6 @@ inline void stree::classifySubtrees()
     if(level>0) std::cout << "] stree::classifySubtrees " << std::endl ;
 }
 
-
 /**
  * Returns whether the first instance of a subtree contains a logical volume
  * selected for triangulation.
@@ -5231,13 +5230,15 @@ inline bool stree::subtree_contains_triangulated(const char* sub) const
     int nidx = get_first(sub);
     assert(nidx > -1);
 
-    if (is_triangulate(nds[nidx].lvid)) return true;
+    if (is_triangulate(nds[nidx].lvid))
+        return true;
 
     std::vector<int> progeny;
     get_progeny(progeny, nidx);
 
     for (unsigned i = 0; i < progeny.size(); ++i)
-        if (is_triangulate(nds[progeny[i]].lvid)) return true;
+        if (is_triangulate(nds[progeny[i]].lvid))
+            return true;
 
     return false;
 }
@@ -5251,20 +5252,21 @@ inline bool stree::subtree_contains_triangulated(const char* sub) const
  */
 inline void stree::disqualifyTriangulatedRepeats()
 {
-    unsigned num = subs_freq->get_num();
+    unsigned                 num = subs_freq->get_num();
     std::vector<std::string> disqualify;
 
     for (unsigned i = 0; i < num; ++i)
     {
         const char* sub = subs_freq->get_key(i);
-        int freq = subs_freq->get_freq(i);
-        if (freq < FREQ_CUT) continue;
-        if (subtree_contains_triangulated(sub)) disqualify.push_back(sub);
+        int         freq = subs_freq->get_freq(i);
+        if (freq < FREQ_CUT)
+            continue;
+        if (subtree_contains_triangulated(sub))
+            disqualify.push_back(sub);
     }
 
     subs_freq->set_disqualify(disqualify);
 }
-
 
 /**
 stree::is_contained_repeat
@@ -5699,8 +5701,6 @@ inline std::string stree::descNodes() const
     std::string str = ss.str();
     return str ;
 }
-
-
 
 /**
 stree::factorize

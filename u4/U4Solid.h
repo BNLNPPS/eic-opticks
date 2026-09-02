@@ -126,7 +126,7 @@ struct U4Solid
 
     static int          Type(const char* entityType ) ;
     static const char*  Tag( int type ) ;
-    static bool         ContainsTessellated(const G4VSolid* solid) ;
+    static bool ContainsTessellated(const G4VSolid* solid);
     const char* tag() const ;
 
 
@@ -359,11 +359,14 @@ inline const char* U4Solid::Tag(int type)   // static
 
 inline bool U4Solid::ContainsTessellated(const G4VSolid* solid) // static
 {
-    if (solid == nullptr) return false;
-    if (dynamic_cast<const G4TessellatedSolid*>(solid) != nullptr) return true;
+    if (solid == nullptr)
+        return false;
+    if (dynamic_cast<const G4TessellatedSolid*>(solid) != nullptr)
+        return true;
 
     const G4DisplacedSolid* displaced = dynamic_cast<const G4DisplacedSolid*>(solid);
-    if (displaced != nullptr) return ContainsTessellated(displaced->GetConstituentMovedSolid());
+    if (displaced != nullptr)
+        return ContainsTessellated(displaced->GetConstituentMovedSolid());
 
     const G4BooleanSolid* boolean = dynamic_cast<const G4BooleanSolid*>(solid);
     if (boolean != nullptr)
@@ -373,7 +376,8 @@ inline bool U4Solid::ContainsTessellated(const G4VSolid* solid) // static
     const G4MultiUnion* multi_union = dynamic_cast<const G4MultiUnion*>(solid);
     if (multi_union != nullptr)
         for (int i = 0; i < multi_union->GetNumberOfSolids(); ++i)
-            if (ContainsTessellated(multi_union->GetSolid(i))) return true;
+            if (ContainsTessellated(multi_union->GetSolid(i)))
+                return true;
 
     return false;
 }

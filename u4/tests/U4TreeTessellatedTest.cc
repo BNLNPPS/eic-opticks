@@ -43,13 +43,14 @@ G4TessellatedSolid* makeTetrahedron()
     G4ThreeVector p3(0., 0., 4.);
 
     G4TessellatedSolid* solid = new G4TessellatedSolid("NestedTetrahedron");
-    bool facetsAdded =
+    bool                facetsAdded =
         addFacet(*solid, p0, p2, p1) &&
         addFacet(*solid, p0, p1, p3) &&
         addFacet(*solid, p0, p3, p2) &&
         addFacet(*solid, p1, p2, p3);
 
-    if (!facetsAdded) return nullptr;
+    if (!facetsAdded)
+        return nullptr;
     solid->SetSolidClosed(true);
     return solid;
 }
@@ -79,15 +80,15 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    G4Box* component = new G4Box("BooleanBox", 3., 3., 3.);
-    G4UnionSolid* nested = new G4UnionSolid("NestedTessellatedUnion", component, tessellated);
+    G4Box*           component = new G4Box("BooleanBox", 3., 3., 3.);
+    G4UnionSolid*    nested = new G4UnionSolid("NestedTessellatedUnion", component, tessellated);
     G4LogicalVolume* nestedLV = new G4LogicalVolume(nested, material, "NestedTessellatedLV");
 
-    G4Box* worldSolid = new G4Box("WorldBox", 100., 100., 100.);
+    G4Box*           worldSolid = new G4Box("WorldBox", 100., 100., 100.);
     G4LogicalVolume* worldLV = new G4LogicalVolume(worldSolid, material, "WorldLV");
 
     new G4PVPlacement(nullptr, G4ThreeVector(-20., 0., 0.), nestedLV, "NestedPV0", worldLV, false, 0);
-    new G4PVPlacement(nullptr, G4ThreeVector( 20., 0., 0.), nestedLV, "NestedPV1", worldLV, false, 1);
+    new G4PVPlacement(nullptr, G4ThreeVector(20., 0., 0.), nestedLV, "NestedPV1", worldLV, false, 1);
     G4VPhysicalVolume* world = new G4PVPlacement(
         nullptr, G4ThreeVector(), worldLV, "WorldPV", nullptr, false, 0);
 
@@ -100,9 +101,10 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    int lvid = findLvid(st, "NestedTessellatedUnion");
+    int              lvid = findLvid(st, "NestedTessellatedUnion");
     std::vector<int> nodes;
-    if (lvid > -1) st.find_lvid_nodes(nodes, lvid, 'N');
+    if (lvid > -1)
+        st.find_lvid_nodes(nodes, lvid, 'N');
 
     bool nodesAreGlobal = nodes.size() == 2;
     for (unsigned i = 0; i < nodes.size(); ++i)
@@ -110,10 +112,11 @@ int main(int argc, char** argv)
 
     int triangulatedPlacements = 0;
     for (unsigned i = 0; i < st.tri.size(); ++i)
-        if (st.tri[i].lvid == lvid) triangulatedPlacements += 1;
+        if (st.tri[i].lvid == lvid)
+            triangulatedPlacements += 1;
 
     const NPFold* mesh = lvid > -1 ? st.mesh->get_subfold(st.soname[lvid].c_str()) : nullptr;
-    bool passed =
+    bool          passed =
         lvid > -1 &&
         st.is_force_triangulate(lvid) &&
         st.get_num_factor() == 0 &&

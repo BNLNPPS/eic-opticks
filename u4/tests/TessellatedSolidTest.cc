@@ -71,10 +71,10 @@ int main()
         return EXIT_FAILURE;
     }
 
-    G4Box box("Box", 1., 1., 1.);
-    G4UnionSolid boolean("BooleanWithTessellated", &box, &solid);
+    G4Box            box("Box", 1., 1., 1.);
+    G4UnionSolid     boolean("BooleanWithTessellated", &box, &solid);
     G4DisplacedSolid displaced("DisplacedTessellated", &solid, G4Transform3D());
-    G4MultiUnion multiUnion("MultiUnionWithTessellated");
+    G4MultiUnion     multiUnion("MultiUnionWithTessellated");
     multiUnion.AddNode(box, G4Transform3D());
     multiUnion.AddNode(solid, G4Transform3D());
 
