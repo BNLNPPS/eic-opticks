@@ -31,6 +31,19 @@ See [Physics](physics.md) for the current standard-GPU interpretation of GDML
 optical-surface properties such as `model`, `finish`, `type`, `EFFICIENCY`,
 and `REFLECTIVITY`.
 
+### Analytic and tessellated geometry
+
+GDML can provide native `<tessellated>` solids, but triangle geometry does not
+have to originate in that form. Simphony automatically selects native
+tessellated solids, including tessellated constituents inside Boolean,
+displaced, or multi-union solids. Other Geant4 solids can be selected
+automatically or by exact solid name with `stree__force_triangulate_solid`.
+
+Triangulation selection and mesh resolution are persisted in the generated
+geometry cache, so configure them before generating the cache. If a selected
+solid is repeated, its placements remain in global triangle geometry rather
+than an analytic instance factor, which can increase memory use.
+
 ## Photon source inputs
 
 Simphony examples feed the GPU simulation in three common ways:
