@@ -6,8 +6,10 @@
  * entity-type and tag dispatch, then checks that conversion produces a box
  * placeholder with the expected dimensions, local bounds, and translation.
  *
- * It also verifies recursive detection when the tetrahedron is used directly
- * or inside Boolean, displaced, and multi-union solids, while confirming that
+ * The test places the tetrahedron with a non-identity rotation and verifies
+ * that displaced-solid and multi-union transforms preserve it. Recursive
+ * detection is checked when the tetrahedron is used directly or inside
+ * Boolean, displaced, and multi-union solids, while confirming that
  * an ordinary box is not detected as tessellated.
  *
  * The test does not exercise triangulated GPU intersection.
@@ -21,6 +23,7 @@
 #include "G4Box.hh"
 #include "G4DisplacedSolid.hh"
 #include "G4MultiUnion.hh"
+#include "G4RotationMatrix.hh"
 #include "G4TessellatedSolid.hh"
 #include "G4Transform3D.hh"
 #include "G4TriangularFacet.hh"
@@ -35,6 +38,19 @@ namespace
 bool close(double actual, double expected, double tolerance = 1.e-9)
 {
     return std::fabs(actual - expected) <= tolerance * (1. + std::fabs(expected));
+}
+
+bool close(const glm::tmat4x4<double>& actual, const glm::tmat4x4<double>& expected)
+{
+    for (int column = 0; column < 4; ++column)
+    {
+        for (int row = 0; row < 4; ++row)
+        {
+            if (!close(actual[column][row], expected[column][row]))
+                return false;
+        }
+    }
+    return true;
 }
 
 bool addFacet(G4TessellatedSolid& solid, const G4ThreeVector& a, const G4ThreeVector& b, const G4ThreeVector& c)
@@ -122,6 +138,58 @@ int main()
         return EXIT_FAILURE;
     }
 
-    std::cout << "G4TessellatedSolid converted to the expected translated box placeholder" << std::endl;
+    G4RotationMatrix rotation;
+    rotation.rotateZ(0.5 * std::acos(-1.));
+    G4Transform3D placement(rotation, G4ThreeVector(100., 200., 300.));
+
+    G4DisplacedSolid rotatedDisplaced("RotatedDisplacedTessellated", &solid, placement);
+    G4MultiUnion     rotatedMultiUnion("RotatedMultiUnionTessellated");
+    rotatedMultiUnion.AddNode(solid, placement);
+
+    sn* displacedRoot = U4Solid::Convert(&rotatedDisplaced, 1, 0, 0);
+    sn* multiUnionRoot = U4Solid::Convert(&rotatedMultiUnion, 2, 0, 0);
+
+    if (displacedRoot == nullptr || multiUnionRoot == nullptr || multiUnionRoot->num_child() != 1)
+    {
+        std::cerr << "failed to convert rotated tessellated test geometry" << std::endl;
+        delete displacedRoot;
+        delete multiUnionRoot;
+        return EXIT_FAILURE;
+    }
+
+    glm::tmat4x4<double> displacedPlacement(1.);
+    glm::tmat4x4<double> multiUnionPlacement(1.);
+    U4Transform::GetDispTransform(displacedPlacement, &rotatedDisplaced);
+    U4Transform::GetMultiUnionItemTransform(multiUnionPlacement, &rotatedMultiUnion, 0);
+
+    glm::tmat4x4<double> displacedTransform(1.);
+    glm::tmat4x4<double> displacedInverse(1.);
+    displacedRoot->getNodeTransformProduct(
+        displacedTransform, displacedInverse, false, nullptr, nullptr);
+
+    glm::tmat4x4<double> multiUnionTransform(1.);
+    glm::tmat4x4<double> multiUnionInverse(1.);
+    multiUnionRoot->get_child(0)->getNodeTransformProduct(
+        multiUnionTransform, multiUnionInverse, false, nullptr, nullptr);
+
+    glm::tmat4x4<double> expectedDisplaced = displacedPlacement * transform;
+    glm::tmat4x4<double> expectedMultiUnion = multiUnionPlacement * transform;
+    bool                 displacedPlacementPreserved =
+        close(displacedTransform, expectedDisplaced) &&
+        close(displacedInverse, glm::inverse(expectedDisplaced));
+    bool multiUnionPlacementPreserved =
+        close(multiUnionTransform, expectedMultiUnion) &&
+        close(multiUnionInverse, glm::inverse(expectedMultiUnion));
+
+    delete displacedRoot;
+    delete multiUnionRoot;
+
+    if (!displacedPlacementPreserved || !multiUnionPlacementPreserved)
+    {
+        std::cerr << "rotated enclosing placement was composed in the wrong order" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    std::cout << "G4TessellatedSolid conversion preserved extent and rotated placements" << std::endl;
     return EXIT_SUCCESS;
 }

@@ -776,7 +776,7 @@ inline void U4Solid::init_MultiUnion()
 
         sn* p = Convert( sub,  lvid, depth+1, level );
         assert(p);
-        p->combineXF(xf);
+        p->prependXF(xf);
         bool p_expect = p->is_primitive();
 
         if(level > 0 || !p_expect ) std::cout
@@ -1388,7 +1388,7 @@ inline void U4Solid::init_DisplacedSolid()
     if(!single_disp) std::raise(SIGINT);
 
     root = Convert( moved, lvid, depth+1, level );
-    root->combineXF(xf);
+    root->prependXF(xf);
 }
 
 

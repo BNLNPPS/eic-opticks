@@ -416,6 +416,8 @@ struct SYSRAP_API sn
     void setXF(     const glm::tmat4x4<double>& t, const glm::tmat4x4<double>& v ) ;
     void combineXF( const glm::tmat4x4<double>& t );
     void combineXF( const glm::tmat4x4<double>& t, const glm::tmat4x4<double>& v ) ;
+    void prependXF(const glm::tmat4x4<double>& t);
+    void prependXF(const glm::tmat4x4<double>& t, const glm::tmat4x4<double>& v);
     std::string descXF() const ;
 
     static sn* Cylinder(double radius, double z1, double z2) ;
@@ -2760,6 +2762,44 @@ inline void sn::combineXF( const glm::tmat4x4<double>& t, const glm::tmat4x4<dou
         glm::tmat4x4<double> vv = v * xform->v ;
         xform->t = tt ;
         xform->v = vv ;
+    }
+}
+
+/**
+ * Prepends an enclosing transform to the node transform.
+ *
+ * With column vectors, an enclosing placement must multiply the existing
+ * transform from the left. The inverse transforms are multiplied in the
+ * opposite order.
+ *
+ * @param t forward enclosing transform
+ */
+
+inline void sn::prependXF(const glm::tmat4x4<double>& t)
+{
+    glm::tmat4x4<double> v = glm::inverse(t);
+    prependXF(t, v);
+}
+
+/**
+ * Prepends enclosing forward and inverse transforms to the node transform.
+ *
+ * @param t forward enclosing transform
+ * @param v inverse enclosing transform
+ */
+
+inline void sn::prependXF(const glm::tmat4x4<double>& t, const glm::tmat4x4<double>& v)
+{
+    if (xform == nullptr)
+    {
+        setXF(t, v);
+    }
+    else
+    {
+        glm::tmat4x4<double> tt = t * xform->t;
+        glm::tmat4x4<double> vv = xform->v * v;
+        xform->t = tt;
+        xform->v = vv;
     }
 }
 
