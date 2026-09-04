@@ -7,10 +7,15 @@ Simphony provides several examples demonstrating GPU-accelerated optical photon 
 | `simphox` | Optical photons (torch) | None | External project build and CPU/GPU photon generation smoke test |
 | `GPUCerenkov` | Cerenkov only | Simple nested boxes (raindrop) | Basic Cerenkov testing |
 | `GPURaytrace` | Cerenkov + Scintillation | 8x8 CsI crystal + SiPM array | Realistic detector simulation |
-| `simg4ox` | Optical photons (torch) | Any GDML | Serial/MT G4 + GPU side-by-side validation |
-| `GPUPhotonSourceMinimal` | Optical photons (torch) | Any GDML | GPU-only test |
-| `GPUPhotonFileSource` | Optical photons (text file) | Any GDML | GPU-only, user-defined photons from file |
+| `simg4ox` | Optical photons (torch) | Supported GDML | Serial/MT G4 + GPU side-by-side validation |
+| `GPUPhotonSourceMinimal` | Optical photons (torch) | Supported GDML | GPU-only test |
+| `GPUPhotonFileSource` | Optical photons (text file) | Supported GDML | GPU-only, user-defined photons from file |
 | WLS test | Wavelength shifting | WLS sphere + detector shell | Validate GPU WLS physics |
+
+Here, "Supported GDML" means that every Geant4 solid and parameter
+combination in the file is handled by Simphony. See the [Geometry
+guide](../docs/geometry-requirements.md) for the current support table and a
+conversion-first workflow.
 
 ### Application capabilities
 

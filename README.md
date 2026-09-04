@@ -92,6 +92,7 @@ container lifecycle tips, native builds, and NERSC usage.
 - [Physics](docs/physics.md)
 - [Simulation inputs and outputs](docs/inputs-outputs.md)
 - [Performance and debugging](docs/performance-and-debugging.md)
+- [Geometry guide](docs/geometry-requirements.md)
 - [Examples](examples/README.md)
 
 ## Published container images
