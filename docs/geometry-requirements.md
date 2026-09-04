@@ -289,20 +289,53 @@ cache.
 ## Controlling mesh resolution
 
 Geant4 uses a configurable number of rotation steps when it polygonizes curved
-solids. Simphony exposes this setting by Geant4 entity type or exact solid
-name:
+solids. Simphony can set this resolution for a Geant4 solid type, one exact raw
+solid name, or a group of raw names that share a prefix:
 
 ```shell
 # Apply to every torus.
 export U4Mesh__NumberOfRotationSteps_entityType_G4Torus=48
 
-# Override the setting for one exact solid name.
-export U4Mesh__NumberOfRotationSteps_solidName_SupportRing=96
+# Apply to raw solid names that begin with SupportRing.
+export U4Mesh__NumberOfRotationSteps_solidName_STARTING_pfx_0=SupportRing
+export U4Mesh__NumberOfRotationSteps_solidName_STARTING_val_0=96
 ```
 
-An exact solid-name setting takes precedence over an entity-type setting. The
-default is Geant4's 24 rotation steps. Only the triangle route uses the
-polygonized surface for GPU intersections; changing mesh resolution does not
+The prefix form is useful when a GDML reader or an embedding application keeps
+a generated `0x...` suffix in the Geant4 solid name. Choose a prefix that is
+long enough to identify only the intended solids. Up to three prefix and value
+pairs can be defined with indices `0`, `1`, and `2`. The first matching prefix
+is used.
+
+Mesh resolution and forced triangulation use different forms of a solid name.
+`U4Tree` removes a generated `0x...` suffix when it writes
+`CSGFoundry/meshname.txt` and resolves `stree__force_triangulate_solid`.
+`U4Mesh` uses the raw `G4VSolid::GetName()` instead. For example, a raw name of
+`SupportRing0x123abc` appears as `SupportRing` in `meshname.txt`. An exact mesh
+override ending in only `SupportRing` will not match the raw name. Include the
+full suffix when targeting that one exact raw name:
+
+```shell
+export U4Mesh__NumberOfRotationSteps_solidName_SupportRing0x123abc=96
+```
+
+After a baseline conversion, inspect the raw names recorded in the mesh
+metadata rather than copying normalized names from `meshname.txt`:
+
+```shell
+rg '^(solidName|numberOfRotationSteps):' \
+    geometry-analytic/detector/CSGFoundry/SSim/stree/mesh/*/NPFold_meta.txt
+```
+
+The `solidName` field shows the raw name used for matching. After adding an
+override and making a fresh conversion, confirm that the intended mesh also
+records the requested `numberOfRotationSteps`. The field is absent when no
+override matched.
+
+When more than one setting matches, the exact raw name takes precedence. The
+first matching prefix is next, followed by the entity type. Without a match,
+Geant4 uses its default of 24 rotation steps. Only the triangle route uses the
+polygonized surface for GPU intersections. Changing mesh resolution does not
 alter an analytic intersection.
 
 Treat a resolution change as a geometry change. Generate a fresh saved output,
@@ -472,6 +505,8 @@ Before using a geometry for a physics result, confirm that:
 - Geant4 or the authoring framework reports no unintended overlaps.
 - Native tessellated solids are closed, consistently wound, and nondegenerate.
 - Forced-triangulation names resolve without warnings.
+- Mesh-resolution overrides match the intended raw solid name, stable prefix,
+  or entity type.
 - Curved triangle geometry passes a mesh-resolution study.
 - Repeated triangle-selected volumes fit within the available host and GPU
   memory.
