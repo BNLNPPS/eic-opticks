@@ -715,8 +715,9 @@ struct stree
     bool        is_auto_triangulate( int lvid ) const ;  // WIP: automate decision, avoiding hassle with geometry updates that change/add solid names
     bool        is_triangulate(int lvid) const ;  // OR of the above
 
-
     void classifySubtrees();
+    bool subtree_contains_triangulated(const char* sub) const;
+    void disqualifyTriangulatedRepeats();
     bool is_contained_repeat(const char* sub) const ;
     void disqualifyContainedRepeats();
     void sortSubtrees();
@@ -5217,6 +5218,55 @@ inline void stree::classifySubtrees()
     if(level>0) std::cout << "] stree::classifySubtrees " << std::endl ;
 }
 
+/**
+ * Returns whether the first instance of a subtree contains a logical volume
+ * selected for triangulation.
+ *
+ * Every instance represented by the same subtree digest has the same
+ * logical-volume structure.
+ */
+inline bool stree::subtree_contains_triangulated(const char* sub) const
+{
+    int nidx = get_first(sub);
+    assert(nidx > -1);
+
+    if (is_triangulate(nds[nidx].lvid))
+        return true;
+
+    std::vector<int> progeny;
+    get_progeny(progeny, nidx);
+
+    for (unsigned i = 0; i < progeny.size(); ++i)
+        if (is_triangulate(nds[progeny[i]].lvid))
+            return true;
+
+    return false;
+}
+
+/**
+ * Excludes repeated subtrees containing triangulated solids from factorization
+ * because triangulated factors are not supported.
+ *
+ * This check runs before contained-repeat disqualification so an analytic child
+ * without a triangulated solid can still become a factor.
+ */
+inline void stree::disqualifyTriangulatedRepeats()
+{
+    unsigned                 num = subs_freq->get_num();
+    std::vector<std::string> disqualify;
+
+    for (unsigned i = 0; i < num; ++i)
+    {
+        const char* sub = subs_freq->get_key(i);
+        int         freq = subs_freq->get_freq(i);
+        if (freq < FREQ_CUT)
+            continue;
+        if (subtree_contains_triangulated(sub))
+            disqualify.push_back(sub);
+    }
+
+    subs_freq->set_disqualify(disqualify);
+}
 
 /**
 stree::is_contained_repeat
@@ -5652,8 +5702,6 @@ inline std::string stree::descNodes() const
     return str ;
 }
 
-
-
 /**
 stree::factorize
 -------------------
@@ -5662,6 +5710,10 @@ Canonically invoked from U4Tree::Create
 
 classifySubtrees
    compute and store stree::subtree_digest for subtrees of all nodes using (sfreq*)subs_freq
+
+disqualifyTriangulatedRepeats
+   disqualify repeated subtrees containing triangulated solids because triangulated factors
+   are not supported
 
 disqualifyContainedRepeats
    flip freq sign in (sfreq*)subs_freq to disqualify all contained repeats, as want factors
@@ -5678,8 +5730,8 @@ labelFactorSubtrees
    leaving remainder nodes at default of zero repeat_index
 
 findForceTriangulateLVID
-   populates force_triangulate_lvid vector of lvid int based on force_triangulate
-   envvar and solid names. The vector is used by stree::is_force_triangulate
+   before classifying repeats, populate force_triangulate_lvid from the configured
+   solid names. The vector is used by stree::is_force_triangulate
 
 collectGlobalNodes
    collect global non-instanced nodes into *rem* vector and depending on envvars collect
@@ -5692,13 +5744,14 @@ inline void stree::factorize()
 {
     if(level>0) std::cout << "[ stree::factorize (" << level << ")" << std::endl ;
 
+    findForceTriangulateLVID();
     classifySubtrees();
+    disqualifyTriangulatedRepeats();
     disqualifyContainedRepeats();
     sortSubtrees();
     enumerateFactors();
     labelFactorSubtrees();
 
-    findForceTriangulateLVID();
     collectGlobalNodes();
 
     if(level>0) std::cout << desc_factor() << std::endl ;

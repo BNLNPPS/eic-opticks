@@ -23,9 +23,8 @@ npy/NNodeUncoincide npy/NNodeNudger
 
 **/
 
-
-#include <set>
 #include <csignal>
+#include <set>
 
 #include "ssys.h"
 #include "scuda.h"
@@ -48,6 +47,7 @@ npy/NNodeUncoincide npy/NNodeNudger
 #include "G4Polycone.hh"
 #include "G4Sphere.hh"
 #include "G4SubtractionSolid.hh"
+#include "G4TessellatedSolid.hh"
 #include "G4Torus.hh"
 #include "G4Trap.hh"
 #include "G4Trd.hh"
@@ -55,6 +55,7 @@ npy/NNodeUncoincide npy/NNodeNudger
 #include "G4UnionSolid.hh"
 
 #include "G4BooleanSolid.hh"
+#include "G4DisplacedSolid.hh"
 #include "G4RotationMatrix.hh"
 #include <CLHEP/Units/SystemOfUnits.h>
 
@@ -81,7 +82,8 @@ enum {
     _G4DisplacedSolid,
     _G4CutTubs,
     _G4Trap,
-    _G4Trd
+    _G4Trd,
+    _G4TessellatedSolid
  };
 
 struct U4Solid
@@ -103,6 +105,7 @@ struct U4Solid
     static constexpr const char* G4CutTubs_           = "TuC" ;
     static constexpr const char* G4Trap_ = "Tra";
     static constexpr const char* G4Trd_ = "Trd";
+    static constexpr const char* G4TessellatedSolid_ = "Tes";
 
     static constexpr const char* _U4Solid__IsFlaggedLVID = "U4Solid__IsFlaggedLVID" ;
     static const int   IsFlaggedLVID_ ;
@@ -123,6 +126,7 @@ struct U4Solid
 
     static int          Type(const char* entityType ) ;
     static const char*  Tag( int type ) ;
+    static bool ContainsTessellated(const G4VSolid* solid);
     const char* tag() const ;
 
 
@@ -152,6 +156,7 @@ private:
     void init_CutTubs();
     void init_Trap();
     void init_Trd();
+    void init_Tessellated();
     void _setRoot_FromVertices(const double v[8][3]);
 
     sn* init_Sphere_(char layer);
@@ -306,6 +311,8 @@ inline int U4Solid::Type(const char* name)   // static
         type = _G4Trap;
     if (strcmp(name, "G4Trd") == 0)
         type = _G4Trd;
+    if (strcmp(name, "G4TessellatedSolid") == 0)
+        type = _G4TessellatedSolid;
     return type ;
 }
 
@@ -335,8 +342,44 @@ inline const char* U4Solid::Tag(int type)   // static
         case _G4Trd:
             tag = G4Trd_;
             break;
+        case _G4TessellatedSolid:
+            tag = G4TessellatedSolid_;
+            break;
         }
     return tag ;
+}
+
+/**
+ * Returns true when a solid or one of its constituents is tessellated.
+ *
+ * Boolean operands, displaced solids, and multi-union members are searched
+ * recursively. `U4Tree` uses this result to triangulate the enclosing
+ * logical-volume solid.
+ */
+
+inline bool U4Solid::ContainsTessellated(const G4VSolid* solid) // static
+{
+    if (solid == nullptr)
+        return false;
+    if (dynamic_cast<const G4TessellatedSolid*>(solid) != nullptr)
+        return true;
+
+    const G4DisplacedSolid* displaced = dynamic_cast<const G4DisplacedSolid*>(solid);
+    if (displaced != nullptr)
+        return ContainsTessellated(displaced->GetConstituentMovedSolid());
+
+    const G4BooleanSolid* boolean = dynamic_cast<const G4BooleanSolid*>(solid);
+    if (boolean != nullptr)
+        return ContainsTessellated(boolean->GetConstituentSolid(0)) ||
+               ContainsTessellated(boolean->GetConstituentSolid(1));
+
+    const G4MultiUnion* multi_union = dynamic_cast<const G4MultiUnion*>(solid);
+    if (multi_union != nullptr)
+        for (int i = 0; i < multi_union->GetNumberOfSolids(); ++i)
+            if (ContainsTessellated(multi_union->GetSolid(i)))
+                return true;
+
+    return false;
 }
 
 inline const char* U4Solid::tag() const { return Tag(type) ; }
@@ -437,6 +480,9 @@ inline void U4Solid::init_Constituents()
             break;
         case _G4Trd:
             init_Trd();
+            break;
+        case _G4TessellatedSolid:
+            init_Tessellated();
             break;
         }
 
@@ -730,7 +776,7 @@ inline void U4Solid::init_MultiUnion()
 
         sn* p = Convert( sub,  lvid, depth+1, level );
         assert(p);
-        p->combineXF(xf);
+        p->prependXF(xf);
         bool p_expect = p->is_primitive();
 
         if(level > 0 || !p_expect ) std::cout
@@ -910,6 +956,36 @@ inline void U4Solid::init_Trd()
     v[7][2] = +dz;
 
     _setRoot_FromVertices(v);
+}
+
+/**
+ * Converts a tessellated solid to an axis-aligned box placeholder.
+ *
+ * The placeholder preserves the extent and boundary metadata. `U4Tree`
+ * detects tessellated constituents and selects the enclosing logical-volume
+ * solid for triangulation, allowing `U4Mesh` to supply the exact facets.
+ */
+
+inline void U4Solid::init_Tessellated()
+{
+    const G4TessellatedSolid* tess = static_cast<const G4TessellatedSolid*>(solid);
+    assert(tess);
+
+    double x0 = tess->GetMinXExtent() / CLHEP::mm;
+    double x1 = tess->GetMaxXExtent() / CLHEP::mm;
+    double y0 = tess->GetMinYExtent() / CLHEP::mm;
+    double y1 = tess->GetMaxYExtent() / CLHEP::mm;
+    double z0 = tess->GetMinZExtent() / CLHEP::mm;
+    double z1 = tess->GetMaxZExtent() / CLHEP::mm;
+
+    root = sn::Box3(x1 - x0, y1 - y0, z1 - z0);
+
+    glm::tvec3<double> tla((x0 + x1) / 2., (y0 + y1) / 2., (z0 + z1) / 2.);
+    if (glm::length(tla) > 0.)
+    {
+        glm::tmat4x4<double> xf = glm::translate(glm::tmat4x4<double>(1.), tla);
+        root->combineXF(xf);
+    }
 }
 
 // Compute 6 outward face planes + AABB from 8 vertices, install as CSG_CONVEXPOLYHEDRON root.
@@ -1312,7 +1388,7 @@ inline void U4Solid::init_DisplacedSolid()
     if(!single_disp) std::raise(SIGINT);
 
     root = Convert( moved, lvid, depth+1, level );
-    root->combineXF(xf);
+    root->prependXF(xf);
 }
 
 
