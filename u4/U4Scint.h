@@ -33,10 +33,23 @@ Maybe will need to add some casts too.
 #include "NPFold.h"
 #include "U4MaterialPropertyVector.h"
 
+/**
+ * Builds scintillation wavelength samplers from serialized material data.
+ *
+ * Official Geant4 11 component names are preferred, with the pre-11
+ * `FASTCOMPONENT` and `SLOWCOMPONENT` names retained as a fallback.
+ */
 struct U4Scint
 {
-    static constexpr const bool VERBOSE = false ; 
-    static constexpr const char* PROPS = "SLOWCOMPONENT,FASTCOMPONENT,REEMISSIONPROB" ; 
+    static constexpr const bool  VERBOSE = false;
+    static constexpr const char* PROPS = "SCINTILLATIONCOMPONENT1";
+    static constexpr const char* LEGACY_PROPS = "SLOWCOMPONENT,FASTCOMPONENT";
+    /**
+     * Finds the first material containing a supported scintillation spectrum.
+     *
+     * @param materials serialized material-property folds to search
+     * @return a sampler for the first match, or `nullptr` when none is found
+     */
     static U4Scint* Create(const NPFold* materials ); 
 
     const NPFold* scint ; 
@@ -44,6 +57,7 @@ struct U4Scint
 
     const NP* fast ;
     const NP* slow ;
+    /** Optional reemission probability retained for legacy serialized inputs. */
     const NP* reem ;
 
     const double epsilon ; 
@@ -92,9 +106,11 @@ struct U4Scint
 
 inline U4Scint* U4Scint::Create(const NPFold* materials ) // static
 {
-    std::vector<const NPFold*> subs ; 
-    std::vector<std::string> names ; 
-    materials->find_subfold_with_all_keys( subs, names, PROPS ); 
+    std::vector<const NPFold*> subs;
+    std::vector<std::string>   names;
+    materials->find_subfold_with_all_keys(subs, names, PROPS);
+    if (subs.empty())
+        materials->find_subfold_with_all_keys(subs, names, LEGACY_PROPS);
 
     int num_subs = subs.size(); 
     int num_names = names.size() ; 
@@ -107,18 +123,20 @@ inline U4Scint* U4Scint::Create(const NPFold* materials ) // static
     return with_scint ? new U4Scint(sub, name) : nullptr ; 
 }
 
-
-inline U4Scint::U4Scint(const NPFold* scint_, const char* name_) 
-    :
+inline U4Scint::U4Scint(const NPFold* scint_, const char* name_) :
     scint(scint_),
     name(strdup(name_)),
-    fast(scint->get("FASTCOMPONENT")),
-    slow(scint->get("SLOWCOMPONENT")),
+    fast(scint->get("SCINTILLATIONCOMPONENT1")
+             ? scint->get("SCINTILLATIONCOMPONENT1")
+             : scint->get("FASTCOMPONENT")),
+    slow(scint->get("SCINTILLATIONCOMPONENT2")
+             ? scint->get("SCINTILLATIONCOMPONENT2")
+             : (scint->get("SLOWCOMPONENT") ? scint->get("SLOWCOMPONENT") : fast)),
     reem(scint->get("REEMISSIONPROB")),
-    epsilon(0.), 
+    epsilon(0.),
     mismatch_0(NP::DumpCompare<double>(fast, slow, 0, 0, epsilon)),
     mismatch_1(NP::DumpCompare<double>(fast, slow, 1, 1, epsilon)),
-    mismatch(mismatch_0+mismatch_1),
+    mismatch(mismatch_0 + mismatch_1),
     theFastLightVector(U4MaterialPropertyVector::FromArray(fast)),
     theSlowLightVector(U4MaterialPropertyVector::FromArray(slow)),
     ScintillationIntegral(Integral(theFastLightVector)),
@@ -166,10 +184,11 @@ inline std::string U4Scint::desc() const
 
 inline NPFold* U4Scint::make_fold() const 
 {
-    NPFold* fold = new NPFold ; 
-    fold->add("fast", fast) ; 
-    fold->add("slow", slow) ; 
-    fold->add("reem", reem) ; 
+    NPFold* fold = new NPFold;
+    fold->add("fast", fast);
+    fold->add("slow", slow);
+    if (reem)
+        fold->add("reem", reem);
     fold->add("icdf", icdf) ; 
     if(wlsamp) fold->add("wlsamp", wlsamp) ; 
     return fold ; 
