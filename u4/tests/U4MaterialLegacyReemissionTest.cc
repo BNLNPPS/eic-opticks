@@ -15,9 +15,10 @@
  * @endcode
  *
  * These tests cover interpolated inputs on different energy grids, the zero-
- * and unit-probability limits, incomplete legacy definitions, preservation of
- * authoritative WLS properties, emission-spectrum cloning, time-constant
- * propagation, removal of consumed legacy properties, and idempotence.
+ * and unit-probability limits, rejection of unsafe varying endpoints,
+ * incomplete legacy definitions, preservation of authoritative WLS
+ * properties, emission-spectrum cloning, time-constant propagation, removal
+ * of consumed legacy properties, and idempotence.
  *
  * Requirements use an always-active failure helper rather than `assert`, so
  * the conversion calls and checks execute in both Debug and Release builds.
@@ -238,6 +239,51 @@ void TestIncompleteDefinitionIsRetained()
 }
 
 /**
+ * Verify that a varying probability reaching zero or one is left unconverted.
+ *
+ * A Geant4 property vector linearly interpolates its stored interaction
+ * lengths. Conversion must therefore avoid adjoining a finite length to the
+ * effectively infinite length required at either probability endpoint.
+ */
+void TestVaryingEndpointProbabilityIsRetained()
+{
+    const std::vector<G4double>              energies = {2. * eV, 4. * eV};
+    const std::vector<G4double>              absorptionValues = {10. * m, 10. * m};
+    const std::vector<G4double>              emissionValues = {1., 1.};
+    const std::vector<std::vector<G4double>> probabilities = {
+        {0., 0.5},
+        {0.5, 1.}};
+    const char* names[] = {
+        "U4MaterialLegacyReemissionTestVaryingFromZero",
+        "U4MaterialLegacyReemissionTestVaryingToOne"};
+
+    for (std::size_t i = 0; i < probabilities.size(); ++i)
+    {
+        G4Material*                material = MakeMaterial(names[i]);
+        G4MaterialPropertiesTable* mpt = material->GetMaterialPropertiesTable();
+        G4MaterialPropertyVector*  absorption = MakeProperty(energies, absorptionValues);
+        G4MaterialPropertyVector*  probability = MakeProperty(energies, probabilities[i]);
+
+        mpt->AddProperty("ABSLENGTH", absorption);
+        mpt->AddProperty("REEMISSIONPROB", probability, true);
+        mpt->AddProperty(
+            "SCINTILLATIONCOMPONENT1",
+            MakeProperty(energies, emissionValues));
+
+        const bool converted = U4Material::ConvertLegacyReemissionToWLS(material);
+        Require(!converted, "varying endpoint probability was reported as converted");
+        Require(mpt->GetProperty("REEMISSIONPROB") == probability,
+                "rejected endpoint conversion removed legacy probability");
+        Require(mpt->GetProperty("ABSLENGTH") == absorption,
+                "rejected endpoint conversion changed ABSLENGTH");
+        Require(mpt->GetProperty("WLSABSLENGTH") == nullptr,
+                "rejected endpoint conversion created WLSABSLENGTH");
+        Require(mpt->GetProperty("WLSCOMPONENT") == nullptr,
+                "rejected endpoint conversion created WLSCOMPONENT");
+    }
+}
+
+/**
  * Verify that existing WLS absorption data remains authoritative.
  *
  * Conversion may complete the missing WLS emission component and time
@@ -283,5 +329,6 @@ int main(int argc, char** argv)
     TestUnitProbabilityConversion();
     TestIncompleteDefinitionIsRetained();
     TestAuthoritativeWLSIsPreserved();
+    TestVaryingEndpointProbabilityIsRetained();
     return 0;
 }

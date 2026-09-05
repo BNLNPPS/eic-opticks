@@ -29,9 +29,9 @@ class G4FastSimulationManagerProcess ;
 /**
  * Provides the compact Geant4 physics list used by U4 applications and tests.
  *
- * Official Geant4 optical processes generate the CPU secondaries, while
- * U4Recorder reconstructs the corresponding Opticks gensteps and photon
- * labels.
+ * Official Geant4 optical processes compute photon yields and optionally
+ * create CPU secondaries. U4Recorder reconstructs Opticks gensteps from the
+ * process photon counts and labels any stacked secondaries.
  */
 struct U4_API U4Physics : public G4VUserPhysicsList
 {

@@ -220,7 +220,9 @@ int U4Physics::EInt(const char* key, const char* fallback)  // static
  * Official Geant4 Cerenkov and scintillation processes are registered on
  * applicable non-optical particles, while WLS, absorption, Rayleigh,
  * boundary, and optional fast-simulation processes are registered on optical
- * photons.
+ * photons. Photon stacking remains controlled by `G4OpticalParameters` and
+ * Geant4 macro commands so GPU-only runs can suppress CPU optical
+ * secondaries.
  */
 
 void U4Physics::ConstructOp()
@@ -234,7 +236,6 @@ void U4Physics::ConstructOp()
     if(Cerenkov_DISABLE == 0)
     {
         fCerenkov = new G4Cerenkov;
-        fCerenkov->SetStackPhotons(true);
         fCerenkov->SetMaxNumPhotonsPerStep(10000);
         fCerenkov->SetMaxBetaChangePerStep(10.0);
         fCerenkov->SetTrackSecondariesFirst(true);
@@ -244,7 +245,6 @@ void U4Physics::ConstructOp()
     if(Scintillation_DISABLE == 0)
     {
         fScintillation = new G4Scintillation;
-        fScintillation->SetStackPhotons(true);
         fScintillation->SetScintillationTrackInfo(false);
         fScintillation->SetTrackSecondariesFirst(true);
         fScintillation->SetVerboseLevel(EInt("G4Scintillation_verboseLevel", "0"));

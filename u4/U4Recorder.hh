@@ -149,13 +149,15 @@ public:
     void UserSteppingAction(const G4Step*);
 
     /**
-     * Reconstructs Cerenkov and scintillation gensteps from Geant4 secondaries.
+     * Reconstructs Cerenkov and scintillation gensteps from official process
+     * photon counts and labels any stacked CPU secondaries.
      *
      * @param step completed non-optical-particle step to inspect
      */
     void CollectGensteps(const G4Step*);
     /**
-     * Propagates an optical parent's lineage to its WLS secondaries.
+     * Propagates an optical parent's lineage to its single WLS secondary and
+     * rejects unsupported branching interactions.
      *
      * @param step optical-photon step whose secondaries are inspected
      */

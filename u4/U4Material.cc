@@ -325,7 +325,10 @@ void U4Material_AddWLSTimeConstant(G4MaterialPropertiesTable* mpt)
  * preventing the GPU legacy path from competing with the official WLS path.
  * Existing complete WLS properties remain authoritative. An all-zero
  * probability is removed without changing absorption, while an incomplete
- * non-zero definition is retained and reported.
+ * non-zero definition is retained and reported. A varying probability that
+ * reaches zero or one is also retained: Geant4 linearly interpolates material
+ * properties, so placing a finite interaction length beside an effectively
+ * infinite one would corrupt the intended intermediate attenuation rates.
  *
  * @param mat material whose property table may be migrated
  * @return `true` when a legacy property was consumed; otherwise `false`
@@ -343,10 +346,12 @@ bool U4Material::ConvertLegacyReemissionToWLS(G4Material* mat)
     if (probability == nullptr)
         return false;
 
-    G4double maxProbability = 0.;
+    G4double minProbability = std::numeric_limits<G4double>::max();
+    G4double maxProbability = std::numeric_limits<G4double>::lowest();
     for (std::size_t i = 0; i < probability->GetVectorLength(); ++i)
     {
         maxProbability = std::max(maxProbability, (*probability)[i]);
+        minProbability = std::min(minProbability, (*probability)[i]);
     }
 
     if (maxProbability <= 0.)
@@ -398,6 +403,18 @@ bool U4Material::ConvertLegacyReemissionToWLS(G4Material* mat)
             << "cannot migrate non-zero REEMISSIONPROB for " << mat->GetName()
             << " ABSLENGTH " << (absorption ? "YES" : "NO")
             << " emission spectrum " << (emission ? "YES" : "NO");
+        return false;
+    }
+
+    const bool variesFromZero = minProbability <= 0. && maxProbability > 0.;
+    const bool variesToOne = minProbability < 1. && maxProbability >= 1.;
+    if (variesFromZero || variesToOne)
+    {
+        LOG(error)
+            << "cannot migrate energy-varying REEMISSIONPROB for " << mat->GetName()
+            << " because it reaches " << (variesFromZero ? "zero" : "one")
+            << "; interpolating finite and effectively infinite interaction lengths "
+            << "would corrupt intermediate attenuation rates";
         return false;
     }
 

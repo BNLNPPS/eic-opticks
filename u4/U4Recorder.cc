@@ -61,6 +61,7 @@ NP *U4UniformRand::UU = nullptr;
 #include "G4AutoLock.hh"
 #include "G4Cerenkov.hh"
 #include "G4EventManager.hh"
+#include "G4Exception.hh"
 #include "G4Material.hh"
 #include "G4MaterialPropertiesTable.hh"
 #include "G4OpBoundaryProcess.hh"
@@ -539,8 +540,11 @@ void U4Recorder::UserSteppingAction(const G4Step* step)
  * scintillation processes have produced their secondaries.
  *
  * This keeps generation physics in Geant4 while retaining the U4/SEvt input
- * contract. `SEvt::AddGenstep` broadcasts each genstep to every live event,
- * including the EGPU event consumed by G4CXApp at end of event.
+ * contract. Gensteps are collected from the process photon counts even when
+ * Geant4 photon stacking is disabled for GPU-only transport. When stacking is
+ * enabled, the corresponding CPU secondaries also receive Opticks labels.
+ * `SEvt::AddGenstep` broadcasts each genstep to every live event, including
+ * the EGPU event consumed by G4CXApp at end of event.
  *
  * The component split follows G4Scintillation 11.x: with two components the
  * second receives the integer remainder; three components are independently
@@ -576,17 +580,14 @@ void U4Recorder::CollectGensteps(const G4Step* step)
         G4Cerenkov* cerenkov = dynamic_cast<G4Cerenkov*>(process);
         if (cerenkov)
         {
-            const std::vector<const G4Track*> secondaries = U4Recorder_Secondaries(step, process);
-            if (secondaries.empty())
-                continue;
-
             const G4int numPhotons = cerenkov->GetNumPhotons();
             if (numPhotons <= 0)
                 continue;
 
-            const G4Material*          material = track->GetMaterial();
-            G4MaterialPropertiesTable* mpt = material ? material->GetMaterialPropertiesTable() : nullptr;
-            G4MaterialPropertyVector*  rindex = mpt ? mpt->GetProperty(kRINDEX) : nullptr;
+            const std::vector<const G4Track*> secondaries = U4Recorder_Secondaries(step, process);
+            const G4Material*                 material = track->GetMaterial();
+            G4MaterialPropertiesTable*        mpt = material ? material->GetMaterialPropertiesTable() : nullptr;
+            G4MaterialPropertyVector*         rindex = mpt ? mpt->GetProperty(kRINDEX) : nullptr;
             if (rindex == nullptr || rindex->GetVectorLength() == 0)
                 continue;
 
@@ -604,12 +605,22 @@ void U4Recorder::CollectGensteps(const G4Step* step)
             const G4double mean1 = cerenkov->GetAverageNumberOfPhotons(charge, beta1, material, rindex);
             const G4double mean2 = cerenkov->GetAverageNumberOfPhotons(charge, beta2, material, rindex);
             const bool     secondaryCountMatches = secondaries.size() == static_cast<std::size_t>(numPhotons);
-            LOG_IF(error, !secondaryCountMatches)
+            const bool     stackPhotons = cerenkov->GetStackPhotons();
+            LOG_IF(error, stackPhotons && !secondaryCountMatches)
                 << "Cerenkov secondary count mismatch generated " << numPhotons
                 << " selected " << secondaries.size();
-            assert(secondaryCountMatches);
-            if (!secondaryCountMatches)
-                continue;
+            if (stackPhotons && !secondaryCountMatches)
+            {
+                G4ExceptionDescription description;
+                description
+                    << "Cerenkov was configured to stack " << numPhotons
+                    << " photons, but " << secondaries.size()
+                    << " process secondaries were available for labeling.";
+                G4Exception(
+                    "U4Recorder::CollectGensteps", "U4Recorder001",
+                    FatalException, description);
+                return;
+            }
 
             G4AutoLock                  lock(&U4Recorder_Genstep_Mutex);
             U4Recorder_SEvtGenstepCount before;
@@ -619,9 +630,12 @@ void U4Recorder::CollectGensteps(const G4Step* step)
                 maxCos, maxSin2, mean1, mean2);
             before.assertAdded();
 
-            unsigned cursor = 0;
-            U4Recorder_LabelGenstepSecondaries(track, secondaries, cursor, numPhotons);
-            assert(cursor == secondaries.size());
+            if (stackPhotons)
+            {
+                unsigned cursor = 0;
+                U4Recorder_LabelGenstepSecondaries(track, secondaries, cursor, numPhotons);
+                assert(cursor == secondaries.size());
+            }
 
             num_cerenkov_genstep += 1;
             num_cerenkov_photon += numPhotons;
@@ -632,16 +646,26 @@ void U4Recorder::CollectGensteps(const G4Step* step)
         if (scintillation == nullptr)
             continue;
 
-        const std::vector<const G4Track*> secondaries = U4Recorder_Secondaries(step, process);
-        if (secondaries.empty())
-            continue;
-
         const G4int totalPhotons = scintillation->GetNumPhotons();
         if (totalPhotons <= 0)
             continue;
 
-        const G4Material*          material = track->GetMaterial();
-        G4MaterialPropertiesTable* mpt = material ? material->GetMaterialPropertiesTable() : nullptr;
+        if (scintillation->GetFiniteRiseTime())
+        {
+            G4ExceptionDescription description;
+            description
+                << "Finite scintillation rise time cannot be represented by "
+                << "the current Opticks scintillation genstep. Disable "
+                << "/process/optical/scintillation/setFiniteRiseTime before running.";
+            G4Exception(
+                "U4Recorder::CollectGensteps", "U4Recorder002",
+                FatalException, description);
+            return;
+        }
+
+        const std::vector<const G4Track*> secondaries = U4Recorder_Secondaries(step, process);
+        const G4Material*                 material = track->GetMaterial();
+        G4MaterialPropertiesTable*        mpt = material ? material->GetMaterialPropertiesTable() : nullptr;
         if (mpt == nullptr)
             continue;
 
@@ -691,13 +715,23 @@ void U4Recorder::CollectGensteps(const G4Step* step)
         }
         const bool secondaryCountMatches =
             secondaries.size() == static_cast<std::size_t>(expectedSecondaries);
-        LOG_IF(error, !secondaryCountMatches)
+        const bool stackPhotons = scintillation->GetStackPhotons();
+        LOG_IF(error, stackPhotons && !secondaryCountMatches)
             << "Scintillation secondary count mismatch process total " << totalPhotons
             << " expected " << expectedSecondaries
             << " selected " << secondaries.size();
-        assert(secondaryCountMatches);
-        if (!secondaryCountMatches)
-            continue;
+        if (stackPhotons && !secondaryCountMatches)
+        {
+            G4ExceptionDescription description;
+            description
+                << "Scintillation was configured to stack " << expectedSecondaries
+                << " photons, but " << secondaries.size()
+                << " process secondaries were available for labeling.";
+            G4Exception(
+                "U4Recorder::CollectGensteps", "U4Recorder003",
+                FatalException, description);
+            return;
+        }
 
         G4AutoLock lock(&U4Recorder_Genstep_Mutex);
         unsigned   cursor = 0;
@@ -710,14 +744,16 @@ void U4Recorder::CollectGensteps(const G4Step* step)
             U4Recorder_SEvtGenstepCount before;
             U4::CollectGenstep_Scintillation(track, step, counts[c], c, times[c]);
             before.assertAdded();
-            U4Recorder_LabelGenstepSecondaries(track, secondaries, cursor, counts[c]);
+            if (stackPhotons)
+                U4Recorder_LabelGenstepSecondaries(track, secondaries, cursor, counts[c]);
 
             num_scintillation_genstep += 1;
             num_scintillation_photon += counts[c];
             collectedThisStep += counts[c];
         }
         assert(collectedThisStep == expectedSecondaries);
-        assert(cursor == secondaries.size());
+        if (stackPhotons)
+            assert(cursor == secondaries.size());
     }
 }
 
@@ -727,7 +763,10 @@ void U4Recorder::CollectGensteps(const G4Step* step)
  * `G4OpWLS` creates a new optical track but no new GPU genstep. The child
  * therefore continues the parent's lineage with an incremented generation,
  * allowing `SEvt::rjoinPhoton` to rewrite `BULK_ABSORB` as `BULK_REEMIT`
- * when the child starts tracking.
+ * when the child starts tracking. Opticks currently represents one lineage
+ * continuation per WLS interaction, so branching WLS configurations are
+ * rejected explicitly instead of assigning one photon identity to multiple
+ * children.
  *
  * @param step optical-photon step whose WLS secondaries are labeled
  */
@@ -739,6 +778,32 @@ void U4Recorder::LabelWLSSecondaries(const G4Step* step)
     if (secondaries == nullptr || secondaries->empty())
         return;
 
+    const G4Track* wlsSecondary = nullptr;
+    std::size_t    numWLSSecondary = 0;
+    for (const G4Track* secondary : *secondaries)
+    {
+        const G4VProcess* creator = secondary ? secondary->GetCreatorProcess() : nullptr;
+        if (creator && creator->GetProcessName() == "OpWLS")
+        {
+            wlsSecondary = secondary;
+            numWLSSecondary += 1;
+        }
+    }
+    if (numWLSSecondary == 0)
+        return;
+    if (numWLSSecondary > 1)
+    {
+        G4ExceptionDescription description;
+        description
+            << "Opticks cannot assign independent lineages to "
+            << numWLSSecondary << " WLS secondaries. Branching WLS is unsupported; "
+            << "the GPU lineage model requires exactly one secondary per interaction.";
+        G4Exception(
+            "U4Recorder::LabelWLSSecondaries", "U4Recorder004",
+            FatalException, description);
+        return;
+    }
+
     spho ancestor = STrackInfo::Get(parent);
     if (ancestor.isPlaceholder())
     {
@@ -747,15 +812,8 @@ void U4Recorder::LabelWLSSecondaries(const G4Step* step)
     }
     assert(ancestor.isDefined());
 
-    for (const G4Track* secondary : *secondaries)
-    {
-        const G4VProcess* creator = secondary ? secondary->GetCreatorProcess() : nullptr;
-        if (creator && creator->GetProcessName() == "OpWLS")
-        {
-            STrackInfo::Set(const_cast<G4Track*>(secondary), ancestor.make_nextgen());
-            num_wls_photon += 1;
-        }
-    }
+    STrackInfo::Set(const_cast<G4Track*>(wlsSecondary), ancestor.make_nextgen());
+    num_wls_photon += 1;
 }
 
 /**
