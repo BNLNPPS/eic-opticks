@@ -67,6 +67,19 @@ bool Close(G4double lhs, G4double rhs, G4double tolerance = 1e-9 * m)
 }
 
 /**
+ * Compares non-zero quantities using a relative tolerance.
+ *
+ * @param lhs first value
+ * @param rhs non-zero reference value
+ * @param tolerance maximum accepted relative difference
+ * @return `true` when the relative difference does not exceed `tolerance`
+ */
+bool RelativeClose(G4double lhs, G4double rhs, G4double tolerance = 1e-3)
+{
+    return std::abs(lhs - rhs) / std::abs(rhs) <= tolerance;
+}
+
+/**
  * Constructs a minimal material with an initially empty property table.
  *
  * @param name material name
@@ -135,8 +148,9 @@ void TestCompetingLengthsAndMismatchedGrids()
     Require(wlsAbsorption != nullptr, "converted WLSABSLENGTH is missing");
     Require(wlsComponent != nullptr, "converted WLSCOMPONENT is missing");
     Require(wlsComponent != scintComponent, "emission component was not cloned");
-    Require(absorption->GetVectorLength() == 3, "energy grids were not merged");
-    Require(wlsAbsorption->GetVectorLength() == 3, "WLS energy grid was not merged");
+    Require(absorption->GetVectorLength() > 3, "converted grid was not adaptively subdivided");
+    Require(wlsAbsorption->GetVectorLength() == absorption->GetVectorLength(),
+            "converted absorption grids differ");
     Require(mpt->ConstPropertyExists("WLSTIMECONSTANT"), "WLSTIMECONSTANT is missing");
     Require(Close(mpt->GetConstProperty("WLSTIMECONSTANT"), 7. * ns, 1e-12 * ns),
             "WLSTIMECONSTANT was not copied");
@@ -148,8 +162,57 @@ void TestCompetingLengthsAndMismatchedGrids()
     Require(Close(absorption->Value(4. * eV), 80. * m), "ordinary absorption at 4 eV is wrong");
     Require(Close(wlsAbsorption->Value(4. * eV), 20. * m / 0.75), "WLS absorption at 4 eV is wrong");
 
+    for (unsigned i = 0; i < 997; ++i)
+    {
+        const G4double energy = (2. + 2. * (i + 0.5) / 997.) * eV;
+        const G4double originalLength = (10. + 5. * (energy / eV - 2.)) * m;
+        const G4double originalProbability = 0.25 + 0.25 * (energy / eV - 2.);
+        const G4double ordinaryRate = 1. / absorption->Value(energy);
+        const G4double wavelengthShiftRate = 1. / wlsAbsorption->Value(energy);
+        const G4double totalRate = ordinaryRate + wavelengthShiftRate;
+        const G4double branchingFraction = wavelengthShiftRate / totalRate;
+
+        Require(RelativeClose(totalRate, 1. / originalLength),
+                "interpolated total attenuation rate exceeds tolerance");
+        Require(Close(branchingFraction, originalProbability, 1e-3),
+                "interpolated WLS branching fraction exceeds tolerance");
+    }
+
     const bool convertedAgain = U4Material::ConvertLegacyReemissionToWLS(material);
     Require(!convertedAgain, "conversion is not idempotent");
+}
+
+/**
+ * Verify that legacy optical-parent timing wins over scintillation fallbacks.
+ *
+ * The removed local process used the first energy coordinate in
+ * `OpticalCONSTANT` for reemission. Migration must preserve that choice even
+ * when ordinary scintillation time constants are also present.
+ */
+void TestOpticalTimeConstantPrecedence()
+{
+    G4Material*                 material = MakeMaterial("U4MaterialLegacyReemissionTestOpticalTime");
+    G4MaterialPropertiesTable*  mpt = material->GetMaterialPropertiesTable();
+    const std::vector<G4double> energies = {2. * eV, 3. * eV};
+
+    mpt->AddProperty("ABSLENGTH", MakeProperty(energies, {10. * m, 10. * m}));
+    mpt->AddProperty(
+        "REEMISSIONPROB",
+        MakeProperty(energies, {0.5, 0.5}),
+        true);
+    mpt->AddProperty("SCINTILLATIONCOMPONENT1", MakeProperty(energies, {1., 1.}));
+    mpt->AddProperty(
+        "OpticalCONSTANT",
+        MakeProperty({11. * ns, 12. * ns}, {1., 0.}),
+        true);
+    mpt->AddConstProperty("SCINTILLATIONTIMECONSTANT1", 7. * ns);
+    mpt->AddConstProperty("FASTTIMECONSTANT", 5. * ns, true);
+
+    const bool converted = U4Material::ConvertLegacyReemissionToWLS(material);
+    Require(converted, "legacy optical timing material was not converted");
+    Require(mpt->ConstPropertyExists("WLSTIMECONSTANT"), "WLSTIMECONSTANT is missing");
+    Require(Close(mpt->GetConstProperty("WLSTIMECONSTANT"), 11. * ns, 1e-12 * ns),
+            "WLSTIMECONSTANT did not prefer OpticalCONSTANT");
 }
 
 /**
@@ -325,6 +388,7 @@ int main(int argc, char** argv)
     OPTICKS_LOG(argc, argv);
 
     TestCompetingLengthsAndMismatchedGrids();
+    TestOpticalTimeConstantPrecedence();
     TestZeroProbabilityRemoval();
     TestUnitProbabilityConversion();
     TestIncompleteDefinitionIsRetained();

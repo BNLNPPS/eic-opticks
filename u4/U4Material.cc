@@ -275,10 +275,139 @@ G4MaterialPropertyVector* U4Material_CloneProperty(const G4MaterialPropertyVecto
 }
 
 /**
+ * Approximates the legacy attenuation model with Geant4 process lengths.
+ *
+ * The legacy model first samples one attenuation length L and then reemits
+ * the absorbed photon with probability p. Official Geant4 instead races an
+ * ordinary-absorption process against a WLS process, so their target rates are
+ *
+ *     ordinary rate = (1 - p) / L
+ *     WLS rate      = p / L
+ *
+ * The corresponding process lengths, L/(1-p) and L/p, are nonlinear even
+ * when L and p are linearly interpolated. Because Geant4 interpolates stored
+ * lengths rather than rates, merely transforming the input knots changes both
+ * the total attenuation and the WLS fraction between knots.
+ *
+ * This converter checks each candidate interval at one-quarter, one-half, and
+ * three-quarters of its energy range and bisects it when either invariant
+ * differs by more than 0.1%. Failure at the depth limit is reported before the
+ * material table is modified, so an unsuccessful conversion is transactional.
+ */
+constexpr G4double U4Material_REEMISSION_INTERPOLATION_TOLERANCE = 1e-3;
+constexpr unsigned U4Material_REEMISSION_MAX_SUBDIVISION_DEPTH = 20;
+
+struct U4Material_ReemissionSample
+{
+    G4double energy;
+    G4double legacyLength;
+    G4double probability;
+    G4double ordinaryLength;
+    G4double wlsLength;
+};
+
+struct U4Material_ReemissionConverter
+{
+    const G4MaterialPropertyVector*          absorption;
+    const G4MaterialPropertyVector*          reemissionProbability;
+    std::vector<U4Material_ReemissionSample> samples;
+
+    U4Material_ReemissionConverter(
+        const G4MaterialPropertyVector* absorption_,
+        const G4MaterialPropertyVector* reemissionProbability_) :
+        absorption(absorption_),
+        reemissionProbability(reemissionProbability_)
+    {
+    }
+
+    static G4double Interpolate(G4double left, G4double right, G4double fraction)
+    {
+        return (1. - fraction) * left + fraction * right;
+    }
+
+    U4Material_ReemissionSample Sample(G4double energy) const
+    {
+        const G4double infinity = std::numeric_limits<G4double>::max();
+        const G4double length = absorption->Value(energy);
+        const G4double p =
+            std::clamp(reemissionProbability->Value(energy), G4double(0.), G4double(1.));
+        return {
+            energy,
+            length,
+            p,
+            p >= 1. ? infinity : length / (1. - p),
+            p <= 0. ? infinity : length / p};
+    }
+
+    bool WithinTolerance(
+        const U4Material_ReemissionSample& left,
+        const U4Material_ReemissionSample& right) const
+    {
+        const G4double fractions[] = {0.25, 0.5, 0.75};
+        for (G4double fraction : fractions)
+        {
+            const U4Material_ReemissionSample target =
+                Sample(Interpolate(left.energy, right.energy, fraction));
+            const G4double ordinaryRate =
+                1. / Interpolate(left.ordinaryLength, right.ordinaryLength, fraction);
+            const G4double wlsRate =
+                1. / Interpolate(left.wlsLength, right.wlsLength, fraction);
+            const G4double totalRate = ordinaryRate + wlsRate;
+            const G4double targetRate = 1. / target.legacyLength;
+            const G4double rateRelativeError = std::abs(totalRate - targetRate) / targetRate;
+            const G4double branchingError = std::abs(wlsRate / totalRate - target.probability);
+
+            if (rateRelativeError > U4Material_REEMISSION_INTERPOLATION_TOLERANCE ||
+                branchingError > U4Material_REEMISSION_INTERPOLATION_TOLERANCE)
+                return false;
+        }
+        return true;
+    }
+
+    bool AppendInterval(
+        const U4Material_ReemissionSample& left,
+        const U4Material_ReemissionSample& right,
+        unsigned                           depth)
+    {
+        if (WithinTolerance(left, right))
+        {
+            samples.push_back(right);
+            return true;
+        }
+        if (depth >= U4Material_REEMISSION_MAX_SUBDIVISION_DEPTH)
+            return false;
+
+        const U4Material_ReemissionSample middle =
+            Sample(left.energy + (right.energy - left.energy) / 2.);
+        return AppendInterval(left, middle, depth + 1) &&
+               AppendInterval(middle, right, depth + 1);
+    }
+
+    bool Build(const std::vector<G4double>& inputEnergies)
+    {
+        if (inputEnergies.empty())
+            return false;
+
+        samples.clear();
+        samples.reserve(inputEnergies.size());
+        U4Material_ReemissionSample left = Sample(inputEnergies.front());
+        samples.push_back(left);
+        for (std::size_t i = 1; i < inputEnergies.size(); ++i)
+        {
+            const U4Material_ReemissionSample right = Sample(inputEnergies[i]);
+            if (!AppendInterval(left, right, 0))
+                return false;
+            left = right;
+        }
+        return true;
+    }
+};
+
+/**
  * Adds `WLSTIMECONSTANT` when it is absent.
  *
- * The value is selected from `SCINTILLATIONTIMECONSTANT1`, then
- * `FASTTIMECONSTANT`, then the first energy stored in `OpticalCONSTANT`. A
+ * The value is selected from the first energy stored in `OpticalCONSTANT`,
+ * then `SCINTILLATIONTIMECONSTANT1`, then `FASTTIMECONSTANT`. A
  * value of zero is used when none of those properties is available.
  *
  * @param mpt material property table to update
@@ -288,20 +417,19 @@ void U4Material_AddWLSTimeConstant(G4MaterialPropertiesTable* mpt)
     if (mpt->ConstPropertyExists("WLSTIMECONSTANT"))
         return;
 
-    G4double timeConstant = 0.;
-    if (mpt->ConstPropertyExists("SCINTILLATIONTIMECONSTANT1"))
+    G4double                  timeConstant = 0.;
+    G4MaterialPropertyVector* ratioTime = mpt->GetProperty("OpticalCONSTANT");
+    if (ratioTime && ratioTime->GetVectorLength() > 0)
+    {
+        timeConstant = ratioTime->Energy(0);
+    }
+    else if (mpt->ConstPropertyExists("SCINTILLATIONTIMECONSTANT1"))
     {
         timeConstant = mpt->GetConstProperty("SCINTILLATIONTIMECONSTANT1");
     }
     else if (mpt->ConstPropertyExists("FASTTIMECONSTANT"))
     {
         timeConstant = mpt->GetConstProperty("FASTTIMECONSTANT");
-    }
-    else
-    {
-        G4MaterialPropertyVector* ratioTime = mpt->GetProperty("OpticalCONSTANT");
-        if (ratioTime && ratioTime->GetVectorLength() > 0)
-            timeConstant = ratioTime->Energy(0);
     }
     mpt->AddConstProperty("WLSTIMECONSTANT", timeConstant);
 }
@@ -323,7 +451,10 @@ void U4Material_AddWLSTimeConstant(G4MaterialPropertiesTable* mpt)
  * This preserves the total attenuation rate 1/L and the fraction p handled
  * by `G4OpWLS`. `REEMISSIONPROB` is removed only after a complete migration,
  * preventing the GPU legacy path from competing with the official WLS path.
- * Existing complete WLS properties remain authoritative. An all-zero
+ * Between input knots, the transformed lengths are adaptively subdivided
+ * until their interpolated total rate and WLS branching fraction agree with
+ * the legacy model within 0.1%. Existing complete WLS properties remain
+ * authoritative. An all-zero
  * probability is removed without changing absorption, while an incomplete
  * non-zero definition is retained and reported. A varying probability that
  * reaches zero or one is also retained: Geant4 linearly interpolates material
@@ -418,26 +549,33 @@ bool U4Material::ConvertLegacyReemissionToWLS(G4Material* mat)
         return false;
     }
 
-    std::vector<G4double> energies;
-    energies.reserve(absorption->GetVectorLength() + probability->GetVectorLength());
-    for (std::size_t i = 0; i < absorption->GetVectorLength(); ++i) energies.push_back(absorption->Energy(i));
-    for (std::size_t i = 0; i < probability->GetVectorLength(); ++i) energies.push_back(probability->Energy(i));
-    std::sort(energies.begin(), energies.end());
-    energies.erase(std::unique(energies.begin(), energies.end()), energies.end());
+    std::vector<G4double> inputEnergies;
+    inputEnergies.reserve(absorption->GetVectorLength() + probability->GetVectorLength());
+    for (std::size_t i = 0; i < absorption->GetVectorLength(); ++i) inputEnergies.push_back(absorption->Energy(i));
+    for (std::size_t i = 0; i < probability->GetVectorLength(); ++i) inputEnergies.push_back(probability->Energy(i));
+    std::sort(inputEnergies.begin(), inputEnergies.end());
+    inputEnergies.erase(std::unique(inputEnergies.begin(), inputEnergies.end()), inputEnergies.end());
 
+    U4Material_ReemissionConverter converter(absorption, probability);
+    if (!converter.Build(inputEnergies))
+    {
+        LOG(error)
+            << "cannot migrate REEMISSIONPROB for " << mat->GetName()
+            << ": adaptive interpolation did not reach the 0.1% tolerance";
+        return false;
+    }
+
+    std::vector<G4double> energies;
     std::vector<G4double> ordinaryAbsorption;
     std::vector<G4double> wavelengthShiftAbsorption;
-    ordinaryAbsorption.reserve(energies.size());
-    wavelengthShiftAbsorption.reserve(energies.size());
-
-    const G4double infinity = std::numeric_limits<G4double>::max();
-    for (G4double energy : energies)
+    energies.reserve(converter.samples.size());
+    ordinaryAbsorption.reserve(converter.samples.size());
+    wavelengthShiftAbsorption.reserve(converter.samples.size());
+    for (const U4Material_ReemissionSample& sample : converter.samples)
     {
-        const G4double length = absorption->Value(energy);
-        const G4double p = std::max(0., std::min(1., probability->Value(energy)));
-
-        ordinaryAbsorption.push_back(p >= 1. ? infinity : length / (1. - p));
-        wavelengthShiftAbsorption.push_back(p <= 0. ? infinity : length / p);
+        energies.push_back(sample.energy);
+        ordinaryAbsorption.push_back(sample.ordinaryLength);
+        wavelengthShiftAbsorption.push_back(sample.wlsLength);
     }
 
     mpt->RemoveProperty("ABSLENGTH");
