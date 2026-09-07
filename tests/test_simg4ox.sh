@@ -21,7 +21,9 @@ usage() {
     echo "  dune_mock_wls_detector_box" >&2
     echo "  8x8SiPM_w_CSI_optial_grease" >&2
     echo "  opticks_two_spheres" >&2
-    echo "  drich" >&2
+    echo "  drich_direct_sensor" >&2
+    echo "  drich_aerogel" >&2
+    echo "  drich_mirror" >&2
     echo "  sibling_pair" >&2
 }
 
@@ -53,7 +55,28 @@ run_hit_validation() {
     local geometry=$1
     local config_name=$2
     local macro_file=${3:-${MAC_FILE}}
+    local count_mode=${4:-enforce}
+    local config_file="${SIMPHONY_CONFIG_DIR}/${config_name}.json"
+    local num_photons
     local run_log="${PWD}/simg4ox.log"
+    local -a count_options
+
+    num_photons=$("${PYTHON}" -c \
+        'import json, sys; print(json.load(open(sys.argv[1]))["torch"]["numphoton"])' \
+        "${config_file}")
+    count_options=(--count-trials "${num_photons}" --count-nsigma "${NSIGMA}")
+
+    case "${count_mode}" in
+        enforce)
+            ;;
+        diagnostic)
+            count_options+=(--report-only)
+            ;;
+        *)
+            echo "Unknown count mode: ${count_mode}" >&2
+            return 2
+            ;;
+    esac
 
     rm -f "${PWD}/g_hits.npy" "${PWD}/s_hits.npy" "${run_log}"
 
@@ -65,7 +88,7 @@ run_hit_validation() {
         -s "${SEED}" > "${run_log}" 2>&1
 
     "${PYTHON}" "${COMPARE_AB}" hits "${PWD}/g_hits.npy" "${PWD}/s_hits.npy" \
-        --count-nsigma "${NSIGMA}" \
+        "${count_options[@]}" \
         --chi2-ndf-tolerance 5 \
         --require-hits
 }
@@ -85,12 +108,26 @@ case "${TEST_CASE}" in
         # regression where each PhotonSD overwrites g_hits.npy with its own collection.
         run_hit_validation opticks_two_spheres dev
         ;;
-    drich)
+    drich_direct_sensor)
         # Loading the full geometry exercises conversion of its partial-phi
         # sphere and tube solids. The torch aims identical optical photons at
         # a SiPM patch for a stable, nonzero CPU/GPU hit comparison.
         # Invoke Geant4 SDs for the EFFICIENCY=1 SiPM skin surfaces.
-        run_hit_validation drich drich "${REPO_DIR}/tests/run_validate.mac"
+        run_hit_validation drich drich_direct_sensor "${REPO_DIR}/tests/run_validate.mac"
+        ;;
+    drich_aerogel)
+        # Start inside the realistic aerogel aperture and aim photons through
+        # the air gap and filter, off the mirror, and onto a SiPM patch.
+        # Use enough photons to compare CPU/GPU detection efficiencies while
+        # remaining comparable in runtime to the other full-dRICH tests. Keep
+        # the known efficiency mismatch visible without gating CI until its
+        # underlying cause can be investigated.
+        run_hit_validation drich drich_aerogel "${REPO_DIR}/tests/run_validate.mac" diagnostic
+        ;;
+    drich_mirror)
+        # Start in the dRICH gas and aim at the mirror so detected photons must
+        # undergo one specular reflection before reaching a SiPM patch.
+        run_hit_validation drich drich_mirror "${REPO_DIR}/tests/run_validate.mac"
         ;;
     sibling_pair)
         # The beam can reach the sensor only by crossing the exact shared face

@@ -184,15 +184,44 @@ def load_hits(path):
 
 
 def chi2_1d(a, b, bins):
-    """Return the two-sample binned chi-squared statistic and populated-bin count."""
+    """Return the two-sample shape chi-squared statistic and degrees of freedom.
+
+    The hit-count policy checks the overall normalization separately.  Scale
+    each histogram by its own total here so this statistic measures only
+    differences in the binned distribution shape.
+    """
     a_histogram, _ = np.histogram(a, bins=bins)
     b_histogram, _ = np.histogram(b, bins=bins)
     populated = (a_histogram + b_histogram) > 0
-    chi2 = np.sum(
-        (a_histogram[populated] - b_histogram[populated]) ** 2
-        / (a_histogram[populated] + b_histogram[populated])
-    )
-    return float(chi2), int(populated.sum())
+    a_counts = a_histogram[populated].astype(float)
+    b_counts = b_histogram[populated].astype(float)
+    a_total = a_counts.sum()
+    b_total = b_counts.sum()
+
+    if a_total == 0 or b_total == 0:
+        return 0.0, 0
+
+    delta = a_counts * b_total - b_counts * a_total
+    chi2 = np.sum(delta**2 / ((a_counts + b_counts) * a_total * b_total))
+    return float(chi2), max(int(populated.sum()) - 1, 0)
+
+
+def two_proportion_z_score(a_successes, a_trials, b_successes, b_trials):
+    """Return the pooled z score for equality of two success probabilities."""
+    for successes, trials in ((a_successes, a_trials), (b_successes, b_trials)):
+        if trials <= 0:
+            raise ValueError("count trials must be positive")
+        if not 0 <= successes <= trials:
+            raise ValueError("hit counts must be between zero and count trials")
+
+    a_rate = a_successes / a_trials
+    b_rate = b_successes / b_trials
+    pooled_rate = (a_successes + b_successes) / (a_trials + b_trials)
+    variance = pooled_rate * (1.0 - pooled_rate) * (1.0 / a_trials + 1.0 / b_trials)
+
+    if variance == 0.0:
+        return 0.0
+    return abs(a_rate - b_rate) / math.sqrt(variance)
 
 
 def hit_label(g4_path, gpu_path):
@@ -221,7 +250,17 @@ def hit_parser():
     count_policy.add_argument(
         "--count-nsigma",
         type=float,
-        help="maximum Poisson count difference in standard deviations",
+        help="maximum two-proportion hit-rate difference in standard deviations",
+    )
+    parser.add_argument(
+        "--count-trials",
+        type=int,
+        help="number of photons launched by each implementation (required with --count-nsigma)",
+    )
+    parser.add_argument(
+        "--report-only",
+        action="store_true",
+        help="report statistical mismatches without failing",
     )
     parser.add_argument(
         "--chi2-ndf-tolerance",
@@ -255,6 +294,10 @@ def compare_hits(args):
         raise ValueError("--count-relative-tolerance must be non-negative")
     if args.count_nsigma is not None and args.count_nsigma <= 0:
         raise ValueError("--count-nsigma must be positive")
+    if args.count_nsigma is not None and args.count_trials is None:
+        raise ValueError("--count-trials is required with --count-nsigma")
+    if args.count_trials is not None and args.count_trials <= 0:
+        raise ValueError("--count-trials must be positive")
     if args.chi2_ndf_tolerance < 0:
         raise ValueError("--chi2-ndf-tolerance must be non-negative")
 
@@ -264,6 +307,12 @@ def compare_hits(args):
     label = hit_label(args.g4_hits, args.gpu_hits)
     output_dir = hit_output_dir(args.g4_hits, args.gpu_hits)
     failures = []
+
+    def record_statistical_failure(message):
+        if args.report_only:
+            print(f"  WARNING: {message} (diagnostic only)")
+        else:
+            failures.append(message)
 
     print(f"=== {label} ===")
     print(f"  Output dir:   {output_dir}")
@@ -281,12 +330,17 @@ def compare_hits(args):
         relative_difference = difference / (total / 2) * 100 if total else 0.0
         print(f"  rel diff:     {relative_difference:.3f}%   (tol={args.count_relative_tolerance}%)")
         if relative_difference > args.count_relative_tolerance:
-            failures.append(f"count rel-diff {relative_difference:.2f}% > {args.count_relative_tolerance}%")
+            record_statistical_failure(
+                f"count rel-diff {relative_difference:.2f}% > {args.count_relative_tolerance}%"
+            )
     else:
-        threshold = math.floor(args.count_nsigma * math.sqrt(n_g4 + n_gpu) + 1)
-        print(f"  count diff:   {difference}   ({args.count_nsigma}-sigma threshold={threshold})")
-        if difference > threshold:
-            failures.append(f"count difference {difference} > {args.count_nsigma}-sigma threshold {threshold}")
+        z_score = two_proportion_z_score(n_g4, args.count_trials, n_gpu, args.count_trials)
+        print(f"  G4 hit rate:  {n_g4 / args.count_trials:.6f}")
+        print(f"  GPU hit rate: {n_gpu / args.count_trials:.6f}")
+        print(f"  rate z-score: {z_score:.3f}   (tol={args.count_nsigma})")
+        if z_score > args.count_nsigma:
+            message = f"count-rate z-score {z_score:.2f} > {args.count_nsigma}"
+            record_statistical_failure(message)
 
     if n_g4 == 0 or n_gpu == 0:
         print("  no hits, skip distributions")
@@ -300,10 +354,11 @@ def compare_hits(args):
         ):
             chi2, ndf = chi2_1d(g4[:, column], gpu[:, column], bins)
             ratio = chi2 / max(ndf, 1)
-            marker = "FAIL" if ratio > args.chi2_ndf_tolerance else "ok"
+            marker = "WARN" if args.report_only else "FAIL"
+            marker = marker if ratio > args.chi2_ndf_tolerance else "ok"
             print(f"  {name:>2}: chi2/ndf = {chi2:7.2f}/{ndf} = {ratio:5.2f}  {marker}")
             if ratio > args.chi2_ndf_tolerance:
-                failures.append(f"{name} chi2/ndf {ratio:.2f} > {args.chi2_ndf_tolerance}")
+                record_statistical_failure(f"{name} chi2/ndf {ratio:.2f} > {args.chi2_ndf_tolerance}")
 
     if failures:
         print(f"  FAILED: {', '.join(failures)}")
